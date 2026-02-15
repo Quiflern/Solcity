@@ -30,11 +30,11 @@ export default function HeroBanner() {
 
     // Data streams animation
     class DataStream {
-      x: number = 0;
-      y: number = 0;
-      speed: number = 0;
-      length: number = 0;
-      opacity: number = 0;
+      x = 0;
+      y = 0;
+      speed = 0;
+      length = 0;
+      opacity = 0;
 
       constructor() {
         this.reset();
@@ -59,12 +59,7 @@ export default function HeroBanner() {
 
       draw() {
         if (!ctx) return;
-        const gradient = ctx.createLinearGradient(
-          this.x,
-          this.y - this.length,
-          this.x,
-          this.y,
-        );
+        const gradient = ctx.createLinearGradient(this.x, this.y - this.length, this.x, this.y);
         gradient.addColorStop(0, "rgba(208, 255, 20, 0)");
         gradient.addColorStop(0.5, `rgba(208, 255, 20, ${this.opacity})`);
         gradient.addColorStop(1, "rgba(208, 255, 20, 0)");
@@ -89,10 +84,10 @@ export default function HeroBanner() {
     function animate() {
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      dataStreams.forEach((stream) => {
+      for (const stream of dataStreams) {
         stream.update();
         stream.draw();
-      });
+      }
       requestAnimationFrame(animate);
     }
 
@@ -115,7 +110,7 @@ export default function HeroBanner() {
   return (
     <section
       ref={heroRef}
-      className="relative py-24 px-12 bg-black border-b border-border overflow-hidden before:content-[''] before:absolute before:w-[600px] before:h-[600px] before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:bg-[radial-gradient(circle,rgba(208,255,20,0.2)_0%,transparent_70%)] before:transition-all before:duration-300 before:pointer-events-none after:content-[''] after:absolute after:-top-1/2 after:-right-1/5 after:w-[800px] after:h-[800px] after:bg-[radial-gradient(circle,rgba(208,255,20,0.1)_0%,transparent_70%)] after:animate-pulse-glow"
+      className="relative py-24 bg-black border-b border-border overflow-hidden before:content-[''] before:absolute before:w-[600px] before:h-[600px] before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:bg-[radial-gradient(circle,rgba(208,255,20,0.2)_0%,transparent_70%)] before:transition-all before:duration-300 before:pointer-events-none after:content-[''] after:absolute after:-top-1/2 after:-right-1/5 after:w-[800px] after:h-[800px] after:bg-[radial-gradient(circle,rgba(208,255,20,0.1)_0%,transparent_70%)] after:animate-pulse-glow"
       style={
         {
           "--mouse-x": "50%",
@@ -128,7 +123,6 @@ export default function HeroBanner() {
       <div className="absolute top-0 left-0 right-0 bottom-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 8 }, (_, i) => (
           <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: Static decorative elements that never reorder
             key={`blockchain-block-${i}`}
             className="absolute left-1/2 top-1/2 w-[60px] h-[60px] border-2 border-accent -translate-x-1/2 -translate-y-1/2 opacity-0 animate-block-pulse"
             style={{ animationDelay: `${i * 0.5}s` }}
@@ -136,37 +130,36 @@ export default function HeroBanner() {
         ))}
       </div>
 
-      <canvas
-        ref={canvasRef}
-        className="absolute top-0 left-0 w-full h-full pointer-events-none"
-      />
+      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
 
-      <h1 className="relative z-10 text-[3.5rem] font-medium tracking-tight mb-6 max-w-[700px]">
-        Reward customers with{" "}
-        <span className="bg-linear-to-br from-accent to-white bg-clip-text text-transparent">
-          blockchain tokens.
-        </span>
-      </h1>
+      {/* Content Container */}
+      <div className="relative z-10 max-w-[1400px] mx-auto px-8">
+        <h1 className="text-[3.5rem] font-medium tracking-tight mb-6 max-w-[700px]">
+          Reward customers with{" "}
+          <span className="bg-linear-to-br from-accent to-white bg-clip-text text-transparent">
+            blockchain tokens.
+          </span>
+        </h1>
 
-      <p className="relative z-10 text-text-secondary text-lg leading-relaxed max-w-[600px] mb-10">
-        Solcity empowers businesses to manage decentralized loyalty programs
-        using Solana's Token Extensions. Fast, transparent, and owned by
-        customers.
-      </p>
+        <p className="text-text-secondary text-lg leading-relaxed max-w-[600px] mb-10">
+          Solcity empowers businesses to manage decentralized loyalty programs using Solana's Token Extensions.
+          Fast, transparent, and owned by customers.
+        </p>
 
-      <div className="relative z-10 flex gap-4">
-        <button
-          type="button"
-          className="bg-accent text-black px-10 py-4 border-none font-semibold text-[0.95rem] cursor-pointer rounded transition-all duration-300 shadow-[0_0_30px_rgba(208,255,20,0.3)] hover:bg-[#b8e612] hover:-translate-y-0.5 hover:shadow-[0_8px_40px_rgba(208,255,20,0.5)]"
-        >
-          Start Your Program
-        </button>
-        <button
-          type="button"
-          className="border border-border bg-transparent text-text-primary px-10 py-4 font-medium text-[0.95rem] cursor-pointer rounded transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:text-accent"
-        >
-          See How It Works
-        </button>
+        <div className="flex gap-4">
+          <button
+            type="button"
+            className="bg-accent text-black px-10 py-4 border-none font-semibold text-[0.95rem] cursor-pointer rounded transition-all duration-300 shadow-[0_0_30px_rgba(208,255,20,0.3)] hover:bg-[#b8e612] hover:-translate-y-0.5 hover:shadow-[0_8px_40px_rgba(208,255,20,0.5)]"
+          >
+            Start Your Program
+          </button>
+          <button
+            type="button"
+            className="border border-border bg-transparent text-text-primary px-10 py-4 font-medium text-[0.95rem] cursor-pointer rounded transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:text-accent"
+          >
+            See How It Works
+          </button>
+        </div>
       </div>
     </section>
   );

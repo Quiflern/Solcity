@@ -11,8 +11,8 @@ export default function Home() {
     <>
       <Navbar />
       <main className="w-full flex flex-col">
-        <MetricsBar />
         <HeroBanner />
+        <MetricsBar />
         <StatsShowcase />
         <FeaturesGrid />
         <ActivitySection />
