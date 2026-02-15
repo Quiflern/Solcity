@@ -13,8 +13,8 @@ export default function Home() {
       <main className="w-full flex flex-col">
         <HeroBanner />
         <MetricsBar />
-        <StatsShowcase />
         <FeaturesGrid />
+        <StatsShowcase />
         <ActivitySection />
       </main>
       <Footer />
