@@ -43,7 +43,13 @@ export default function CustomerDashboard() {
             href="/dashboard/redeem"
             className="text-text-secondary text-sm font-medium hover:text-accent transition-colors"
           >
-            Swap
+            Redeem
+          </Link>
+          <Link
+            href="/dashboard/history"
+            className="text-text-secondary text-sm font-medium hover:text-accent transition-colors"
+          >
+            History
           </Link>
           <Link
             href="/settings"

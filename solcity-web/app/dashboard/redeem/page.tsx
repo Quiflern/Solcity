@@ -136,6 +136,12 @@ export default function RedeemPage() {
             Redeem
           </a>
           <a
+            href="/dashboard/history"
+            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
+          >
+            History
+          </a>
+          <a
             href="/settings"
             className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
           >
@@ -171,9 +177,8 @@ export default function RedeemPage() {
         <button
           type="button"
           onClick={() => setActiveTab("marketplace")}
-          className={`py-4 text-sm font-medium relative ${
-            activeTab === "marketplace" ? "text-text" : "text-text-secondary"
-          }`}
+          className={`py-4 text-sm font-medium relative ${activeTab === "marketplace" ? "text-text" : "text-text-secondary"
+            }`}
         >
           Marketplace
           {activeTab === "marketplace" && (
@@ -183,9 +188,8 @@ export default function RedeemPage() {
         <button
           type="button"
           onClick={() => setActiveTab("history")}
-          className={`py-4 text-sm font-medium relative ${
-            activeTab === "history" ? "text-text" : "text-text-secondary"
-          }`}
+          className={`py-4 text-sm font-medium relative ${activeTab === "history" ? "text-text" : "text-text-secondary"
+            }`}
         >
           Redemption History
           {activeTab === "history" && (
@@ -204,15 +208,14 @@ export default function RedeemPage() {
                 className="bg-panel border border-border rounded-xl p-6 flex flex-col transition-all duration-200 hover:border-[#333]"
               >
                 <span
-                  className={`text-[0.65rem] uppercase font-bold px-2 py-1 rounded w-fit mb-4 ${
-                    reward.type === "discount"
+                  className={`text-[0.65rem] uppercase font-bold px-2 py-1 rounded w-fit mb-4 ${reward.type === "discount"
                       ? "bg-[rgba(208,255,20,0.1)] text-accent"
                       : reward.type === "product"
                         ? "bg-[rgba(0,150,255,0.1)] text-[#0096ff]"
                         : reward.type === "cashback"
                           ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
                           : "bg-[rgba(163,53,255,0.1)] text-[#a335ff]"
-                  }`}
+                    }`}
                 >
                   {reward.type === "discount"
                     ? "Discount %"
@@ -294,11 +297,10 @@ export default function RedeemPage() {
                   </td>
                   <td className="py-5 px-4 border-b border-border text-sm">
                     <span
-                      className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${
-                        item.status === "completed"
+                      className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "completed"
                           ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
                           : "bg-[rgba(255,165,0,0.1)] text-[#ffa500]"
-                      }`}
+                        }`}
                     >
                       {item.status}
                     </span>
