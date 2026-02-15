@@ -8,7 +8,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar variant="connected" walletAddress="8xY2...pL9n" />
+      <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>

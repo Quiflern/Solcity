@@ -8,7 +8,7 @@ export default function MerchantLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar variant="connected" walletAddress="Coffee_Shop.sol" />
+      <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
