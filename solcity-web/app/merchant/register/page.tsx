@@ -22,7 +22,7 @@ export default function MerchantRegisterPage() {
         <Navbar />
 
         {/* Setup Container */}
-        <div className="max-w-[1100px] mx-auto my-12 px-12 grid grid-cols-[1.2fr_0.8fr] gap-12">
+        <div className="max-w-[1400px] mx-auto px-8 w-full py-12 grid grid-cols-[1.2fr_0.8fr] gap-12">
           {/* Left Column - Form Steps */}
           <div className="flex flex-col gap-10">
             {/* Section Header */}

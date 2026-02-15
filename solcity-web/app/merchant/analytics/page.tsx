@@ -43,9 +43,9 @@ export default function MerchantAnalyticsPage() {
         <Navbar />
 
         {/* Container */}
-        <div className="max-w-[1440px] mx-auto p-10">
+        <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
           {/* Header */}
-          <div className="flex justify-between items-center mb-10">
+          <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-bold">Performance Analytics</h1>
             <div className="flex bg-panel border border-border rounded-lg p-1">
               <button
@@ -92,7 +92,7 @@ export default function MerchantAnalyticsPage() {
           </div>
 
           {/* Key Metrics */}
-          <div className="grid grid-cols-4 gap-6 mb-10">
+          <div className="grid grid-cols-4 gap-6 mb-8">
             <div className="bg-panel border border-border p-6 rounded-xl">
               <div className="text-[0.7rem] uppercase text-text-secondary mb-2 tracking-wider">
                 Avg Reward / Tx
