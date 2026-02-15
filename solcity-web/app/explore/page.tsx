@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -71,51 +73,10 @@ export default function ExploreMerchantsPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      {/* Navigation Bar */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-bg sticky top-0 z-1000">
-        <Link
-          href="/"
-          className="flex gap-3 items-center text-lg font-bold tracking-wider"
-        >
-          <div className="w-[14px] h-[14px] bg-accent" />
-          SOLCITY
-        </Link>
-        <div className="flex gap-10">
-          <a
-            href="/"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            For Businesses
-          </a>
-          <a
-            href="/explore"
-            className="text-accent text-sm font-medium transition-all duration-300"
-          >
-            Explore Merchants
-          </a>
-          <a
-            href="/docs"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Token Extensions
-          </a>
-          <a
-            href="/docs"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Docs
-          </a>
-        </div>
-        <button
-          type="button"
-          className="border border-border bg-transparent text-text px-6 py-3 text-sm font-medium cursor-pointer rounded transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:text-accent"
-        >
-          Connect Wallet
-        </button>
-      </nav>
+      <Navbar />
 
       {/* Header */}
-      <header className="py-16 px-8 pb-8 max-w-[1200px] mx-auto w-full">
+      <header className="py-16 px-12 pb-8 max-w-[1200px] mx-auto w-full">
         <h1 className="text-[2.5rem] font-medium tracking-tight mb-4">
           Discover rewards in <span className="text-accent">Solcity.</span>
         </h1>
@@ -137,8 +98,8 @@ export default function ExploreMerchantsPage() {
             type="button"
             onClick={() => setActiveFilter("all")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "all"
-                ? "text-accent border-accent"
-                : "text-text-secondary border-transparent hover:text-text"
+              ? "text-accent border-accent"
+              : "text-text-secondary border-transparent hover:text-text"
               }`}
           >
             All Merchants
@@ -147,8 +108,8 @@ export default function ExploreMerchantsPage() {
             type="button"
             onClick={() => setActiveFilter("food")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "food"
-                ? "text-accent border-accent"
-                : "text-text-secondary border-transparent hover:text-text"
+              ? "text-accent border-accent"
+              : "text-text-secondary border-transparent hover:text-text"
               }`}
           >
             Food & Beverage
@@ -157,8 +118,8 @@ export default function ExploreMerchantsPage() {
             type="button"
             onClick={() => setActiveFilter("retail")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "retail"
-                ? "text-accent border-accent"
-                : "text-text-secondary border-transparent hover:text-text"
+              ? "text-accent border-accent"
+              : "text-text-secondary border-transparent hover:text-text"
               }`}
           >
             Retail
@@ -167,8 +128,8 @@ export default function ExploreMerchantsPage() {
             type="button"
             onClick={() => setActiveFilter("services")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "services"
-                ? "text-accent border-accent"
-                : "text-text-secondary border-transparent hover:text-text"
+              ? "text-accent border-accent"
+              : "text-text-secondary border-transparent hover:text-text"
               }`}
           >
             Services
@@ -177,8 +138,8 @@ export default function ExploreMerchantsPage() {
             type="button"
             onClick={() => setActiveFilter("entertainment")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "entertainment"
-                ? "text-accent border-accent"
-                : "text-text-secondary border-transparent hover:text-text"
+              ? "text-accent border-accent"
+              : "text-text-secondary border-transparent hover:text-text"
               }`}
           >
             Entertainment
@@ -187,8 +148,8 @@ export default function ExploreMerchantsPage() {
             type="button"
             onClick={() => setActiveFilter("travel")}
             className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "travel"
-                ? "text-accent border-accent"
-                : "text-text-secondary border-transparent hover:text-text"
+              ? "text-accent border-accent"
+              : "text-text-secondary border-transparent hover:text-text"
               }`}
           >
             Travel
@@ -197,7 +158,7 @@ export default function ExploreMerchantsPage() {
       </header>
 
       {/* Merchant Grid */}
-      <main className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6 max-w-[1200px] mx-auto mb-20 px-8 w-full">
+      <main className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6 max-w-[1200px] mx-auto mb-20 px-12 w-full">
         {merchants.map((merchant) => (
           <Link
             key={merchant.id}
@@ -246,105 +207,7 @@ export default function ExploreMerchantsPage() {
         ))}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-panel border-t border-border px-8 py-16 mt-auto">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-[2fr_1fr_1fr_1fr] gap-16">
-          <div>
-            <div className="flex gap-3 items-center text-lg font-bold tracking-wider mb-4">
-              <div className="w-[14px] h-[14px] bg-accent" />
-              SOLCITY
-            </div>
-            <p className="text-text-secondary leading-relaxed">
-              The future of loyalty. Built on Solana.
-            </p>
-          </div>
-          <div>
-            <h4 className="text-[0.75rem] uppercase text-text-secondary mb-6">
-              Product
-            </h4>
-            <ul className="flex flex-col gap-3">
-              <li>
-                <a
-                  href="/explore"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Explore
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/pricing"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/api"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  API
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[0.75rem] uppercase text-text-secondary mb-6">
-              Resources
-            </h4>
-            <ul className="flex flex-col gap-3">
-              <li>
-                <a
-                  href="/docs"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/help"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/blog"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Blog
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-[0.75rem] uppercase text-text-secondary mb-6">
-              Legal
-            </h4>
-            <ul className="flex flex-col gap-3">
-              <li>
-                <a
-                  href="/privacy"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Privacy
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/terms"
-                  className="text-text-secondary text-sm transition-colors hover:text-accent"
-                >
-                  Terms
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

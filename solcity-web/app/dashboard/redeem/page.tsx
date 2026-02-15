@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { useState } from "react";
 
 export default function RedeemPage() {
@@ -109,53 +111,11 @@ export default function RedeemPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Navigation Bar */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-bg sticky top-0 z-100">
-        <div className="flex gap-3 items-center text-lg font-bold tracking-wider">
-          <div className="w-[14px] h-[14px] bg-accent" />
-          SOLCITY
-        </div>
-        <div className="flex gap-10">
-          <a
-            href="/dashboard"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Dashboard
-          </a>
-          <a
-            href="/explore"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Merchants
-          </a>
-          <a
-            href="/dashboard/redeem"
-            className="text-accent text-sm font-medium transition-all duration-300"
-          >
-            Redeem
-          </a>
-          <a
-            href="/dashboard/history"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            History
-          </a>
-          <a
-            href="/settings"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Settings
-          </a>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-1.5 bg-panel border border-border rounded-full text-sm">
-          <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_8px_var(--accent)]" />
-          8xY2...pL9n
-        </div>
-      </nav>
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Navbar variant="connected" walletAddress="8xY2...pL9n" />
 
       {/* Page Header */}
-      <div className="px-10 py-10 pb-6 flex justify-between items-end bg-linear-to-b from-[#050505] to-bg">
+      <div className="px-12 py-10 pb-6 flex justify-between items-end bg-linear-to-b from-[#050505] to-bg">
         <div>
           <h1 className="text-[2rem] font-extrabold mb-2">Redeem Rewards</h1>
           <p className="text-text-secondary text-sm">
@@ -209,12 +169,12 @@ export default function RedeemPage() {
               >
                 <span
                   className={`text-[0.65rem] uppercase font-bold px-2 py-1 rounded w-fit mb-4 ${reward.type === "discount"
-                      ? "bg-[rgba(208,255,20,0.1)] text-accent"
-                      : reward.type === "product"
-                        ? "bg-[rgba(0,150,255,0.1)] text-[#0096ff]"
-                        : reward.type === "cashback"
-                          ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                          : "bg-[rgba(163,53,255,0.1)] text-[#a335ff]"
+                    ? "bg-[rgba(208,255,20,0.1)] text-accent"
+                    : reward.type === "product"
+                      ? "bg-[rgba(0,150,255,0.1)] text-[#0096ff]"
+                      : reward.type === "cashback"
+                        ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
+                        : "bg-[rgba(163,53,255,0.1)] text-[#a335ff]"
                     }`}
                 >
                   {reward.type === "discount"
@@ -298,8 +258,8 @@ export default function RedeemPage() {
                   <td className="py-5 px-4 border-b border-border text-sm">
                     <span
                       className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "completed"
-                          ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                          : "bg-[rgba(255,165,0,0.1)] text-[#ffa500]"
+                        ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
+                        : "bg-[rgba(255,165,0,0.1)] text-[#ffa500]"
                         }`}
                     >
                       {item.status}
@@ -391,6 +351,8 @@ export default function RedeemPage() {
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

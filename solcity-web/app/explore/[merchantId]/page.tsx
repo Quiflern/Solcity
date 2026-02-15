@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -26,33 +28,10 @@ export default function MerchantDetailPage() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary">
-      {/* Navigation */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-background sticky top-0 z-50">
-        <Link href="/" className="text-lg font-bold tracking-wider flex gap-3 items-center">
-          <div className="w-3.5 h-3.5 bg-accent" />
-          SOLCITY
-        </Link>
-        <div className="flex gap-10">
-          <Link href="/merchant" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            For Businesses
-          </Link>
-          <Link href="/dashboard" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            For Customers
-          </Link>
-          <Link href="/explore" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            Explore
-          </Link>
-        </div>
-        <button
-          type="button"
-          className="border border-border bg-transparent text-text-primary px-6 py-3 text-sm font-medium rounded hover:border-accent hover:text-accent transition-all"
-        >
-          Connect Wallet
-        </button>
-      </nav>
+      <Navbar />
 
       {/* Content */}
-      <div className="max-w-[1200px] mx-auto px-8 py-12">
+      <div className="max-w-[1200px] mx-auto px-12 py-12">
 
         {/* Merchant Header */}
         <header className="flex gap-10 mb-16 items-start">
@@ -263,10 +242,7 @@ export default function MerchantDetailPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-16 text-center text-text-secondary text-sm">
-        <p>© 2024 Solcity Network. Verified Merchant Program. Built on Solana.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

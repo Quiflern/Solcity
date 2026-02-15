@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { useState } from "react";
 
 export default function MerchantRulesPage() {
@@ -34,47 +36,8 @@ export default function MerchantRulesPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Navigation Bar */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-10 bg-bg sticky top-0 z-100">
-        <div className="flex gap-3 items-center text-lg font-bold tracking-wider">
-          <div className="w-[14px] h-[14px] bg-accent" />
-          SOLCITY
-          <span className="text-text-secondary font-normal ml-2 text-sm">
-            MERCHANT
-          </span>
-        </div>
-        <div className="flex gap-10">
-          <a
-            href="/merchant"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Analytics
-          </a>
-          <a
-            href="/merchant/customers"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Customers
-          </a>
-          <a
-            href="/merchant/rules"
-            className="text-accent text-sm font-medium transition-all duration-300"
-          >
-            Rules & Tiers
-          </a>
-          <a
-            href="/settings"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Settings
-          </a>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-1.5 bg-panel border border-border rounded-full text-sm">
-          <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_8px_var(--accent)]" />
-          Coffee_Shop.sol
-        </div>
-      </nav>
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Navbar variant="connected" walletAddress="Coffee_Shop.sol" />
 
       {/* Page Header */}
       <div className="px-10 py-10 pb-6 flex justify-between items-center">
@@ -360,6 +323,8 @@ export default function MerchantRulesPage() {
           </div>
         </aside>
       </div>
+
+      <Footer />
     </div>
   );
 }

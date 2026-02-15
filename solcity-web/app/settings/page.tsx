@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { useState } from "react";
 
 export default function SettingsPage() {
@@ -12,36 +13,10 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary flex flex-col">
-      {/* Navigation */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-background sticky top-0 z-50">
-        <Link href="/" className="text-lg font-bold tracking-wider flex gap-3 items-center">
-          <div className="w-3.5 h-3.5 bg-accent" />
-          SOLCITY
-        </Link>
-        <div className="flex gap-10">
-          <Link href="/merchant" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            For Businesses
-          </Link>
-          <Link href="/explore" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            Explore Merchants
-          </Link>
-          <Link href="/dashboard" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            Dashboard
-          </Link>
-          <Link href="/profile" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            Profile
-          </Link>
-        </div>
-        <button
-          type="button"
-          className="border border-border bg-transparent text-text-primary px-6 py-3 text-sm font-medium rounded transition-all"
-        >
-          8xPz...4v9k
-        </button>
-      </nav>
+      <Navbar variant="connected" walletAddress="8xPz...4v9k" />
 
       {/* Settings Container */}
-      <div className="max-w-[1200px] mx-auto my-16 px-8 grid grid-cols-[280px_1fr] gap-16 w-full">
+      <div className="max-w-[1200px] mx-auto my-16 px-12 grid grid-cols-[280px_1fr] gap-16 w-full">
         {/* Sidebar */}
         <aside className="flex flex-col gap-2">
           <a
@@ -319,73 +294,7 @@ export default function SettingsPage() {
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-panel border-t border-border py-16 px-8 mt-auto">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-[2fr_1fr_1fr_1fr] gap-16">
-          <div>
-            <div className="text-lg font-bold tracking-wider flex gap-3 items-center mb-4">
-              <div className="w-3.5 h-3.5 bg-accent" />
-              SOLCITY
-            </div>
-            <p className="text-text-secondary leading-relaxed">The future of loyalty. Built on Solana.</p>
-          </div>
-          <div>
-            <h4 className="text-xs uppercase text-text-secondary mb-6">Product</h4>
-            <ul className="flex flex-col gap-3">
-              <li>
-                <Link href="/explore" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Explore
-                </Link>
-              </li>
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  API
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-xs uppercase text-text-secondary mb-6">Resources</h4>
-            <ul className="flex flex-col gap-3">
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Blog
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-xs uppercase text-text-secondary mb-6">Legal</h4>
-            <ul className="flex flex-col gap-3">
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Privacy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
-                  Terms
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

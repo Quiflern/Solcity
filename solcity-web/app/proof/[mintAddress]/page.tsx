@@ -1,5 +1,6 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -25,33 +26,10 @@ export default function TokenProofPage() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary flex flex-col">
-      {/* Navigation */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-background sticky top-0 z-50">
-        <Link href="/" className="text-lg font-bold tracking-wider flex gap-3 items-center">
-          <div className="w-3.5 h-3.5 bg-accent" />
-          SOLCITY
-        </Link>
-        <div className="flex gap-10">
-          <Link href="/merchant" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            For Businesses
-          </Link>
-          <Link href="/explore" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            Explore Merchants
-          </Link>
-          <Link href="/dashboard" className="text-text-secondary text-sm font-medium hover:text-accent transition-colors">
-            Dashboard
-          </Link>
-        </div>
-        <button
-          type="button"
-          className="border border-border bg-transparent text-text-primary px-6 py-3 text-sm font-medium rounded transition-all"
-        >
-          Connect Wallet
-        </button>
-      </nav>
+      <Navbar />
 
       {/* Main Content */}
-      <main className="max-w-[1100px] mx-auto my-16 px-8 grid grid-cols-2 gap-16 items-start">
+      <main className="max-w-[1100px] mx-auto my-16 px-12 grid grid-cols-2 gap-16 items-start">
         {/* Credential Card */}
         <div className="bg-linear-135 from-[#1a1a1a] to-[#0a0a0a] border border-border rounded-[20px] p-10 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] before:content-[''] before:absolute before:-top-1/2 before:-left-1/2 before:w-[200%] before:h-[200%] before:bg-[radial-gradient(circle_at_center,rgba(208,255,20,0.05)_0%,transparent_50%)] before:pointer-events-none">
           {/* Card Top */}
@@ -190,7 +168,7 @@ export default function TokenProofPage() {
         </div>
       </main>
 
-      {/* Footer */}
+      {/* Custom Footer for Proof Page */}
       <footer className="mt-auto py-16 border-t border-border text-center text-text-secondary text-sm">
         <div className="mb-4">
           <div className="text-lg font-bold tracking-wider flex gap-3 items-center justify-center mb-4">
@@ -199,7 +177,7 @@ export default function TokenProofPage() {
           </div>
           Powered by Solana Token-2022 Interest-Bearing Extensions
         </div>
-        © 2024 Solcity Protocol. All rights reserved.
+        © {new Date().getFullYear()} Solcity Protocol. All rights reserved.
       </footer>
     </div>
   );

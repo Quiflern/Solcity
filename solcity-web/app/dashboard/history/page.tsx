@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { useState } from "react";
 
 export default function RewardHistoryPage() {
@@ -84,53 +86,11 @@ export default function RewardHistoryPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Navigation Bar */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-bg sticky top-0 z-100">
-        <div className="flex gap-3 items-center text-lg font-bold tracking-wider">
-          <div className="w-[14px] h-[14px] bg-accent" />
-          SOLCITY
-        </div>
-        <div className="flex gap-10">
-          <a
-            href="/dashboard"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Dashboard
-          </a>
-          <a
-            href="/explore"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Merchants
-          </a>
-          <a
-            href="/dashboard/redeem"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Redeem
-          </a>
-          <a
-            href="/dashboard/history"
-            className="text-accent text-sm font-medium transition-all duration-300"
-          >
-            History
-          </a>
-          <a
-            href="/settings"
-            className="text-text-secondary text-sm font-medium transition-all duration-300 hover:text-accent"
-          >
-            Settings
-          </a>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-1.5 bg-panel border border-border rounded-full text-sm">
-          <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_8px_var(--accent)]" />
-          8xY2...pL9n
-        </div>
-      </nav>
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Navbar variant="connected" walletAddress="8xY2...pL9n" />
 
       {/* Content */}
-      <div className="px-10 py-10 max-w-[1200px] mx-auto">
+      <div className="px-12 py-10 max-w-[1200px] mx-auto">
         {/* Page Header */}
         <header className="flex justify-between items-center mb-10">
           <h1 className="text-[1.75rem] font-bold">Reward History</h1>
@@ -223,8 +183,8 @@ export default function RewardHistoryPage() {
               type="button"
               onClick={() => setDateFilter("7d")}
               className={`px-3 py-1.5 rounded text-xs ${dateFilter === "7d"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
+                ? "bg-panel border border-border text-text"
+                : "bg-transparent border border-transparent text-text-secondary"
                 }`}
             >
               7d
@@ -233,8 +193,8 @@ export default function RewardHistoryPage() {
               type="button"
               onClick={() => setDateFilter("30d")}
               className={`px-3 py-1.5 rounded text-xs ${dateFilter === "30d"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
+                ? "bg-panel border border-border text-text"
+                : "bg-transparent border border-transparent text-text-secondary"
                 }`}
             >
               30d
@@ -243,8 +203,8 @@ export default function RewardHistoryPage() {
               type="button"
               onClick={() => setDateFilter("90d")}
               className={`px-3 py-1.5 rounded text-xs ${dateFilter === "90d"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
+                ? "bg-panel border border-border text-text"
+                : "bg-transparent border border-transparent text-text-secondary"
                 }`}
             >
               90d
@@ -253,8 +213,8 @@ export default function RewardHistoryPage() {
               type="button"
               onClick={() => setDateFilter("all")}
               className={`px-3 py-1.5 rounded text-xs ${dateFilter === "all"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
+                ? "bg-panel border border-border text-text"
+                : "bg-transparent border border-transparent text-text-secondary"
                 }`}
             >
               All Time
@@ -305,8 +265,8 @@ export default function RewardHistoryPage() {
                   >
                     <span
                       className={`text-xs px-2 py-0.5 rounded ${tx.type === "reward"
-                          ? "bg-accent/10 text-accent"
-                          : "bg-white/5 text-text-secondary"
+                        ? "bg-accent/10 text-accent"
+                        : "bg-white/5 text-text-secondary"
                         }`}
                     >
                       {tx.type === "reward"
@@ -346,6 +306,8 @@ export default function RewardHistoryPage() {
           </table>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

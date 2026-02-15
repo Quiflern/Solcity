@@ -1,143 +1,111 @@
+import Link from "next/link";
+
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-panel border-t border-border px-12 py-16">
-      <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-16 mb-12">
-        <div className="flex flex-col gap-6">
-          <div className="flex gap-3 items-center text-lg font-bold tracking-wider">
-            <div className="w-[14px] h-[14px] bg-accent" />
-            SOLCITY
+    <footer className="bg-panel border-t border-border py-16 mt-auto">
+      <div className="max-w-[1400px] mx-auto px-8">
+        <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-16">
+          {/* Brand Column */}
+          <div>
+            <div className="text-lg font-bold tracking-wider flex gap-3 items-center mb-4">
+              <div className="w-3.5 h-3.5 bg-accent" />
+              SOLCITY
+            </div>
+            <p className="text-text-secondary leading-relaxed">
+              The future of loyalty. Built on Solana.
+            </p>
+            <p className="text-text-secondary text-xs mt-4">
+              © {currentYear} Solcity Network. All rights reserved.
+            </p>
           </div>
-          <p className="text-text-secondary leading-relaxed">
-            Decentralized customer loyalty platform built on Solana. Fast,
-            transparent, and on-chain rewards that customers actually own.
-          </p>
-        </div>
 
-        <div>
-          <h4 className="text-[0.75rem] uppercase tracking-widest text-text-secondary mb-6 font-semibold">
-            Product
-          </h4>
-          <ul className="flex flex-col gap-4">
-            <li>
-              <a
-                href="/features"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Features
-              </a>
-            </li>
-            <li>
-              <a
-                href="/pricing"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Pricing
-              </a>
-            </li>
-            <li>
-              <a
-                href="/token-extensions"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Token Extensions
-              </a>
-            </li>
-            <li>
-              <a
-                href="/roadmap"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Roadmap
-              </a>
-            </li>
-          </ul>
-        </div>
+          {/* Product Column */}
+          <div>
+            <h4 className="text-xs uppercase text-text-secondary mb-6">Product</h4>
+            <ul className="flex flex-col gap-3">
+              <li>
+                <Link
+                  href="/explore"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
+                  Explore
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/merchant/register"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
+                  For Merchants
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/dashboard"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  API
+                </a>
+              </li>
+            </ul>
+          </div>
 
-        <div>
-          <h4 className="text-[0.75rem] uppercase tracking-widest text-text-secondary mb-6 font-semibold">
-            Resources
-          </h4>
-          <ul className="flex flex-col gap-4">
-            <li>
-              <a
-                href="/docs"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Documentation
-              </a>
-            </li>
-            <li>
-              <a
-                href="/api"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                API Reference
-              </a>
-            </li>
-            <li>
-              <a
-                href="/case-studies"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Case Studies
-              </a>
-            </li>
-            <li>
-              <a
-                href="/support"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Support
-              </a>
-            </li>
-          </ul>
-        </div>
+          {/* Resources Column */}
+          <div>
+            <h4 className="text-xs uppercase text-text-secondary mb-6">Resources</h4>
+            <ul className="flex flex-col gap-3">
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Documentation
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Help Center
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Blog
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Community
+                </a>
+              </li>
+            </ul>
+          </div>
 
-        <div>
-          <h4 className="text-[0.75rem] uppercase tracking-widest text-text-secondary mb-6 font-semibold">
-            Company
-          </h4>
-          <ul className="flex flex-col gap-4">
-            <li>
-              <a
-                href="/about"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                About Us
-              </a>
-            </li>
-            <li>
-              <a
-                href="/blog"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Blog
-              </a>
-            </li>
-            <li>
-              <a
-                href="/careers"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Careers
-              </a>
-            </li>
-            <li>
-              <a
-                href="/contact"
-                className="text-text-secondary text-sm transition-all duration-300 relative inline-block before:content-['→'] before:absolute before:-left-5 before:opacity-0 before:transition-all before:duration-300 hover:text-accent hover:translate-x-2.5 hover:before:opacity-100 hover:before:-left-[15px]"
-              >
-                Contact
-              </a>
-            </li>
-          </ul>
+          {/* Legal Column */}
+          <div>
+            <h4 className="text-xs uppercase text-text-secondary mb-6">Legal</h4>
+            <ul className="flex flex-col gap-3">
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                  Cookie Policy
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
-
-      <div className="pt-8 border-t border-border text-center text-text-secondary text-sm">
-        <p>
-          © 2024 Solcity. All rights reserved. Powered by Solana blockchain.
-        </p>
       </div>
     </footer>
   );

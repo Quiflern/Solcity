@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { useState } from "react";
 
 export default function MerchantRegisterPage() {
@@ -15,23 +17,10 @@ export default function MerchantRegisterPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      {/* Navigation Bar */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-bg sticky top-0 z-100">
-        <div className="flex gap-3 items-center text-lg font-bold tracking-wider">
-          <div className="w-[14px] h-[14px] bg-accent" />
-          SOLCITY
-          <span className="text-text-secondary font-normal ml-2 text-sm">
-            MERCHANT SETUP
-          </span>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-1.5 bg-panel border border-border rounded-full text-sm">
-          <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_8px_var(--accent)]" />
-          Connected: Coffee_Shop.sol
-        </div>
-      </nav>
+      <Navbar variant="connected" walletAddress="Coffee_Shop.sol" />
 
       {/* Setup Container */}
-      <div className="max-w-[1100px] mx-auto my-12 px-8 grid grid-cols-[1.2fr_0.8fr] gap-12">
+      <div className="max-w-[1100px] mx-auto my-12 px-12 grid grid-cols-[1.2fr_0.8fr] gap-12">
         {/* Left Column - Form Steps */}
         <div className="flex flex-col gap-10">
           {/* Section Header */}
@@ -319,6 +308,8 @@ export default function MerchantRegisterPage() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

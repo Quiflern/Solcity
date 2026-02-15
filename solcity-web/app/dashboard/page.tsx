@@ -1,5 +1,7 @@
 "use client";
 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -19,50 +21,8 @@ export default function CustomerDashboard() {
   }, [tokenBalance]);
 
   return (
-    <div className="min-h-screen bg-bg-primary">
-      {/* Navigation */}
-      <nav className="h-[72px] border-b border-border flex items-center justify-between px-8 bg-bg-primary sticky top-0 z-100">
-        <Link
-          href="/"
-          className="flex gap-3 items-center text-lg font-bold tracking-wider"
-        >
-          <div className="w-[14px] h-[14px] bg-accent" />
-          SOLCITY
-        </Link>
-        <div className="flex gap-10">
-          <Link href="/dashboard" className="text-accent text-sm font-medium">
-            Dashboard
-          </Link>
-          <Link
-            href="/explore"
-            className="text-text-secondary text-sm font-medium hover:text-accent transition-colors"
-          >
-            Merchants
-          </Link>
-          <Link
-            href="/dashboard/redeem"
-            className="text-text-secondary text-sm font-medium hover:text-accent transition-colors"
-          >
-            Redeem
-          </Link>
-          <Link
-            href="/dashboard/history"
-            className="text-text-secondary text-sm font-medium hover:text-accent transition-colors"
-          >
-            History
-          </Link>
-          <Link
-            href="/settings"
-            className="text-text-secondary text-sm font-medium hover:text-accent transition-colors"
-          >
-            Settings
-          </Link>
-        </div>
-        <div className="flex items-center gap-3 px-4 py-1.5 bg-panel border border-border rounded-full text-sm">
-          <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_8px_#d0ff14]" />
-          8xY2...pL9n
-        </div>
-      </nav>
+    <div className="min-h-screen bg-bg-primary flex flex-col">
+      <Navbar variant="connected" walletAddress="8xY2...pL9n" />
 
       {/* Dashboard Layout */}
       <div className="grid grid-cols-[1fr_400px] gap-px bg-border min-h-[calc(100vh-72px)]">
@@ -354,6 +314,8 @@ export default function CustomerDashboard() {
           </div>
         </aside>
       </div>
+
+      <Footer />
     </div>
   );
 }
