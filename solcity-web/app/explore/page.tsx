@@ -136,66 +136,60 @@ export default function ExploreMerchantsPage() {
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-              activeFilter === "all"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "all"
                 ? "text-accent border-accent"
                 : "text-text-secondary border-transparent hover:text-text"
-            }`}
+              }`}
           >
             All Merchants
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter("food")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-              activeFilter === "food"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "food"
                 ? "text-accent border-accent"
                 : "text-text-secondary border-transparent hover:text-text"
-            }`}
+              }`}
           >
             Food & Beverage
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter("retail")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-              activeFilter === "retail"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "retail"
                 ? "text-accent border-accent"
                 : "text-text-secondary border-transparent hover:text-text"
-            }`}
+              }`}
           >
             Retail
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter("services")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-              activeFilter === "services"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "services"
                 ? "text-accent border-accent"
                 : "text-text-secondary border-transparent hover:text-text"
-            }`}
+              }`}
           >
             Services
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter("entertainment")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-              activeFilter === "entertainment"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "entertainment"
                 ? "text-accent border-accent"
                 : "text-text-secondary border-transparent hover:text-text"
-            }`}
+              }`}
           >
             Entertainment
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter("travel")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-              activeFilter === "travel"
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "travel"
                 ? "text-accent border-accent"
                 : "text-text-secondary border-transparent hover:text-text"
-            }`}
+              }`}
           >
             Travel
           </button>
@@ -205,8 +199,9 @@ export default function ExploreMerchantsPage() {
       {/* Merchant Grid */}
       <main className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6 max-w-[1200px] mx-auto mb-20 px-8 w-full">
         {merchants.map((merchant) => (
-          <div
+          <Link
             key={merchant.id}
+            href={`/explore/${merchant.id}`}
             className="bg-panel border border-border rounded-xl p-6 transition-all duration-300 cursor-pointer flex flex-col gap-6 relative overflow-hidden hover:-translate-y-1.5 hover:border-accent hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] after:content-[''] after:absolute after:top-0 after:right-0 after:w-20 after:h-20 after:bg-[radial-gradient(circle_at_top_right,rgba(208,255,20,0.05),transparent_70%)]"
           >
             <div className="flex gap-4 items-center">
@@ -220,7 +215,7 @@ export default function ExploreMerchantsPage() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 bg-bg p-4 rounded-lg border border-white/[0.03]">
+            <div className="grid grid-cols-2 gap-4 bg-bg p-4 rounded-lg border border-white/3">
               <div className="flex flex-col gap-1">
                 <span className="text-[0.7rem] text-text-secondary uppercase">
                   Earn Rate
@@ -247,7 +242,7 @@ export default function ExploreMerchantsPage() {
                 <span>{merchant.joined}</span>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </main>
 
