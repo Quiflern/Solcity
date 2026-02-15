@@ -31,7 +31,7 @@ export default function MerchantDetailPage() {
       <Navbar />
 
       {/* Content */}
-      <div className="max-w-[1200px] mx-auto px-12 py-12">
+      <div className="max-w-[1400px] mx-auto px-8 py-12">
 
         {/* Merchant Header */}
         <header className="flex gap-10 mb-16 items-start">

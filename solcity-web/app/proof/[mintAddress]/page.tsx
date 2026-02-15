@@ -29,7 +29,7 @@ export default function TokenProofPage() {
       <Navbar />
 
       {/* Main Content */}
-      <main className="max-w-[1100px] mx-auto my-16 px-12 grid grid-cols-2 gap-16 items-start">
+      <main className="max-w-[1400px] mx-auto my-16 px-8 grid grid-cols-2 gap-16 items-start">
         {/* Credential Card */}
         <div className="bg-linear-135 from-[#1a1a1a] to-[#0a0a0a] border border-border rounded-[20px] p-10 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] before:content-[''] before:absolute before:-top-1/2 before:-left-1/2 before:w-[200%] before:h-[200%] before:bg-[radial-gradient(circle_at_center,rgba(208,255,20,0.05)_0%,transparent_50%)] before:pointer-events-none">
           {/* Card Top */}

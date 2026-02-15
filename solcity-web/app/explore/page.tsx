@@ -76,7 +76,7 @@ export default function ExploreMerchantsPage() {
       <Navbar />
 
       {/* Header */}
-      <header className="py-16 px-12 pb-8 max-w-[1200px] mx-auto w-full">
+      <header className="py-16 px-8 pb-8 max-w-[1400px] mx-auto w-full">
         <h1 className="text-[2.5rem] font-medium tracking-tight mb-4">
           Discover rewards in <span className="text-accent">Solcity.</span>
         </h1>
@@ -158,7 +158,7 @@ export default function ExploreMerchantsPage() {
       </header>
 
       {/* Merchant Grid */}
-      <main className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6 max-w-[1200px] mx-auto mb-20 px-12 w-full">
+      <main className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6 max-w-[1400px] mx-auto mb-20 px-8 w-full">
         {merchants.map((merchant) => (
           <Link
             key={merchant.id}

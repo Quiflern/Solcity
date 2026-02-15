@@ -13,7 +13,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-background text-text-primary flex flex-col">
         <Navbar />
 
-        <main className="max-w-[1200px] mx-auto px-12 py-12 w-full">
+        <main className="max-w-[1400px] mx-auto px-8 py-12 w-full">
           <section className="flex items-center gap-8 mb-12">
             <div className="w-[100px] h-[100px] rounded-xl bg-linear-to-br from-[#1a1a1a] to-[#333] border border-border flex items-center justify-center text-4xl">
               👤
@@ -80,21 +80,45 @@ export default function ProfilePage() {
                     <div className="w-8 h-8 bg-panel rounded flex items-center justify-center text-sm">☕</div>
                     <span>Ethos Coffee</span>
                   </div>
-                  <span className="font-semibold text-accent">1,240 SLCY</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-accent">1,240 SLCY</span>
+                    <a
+                      href="/proof/ethos-coffee-mint"
+                      className="text-xs text-text-secondary hover:text-accent transition-colors"
+                    >
+                      View Proof →
+                    </a>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-background rounded-lg border border-white/3">
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 bg-panel rounded flex items-center justify-center text-sm">👕</div>
                     <span>Nexus Apparel</span>
                   </div>
-                  <span className="font-semibold text-accent">850 SLCY</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-accent">850 SLCY</span>
+                    <a
+                      href="/proof/nexus-apparel-mint"
+                      className="text-xs text-text-secondary hover:text-accent transition-colors"
+                    >
+                      View Proof →
+                    </a>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-background rounded-lg border border-white/3">
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 bg-panel rounded flex items-center justify-center text-sm">💪</div>
                     <span>Core Collective</span>
                   </div>
-                  <span className="font-semibold text-accent">400 SLCY</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-accent">400 SLCY</span>
+                    <a
+                      href="/proof/core-collective-mint"
+                      className="text-xs text-text-secondary hover:text-accent transition-colors"
+                    >
+                      View Proof →
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

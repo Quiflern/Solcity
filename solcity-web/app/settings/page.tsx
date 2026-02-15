@@ -20,7 +20,7 @@ export default function SettingsPage() {
         <Navbar />
 
         {/* Settings Container */}
-        <div className="max-w-[1200px] mx-auto my-16 px-12 grid grid-cols-[280px_1fr] gap-16 w-full">
+        <div className="max-w-[1400px] mx-auto my-16 px-8 grid grid-cols-[280px_1fr] gap-16 w-full">
           {/* Sidebar */}
           <aside className="flex flex-col gap-2">
             <a
