@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function MerchantDashboard() {
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -68,6 +69,54 @@ export default function MerchantDashboard() {
 
         {/* Dashboard Layout */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-10">
+          {/* Quick Access Cards */}
+          <div className="grid grid-cols-3 gap-6 mb-10">
+            <Link
+              href="/merchant/register"
+              className="bg-panel border border-border p-6 rounded-xl hover:border-accent transition-colors group"
+            >
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center text-accent">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold group-hover:text-accent transition-colors">Register Business</h3>
+              </div>
+              <p className="text-xs text-text-secondary">Set up your loyalty program on-chain</p>
+            </Link>
+
+            <Link
+              href="/merchant/analytics"
+              className="bg-panel border border-border p-6 rounded-xl hover:border-accent transition-colors group"
+            >
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center text-accent">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold group-hover:text-accent transition-colors">View Analytics</h3>
+              </div>
+              <p className="text-xs text-text-secondary">Track performance and customer insights</p>
+            </Link>
+
+            <Link
+              href="/merchant/rules"
+              className="bg-panel border border-border p-6 rounded-xl hover:border-accent transition-colors group"
+            >
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center text-accent">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold group-hover:text-accent transition-colors">Manage Rules</h3>
+              </div>
+              <p className="text-xs text-text-secondary">Configure reward multipliers and bonuses</p>
+            </Link>
+          </div>
+
           <div className="grid grid-cols-[1fr_400px] gap-8">
             {/* Main Column */}
             <main>
@@ -310,9 +359,9 @@ export default function MerchantDashboard() {
                 </div>
                 <button
                   type="button"
-                  className="w-full mt-6 bg-transparent border border-border text-text px-4 py-2.5 rounded-md text-xs cursor-pointer"
+                  className="w-full mt-6 bg-transparent border border-border text-text px-4 py-2.5 rounded-md text-xs cursor-pointer hover:border-accent hover:text-accent transition-colors"
                 >
-                  Edit All Rules
+                  <Link href="/merchant/rules">Edit All Rules</Link>
                 </button>
               </div>
             </aside>
