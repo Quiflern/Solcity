@@ -16,11 +16,22 @@ export type RuleType =
 
 export interface RewardRuleParams {
   ruleId: number;
+  name: string;
   ruleType: RuleType;
   multiplier: number; // 100 = 1x, 200 = 2x, etc.
   minPurchase: number; // in cents
   startTime?: number; // Unix timestamp, 0 = immediate
   endTime?: number; // Unix timestamp, 0 = no expiry
+}
+
+export interface UpdateRewardRuleParams {
+  ruleId: number;
+  name?: string;
+  ruleType?: RuleType;
+  multiplier?: number;
+  minPurchase?: number;
+  startTime?: number;
+  endTime?: number;
 }
 
 export function useRewardRules() {
@@ -53,6 +64,7 @@ export function useRewardRules() {
       const tx = await program.methods
         .setRewardRule(
           ruleIdBN,
+          params.name,
           params.ruleType,
           multiplierBN,
           minPurchaseBN,
@@ -80,6 +92,120 @@ export function useRewardRules() {
     }
   };
 
+  const updateRewardRule = async (params: UpdateRewardRuleParams) => {
+    if (!program || !publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+      const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+
+      const ruleIdBN = new BN(params.ruleId);
+      const multiplierBN = params.multiplier ? new BN(params.multiplier) : null;
+      const minPurchaseBN = params.minPurchase ? new BN(params.minPurchase) : null;
+      const startTimeBN = params.startTime !== undefined ? new BN(params.startTime) : null;
+      const endTimeBN = params.endTime !== undefined ? new BN(params.endTime) : null;
+
+      const tx = await program.methods
+        .updateRewardRule(
+          ruleIdBN,
+          params.name || null,
+          params.ruleType || null,
+          multiplierBN,
+          minPurchaseBN,
+          startTimeBN,
+          endTimeBN
+        )
+        .accounts({
+          merchantAuthority: publicKey,
+        })
+        .rpc();
+
+      const latestBlockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+        signature: tx,
+        ...latestBlockhash,
+      });
+
+      return { signature: tx };
+    } catch (err: any) {
+      setError(err.message || "Failed to update reward rule");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleRewardRule = async (ruleId: number, isActive: boolean) => {
+    if (!program || !publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const ruleIdBN = new BN(ruleId);
+
+      const tx = await program.methods
+        .toggleRewardRule(ruleIdBN, isActive)
+        .accounts({
+          merchantAuthority: publicKey,
+        })
+        .rpc();
+
+      const latestBlockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+        signature: tx,
+        ...latestBlockhash,
+      });
+
+      return { signature: tx };
+    } catch (err: any) {
+      setError(err.message || "Failed to toggle reward rule");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteRewardRule = async (ruleId: number) => {
+    if (!program || !publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const ruleIdBN = new BN(ruleId);
+
+      const tx = await program.methods
+        .deleteRewardRule(ruleIdBN)
+        .accounts({
+          merchantAuthority: publicKey,
+        })
+        .rpc();
+
+      const latestBlockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+        signature: tx,
+        ...latestBlockhash,
+      });
+
+      return { signature: tx };
+    } catch (err: any) {
+      setError(err.message || "Failed to delete reward rule");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const fetchRewardRule = async (ruleId: number) => {
     if (!program || !publicKey) {
       throw new Error("Wallet not connected");
@@ -90,6 +216,7 @@ export function useRewardRules() {
       const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
       const [rewardRule] = getRewardRulePDA(merchant, ruleId);
 
+      // @ts-ignore - Using JSON IDL, types not available
       const ruleAccount = await program.account.rewardRule.fetch(rewardRule);
       return ruleAccount;
     } catch (err: any) {
@@ -99,6 +226,9 @@ export function useRewardRules() {
 
   return {
     createRewardRule,
+    updateRewardRule,
+    toggleRewardRule,
+    deleteRewardRule,
     fetchRewardRule,
     isLoading,
     error,

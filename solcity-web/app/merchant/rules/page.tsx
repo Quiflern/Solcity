@@ -8,27 +8,34 @@ import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Dropdown from "@/components/ui/Dropdown";
 import Toggle from "@/components/ui/Toggle";
+import Modal from "@/components/ui/Modal";
 import { useState } from "react";
 import { useRewardRules, type RuleType } from "@/hooks/useRewardRules";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { toast } from "sonner";
 import { useWallet } from "@solana/wallet-adapter-react";
 
+interface Rule {
+  id: number;
+  name: string;
+  type: string;
+  multiplier: number;
+  minPurchase: number;
+  startTime: number;
+  endTime: number;
+  isActive: boolean;
+}
+
 export default function MerchantRulesPage() {
   const { publicKey } = useWallet();
-  const { createRewardRule, isLoading } = useRewardRules();
+  const { createRewardRule, updateRewardRule, toggleRewardRule, deleteRewardRule, isLoading } = useRewardRules();
   const { merchantAccount, isLoading: merchantLoading } = useMerchantAccount();
 
-  const [createdRules, setCreatedRules] = useState<Array<{
-    id: number;
-    type: string;
-    multiplier: number;
-    minPurchase: number;
-    startTime: number;
-    endTime: number;
-    isActive: boolean;
-  }>>([]);
+  const [createdRules, setCreatedRules] = useState<Rule[]>([]);
+  const [editingRule, setEditingRule] = useState<Rule | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
+  const [ruleName, setRuleName] = useState("");
   const [ruleType, setRuleType] = useState("bonusMultiplier");
   const [multiplier, setMultiplier] = useState("200");
   const [minPurchase, setMinPurchase] = useState("10.00");
@@ -53,6 +60,7 @@ export default function MerchantRulesPage() {
   ];
 
   const resetForm = () => {
+    setRuleName("");
     setRuleType("bonusMultiplier");
     setMultiplier("200");
     setMinPurchase("10.00");
@@ -67,13 +75,15 @@ export default function MerchantRulesPage() {
     }
 
     if (!merchantAccount) {
-      toast.error("Please register as a merchant first", {
-        description: "Go to Merchant Dashboard to register",
-      });
+      toast.error("Please register as a merchant first");
       return;
     }
 
-    // Validation
+    if (!ruleName.trim()) {
+      toast.error("Please enter a rule name");
+      return;
+    }
+
     if (!minPurchase || parseFloat(minPurchase) < 0) {
       toast.error("Please enter a valid minimum purchase amount");
       return;
@@ -85,21 +95,15 @@ export default function MerchantRulesPage() {
     }
 
     try {
-      // Convert rule type string to enum object
       const ruleTypeEnum: RuleType = { [ruleType]: {} } as RuleType;
-
-      // Convert min purchase from dollars to cents
       const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
-
-      // Convert dates to Unix timestamps
       const startTime = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0;
       const endTime = endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0;
-
-      // Generate a unique rule ID
       const ruleId = Date.now();
 
       const result = await createRewardRule({
         ruleId,
+        name: ruleName,
         ruleType: ruleTypeEnum,
         multiplier: parseInt(multiplier),
         minPurchase: minPurchaseCents,
@@ -111,11 +115,11 @@ export default function MerchantRulesPage() {
         description: `Transaction: ${result.signature.slice(0, 8)}...${result.signature.slice(-8)}`,
       });
 
-      // Add to created rules list
       setCreatedRules((prev) => [
         ...prev,
         {
           id: ruleId,
+          name: ruleName,
           type: ruleType,
           multiplier: parseInt(multiplier),
           minPurchase: minPurchaseCents,
@@ -125,7 +129,6 @@ export default function MerchantRulesPage() {
         },
       ]);
 
-      // Reset form
       resetForm();
     } catch (err: any) {
       toast.error("Failed to create reward rule", {
@@ -134,18 +137,100 @@ export default function MerchantRulesPage() {
     }
   };
 
-  const toggleRuleActive = (ruleId: number) => {
-    // Note: This is UI-only. To persist on-chain, you'd need to add an
-    // update_reward_rule instruction to the smart contract
-    setCreatedRules((prev) =>
-      prev.map((rule) =>
-        rule.id === ruleId ? { ...rule, isActive: !rule.isActive } : rule
-      )
-    );
+  const handleEditRule = (rule: Rule) => {
+    setEditingRule(rule);
+    setRuleName(rule.name);
+    setRuleType(rule.type);
+    setMultiplier(rule.multiplier.toString());
+    setMinPurchase((rule.minPurchase / 100).toFixed(2));
+    setStartDate(rule.startTime ? new Date(rule.startTime * 1000).toISOString().split('T')[0] : "");
+    setEndDate(rule.endTime ? new Date(rule.endTime * 1000).toISOString().split('T')[0] : "");
+    setShowEditModal(true);
+  };
 
-    toast.info("Toggle is UI-only", {
-      description: "On-chain update requires adding update_reward_rule instruction",
-    });
+  const handleUpdateRule = async () => {
+    if (!editingRule) return;
+
+    try {
+      const ruleTypeEnum: RuleType = { [ruleType]: {} } as RuleType;
+      const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
+      const startTime = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0;
+      const endTime = endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0;
+
+      const result = await updateRewardRule({
+        ruleId: editingRule.id,
+        name: ruleName,
+        ruleType: ruleTypeEnum,
+        multiplier: parseInt(multiplier),
+        minPurchase: minPurchaseCents,
+        startTime,
+        endTime,
+      });
+
+      toast.success("Rule updated successfully!", {
+        description: `Transaction: ${result.signature.slice(0, 8)}...`,
+      });
+
+      setCreatedRules((prev) =>
+        prev.map((rule) =>
+          rule.id === editingRule.id
+            ? {
+              ...rule,
+              name: ruleName,
+              type: ruleType,
+              multiplier: parseInt(multiplier),
+              minPurchase: minPurchaseCents,
+              startTime,
+              endTime,
+            }
+            : rule
+        )
+      );
+
+      setShowEditModal(false);
+      setEditingRule(null);
+      resetForm();
+    } catch (err: any) {
+      toast.error("Failed to update rule", {
+        description: err.message,
+      });
+    }
+  };
+
+  const handleToggleRule = async (ruleId: number, currentStatus: boolean) => {
+    try {
+      await toggleRewardRule(ruleId, !currentStatus);
+
+      toast.success(`Rule ${!currentStatus ? "activated" : "paused"}`);
+
+      setCreatedRules((prev) =>
+        prev.map((rule) =>
+          rule.id === ruleId ? { ...rule, isActive: !currentStatus } : rule
+        )
+      );
+    } catch (err: any) {
+      toast.error("Failed to toggle rule", {
+        description: err.message,
+      });
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: number) => {
+    if (!confirm("Are you sure you want to delete this rule? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deleteRewardRule(ruleId);
+
+      toast.success("Rule deleted successfully");
+
+      setCreatedRules((prev) => prev.filter((rule) => rule.id !== ruleId));
+    } catch (err: any) {
+      toast.error("Failed to delete rule", {
+        description: err.message,
+      });
+    }
   };
 
   const getRuleIcon = (type: string) => {
@@ -189,7 +274,6 @@ export default function MerchantRulesPage() {
         <Navbar />
 
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
-          {/* Page Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-semibold">Reward Rules</h1>
@@ -204,9 +288,7 @@ export default function MerchantRulesPage() {
             )}
           </div>
 
-          {/* Dashboard Layout */}
           <div className="grid grid-cols-[1fr_450px] gap-10">
-            {/* Main Content - Rules List */}
             <div className="flex flex-col gap-4">
               {createdRules.length === 0 ? (
                 <Card className="py-12 px-6 text-center cursor-default">
@@ -241,15 +323,13 @@ export default function MerchantRulesPage() {
                         {getRuleIcon(rule.type)}
                       </div>
                       <div>
-                        <h4 className="text-base font-semibold mb-1">
-                          {ruleTypeOptions.find((opt) => opt.value === rule.type)?.label}
-                        </h4>
+                        <h4 className="text-base font-semibold mb-1">{rule.name}</h4>
                         <p className="text-xs text-text-secondary">
                           {(rule.multiplier / 100).toFixed(1)}x multiplier • Min ${(rule.minPurchase / 100).toFixed(2)}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-6">
                       <div className="text-right">
                         <span className="block text-sm font-medium">
                           {rule.startTime === 0 ? "Active Now" : formatDate(rule.startTime)}
@@ -260,15 +340,25 @@ export default function MerchantRulesPage() {
                       </div>
                       <Toggle
                         checked={rule.isActive}
-                        onChange={() => toggleRuleActive(rule.id)}
+                        onChange={() => handleToggleRule(rule.id, rule.isActive)}
                       />
+                      <Button variant="outline" size="sm" onClick={() => handleEditRule(rule)}>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-400"
+                        onClick={() => handleDeleteRule(rule.id)}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </Card>
                 ))
               )}
             </div>
 
-            {/* Sidebar - Rule Builder */}
             <aside>
               <Card className="p-8 sticky top-[92px] cursor-default">
                 <h3 className="text-[0.75rem] uppercase text-text-secondary mb-6 tracking-wider flex items-center gap-2">
@@ -277,13 +367,22 @@ export default function MerchantRulesPage() {
                     height="14"
                     fill="var(--accent)"
                     viewBox="0 0 24 24"
-                    role="img"
-                    aria-label="Edit"
                   >
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                   </svg>
                   Rule Builder
                 </h3>
+
+                <div className="mb-5">
+                  <Input
+                    label="Rule Name"
+                    type="text"
+                    placeholder="e.g., Happy Hour Bonus"
+                    value={ruleName}
+                    onChange={(e) => setRuleName(e.target.value)}
+                    maxLength={32}
+                  />
+                </div>
 
                 <div className="mb-5">
                   <Dropdown
@@ -334,10 +433,9 @@ export default function MerchantRulesPage() {
                   </div>
                 </div>
 
-                {/* Stacking Preview */}
                 <div className="bg-black border border-dashed border-border rounded-lg p-5 mt-6">
                   <h5 className="text-[0.7rem] uppercase text-text-secondary mb-4">
-                    Stacking Preview (Sample $100 Purchase)
+                    Preview (Sample $100 Purchase)
                   </h5>
 
                   <div className="flex justify-between text-xs text-text mb-2.5">
@@ -385,6 +483,90 @@ export default function MerchantRulesPage() {
             </aside>
           </div>
         </div>
+
+        {/* Edit Modal */}
+        {showEditModal && editingRule && (
+          <Modal
+            isOpen={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingRule(null);
+              resetForm();
+            }}
+            title="Edit Reward Rule"
+          >
+            <div className="space-y-4">
+              <Input
+                label="Rule Name"
+                type="text"
+                value={ruleName}
+                onChange={(e) => setRuleName(e.target.value)}
+                maxLength={32}
+              />
+
+              <Dropdown
+                label="Rule Type"
+                options={ruleTypeOptions}
+                value={ruleType}
+                onChange={setRuleType}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Dropdown
+                  label="Multiplier"
+                  options={multiplierOptions}
+                  value={multiplier}
+                  onChange={setMultiplier}
+                />
+                <Input
+                  label="Min. Purchase ($)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={minPurchase}
+                  onChange={(e) => setMinPurchase(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Start Date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <Input
+                  label="End Date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={handleUpdateRule}
+                  isLoading={isLoading}
+                >
+                  Update Rule
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingRule(null);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        )}
 
         <Footer />
       </div>
