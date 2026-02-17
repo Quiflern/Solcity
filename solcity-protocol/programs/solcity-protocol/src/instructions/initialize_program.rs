@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::Token2022;
-use anchor_spl::token::Mint;
+use anchor_spl::token_interface::Mint;
 use crate::{LoyaltyProgram, SolcityError, DEFAULT_INTEREST_RATE};
 
 #[derive(Accounts)]
@@ -25,10 +25,11 @@ pub struct InitializeProgram<'info> {
         mint::decimals = 6,
         mint::authority = loyalty_program,
         mint::freeze_authority = loyalty_program,
+        mint::token_program = token_program,
         seeds = [b"mint", loyalty_program.key().as_ref()],
         bump
     )]
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,

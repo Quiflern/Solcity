@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{self, Token2022};
-use anchor_spl::token::{Mint, TokenAccount};
+use anchor_spl::token_interface::{Mint, TokenAccount};
 use crate::{LoyaltyProgram, Merchant, Customer, SolcityError, PERCENTAGE_DIVISOR};
 
 #[derive(Accounts)]
@@ -43,14 +43,14 @@ pub struct IssueRewards<'info> {
         seeds = [b"mint", loyalty_program.key().as_ref()],
         bump,
     )]
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
         constraint = customer_token_account.owner == customer.wallet @ SolcityError::UnauthorizedAccess,
         constraint = customer_token_account.mint == mint.key() @ SolcityError::InvalidMint,
     )]
-    pub customer_token_account: Account<'info, TokenAccount>,
+    pub customer_token_account: InterfaceAccount<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token2022>,
 }

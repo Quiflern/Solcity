@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::Token2022;
-use anchor_spl::token::{Mint, TokenAccount};
+use anchor_spl::token_interface::{Mint, TokenAccount};
 use anchor_spl::associated_token::AssociatedToken;
 use crate::{LoyaltyProgram, Customer, CustomerTier, SolcityError};
 
@@ -33,7 +33,7 @@ pub struct RegisterCustomer<'info> {
         seeds = [b"mint", loyalty_program.key().as_ref()],
         bump,
     )]
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         init_if_needed,
@@ -42,7 +42,7 @@ pub struct RegisterCustomer<'info> {
         associated_token::authority = customer_authority,
         associated_token::token_program = token_program,
     )]
-    pub customer_token_account: Account<'info, TokenAccount>,
+    pub customer_token_account: InterfaceAccount<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token2022>,
     pub associated_token_program: Program<'info, AssociatedToken>,
