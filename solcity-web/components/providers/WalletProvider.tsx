@@ -11,11 +11,11 @@ import { useMemo } from "react";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function WalletProvider({ children }: { children: React.ReactNode }) {
-  // Use devnet for development, mainnet-beta for production
+  // Use localhost for development with local validator
   const network = WalletAdapterNetwork.Devnet;
 
-  // You can also provide a custom RPC endpoint
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  // Use localhost for local testing
+  const endpoint = useMemo(() => "http://localhost:8899", []);
 
   // Configure supported wallets
   // Note: Phantom is now auto-detected via Standard Wallet protocol
