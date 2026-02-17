@@ -1,0 +1,40 @@
+use anchor_lang::prelude::*;
+use crate::{Merchant, SolcityError};
+
+#[derive(Accounts)]
+pub struct UpdateMerchant<'info> {
+    #[account(mut)]
+    pub merchant_authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            Merchant::SEED_PREFIX,
+            merchant_authority.key().as_ref(),
+            merchant.loyalty_program.as_ref()
+        ],
+        bump = merchant.bump,
+    )]
+    pub merchant: Account<'info, Merchant>,
+}
+
+pub fn handler(
+    ctx: Context<UpdateMerchant>,
+    new_reward_rate: Option<u64>,
+    is_active: Option<bool>,
+) -> Result<()> {
+    let merchant = &mut ctx.accounts.merchant;
+
+    if let Some(rate) = new_reward_rate {
+        require!(rate > 0, SolcityError::InvalidRewardAmount);
+        merchant.reward_rate = rate;
+        msg!("Reward rate updated to: {} tokens/$", rate);
+    }
+
+    if let Some(active) = is_active {
+        merchant.is_active = active;
+        msg!("Merchant active status: {}", active);
+    }
+
+    Ok(())
+}
