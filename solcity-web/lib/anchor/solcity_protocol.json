@@ -1,0 +1,1435 @@
+{
+  "address": "67XD1wBu5Ja1H5e4Zg4vsjZDoAcB8KwTZqawodZZwqv9",
+  "metadata": {
+    "name": "solcity_protocol",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "initialize_program",
+      "docs": [
+        "Initialize a new loyalty program with Token-2022 mint"
+      ],
+      "discriminator": [
+        176,
+        107,
+        205,
+        168,
+        24,
+        157,
+        175,
+        103
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "loyalty_program",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "Token-2022 mint (will be initialized with extensions)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "interest_rate",
+          "type": {
+            "option": "i16"
+          }
+        }
+      ]
+    },
+    {
+      "name": "issue_rewards",
+      "docs": [
+        "Issue reward tokens to a customer for a purchase"
+      ],
+      "discriminator": [
+        24,
+        142,
+        183,
+        139,
+        237,
+        43,
+        240,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "customer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer.wallet",
+                "account": "Customer"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyalty_program",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "LoyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "customer_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "purchase_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "redeem_rewards",
+      "docs": [
+        "Redeem reward tokens for benefits"
+      ],
+      "discriminator": [
+        78,
+        170,
+        139,
+        171,
+        145,
+        182,
+        60,
+        55
+      ],
+      "accounts": [
+        {
+          "name": "customer_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "customer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer_authority"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant.authority",
+                "account": "Merchant"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyalty_program",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "LoyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "customer_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "redemption_type",
+          "type": {
+            "defined": {
+              "name": "RedemptionType"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_customer",
+      "docs": [
+        "Register a new customer in the loyalty program"
+      ],
+      "discriminator": [
+        211,
+        203,
+        193,
+        164,
+        198,
+        246,
+        27,
+        223
+      ],
+      "accounts": [
+        {
+          "name": "customer_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "customer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer_authority"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyalty_program",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "LoyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "customer_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "customer_authority"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_merchant",
+      "docs": [
+        "Register a new merchant in the loyalty program"
+      ],
+      "discriminator": [
+        238,
+        245,
+        77,
+        132,
+        161,
+        88,
+        216,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyalty_program",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "LoyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "reward_rate",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_reward_rule",
+      "docs": [
+        "Create a new reward rule for a merchant"
+      ],
+      "discriminator": [
+        0,
+        90,
+        48,
+        132,
+        97,
+        193,
+        233,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_rule",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  114,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "rule_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "rule_id",
+          "type": "u64"
+        },
+        {
+          "name": "rule_type",
+          "type": {
+            "defined": {
+              "name": "RuleType"
+            }
+          }
+        },
+        {
+          "name": "multiplier",
+          "type": "u64"
+        },
+        {
+          "name": "min_purchase",
+          "type": "u64"
+        },
+        {
+          "name": "start_time",
+          "type": "i64"
+        },
+        {
+          "name": "end_time",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "update_merchant",
+      "docs": [
+        "Update merchant settings"
+      ],
+      "discriminator": [
+        192,
+        114,
+        143,
+        220,
+        199,
+        50,
+        234,
+        165
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_reward_rate",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "is_active",
+          "type": {
+            "option": "bool"
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Customer",
+      "discriminator": [
+        112,
+        147,
+        140,
+        31,
+        93,
+        186,
+        103,
+        18
+      ]
+    },
+    {
+      "name": "LoyaltyProgram",
+      "discriminator": [
+        170,
+        241,
+        228,
+        176,
+        113,
+        205,
+        130,
+        222
+      ]
+    },
+    {
+      "name": "Merchant",
+      "discriminator": [
+        71,
+        235,
+        30,
+        40,
+        231,
+        21,
+        32,
+        64
+      ]
+    },
+    {
+      "name": "RewardRule",
+      "discriminator": [
+        22,
+        164,
+        39,
+        113,
+        89,
+        95,
+        251,
+        83
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "RedemptionEvent",
+      "discriminator": [
+        72,
+        165,
+        70,
+        6,
+        179,
+        67,
+        82,
+        183
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InsufficientBalance",
+      "msg": "Insufficient token balance for redemption"
+    },
+    {
+      "code": 6001,
+      "name": "MerchantNotActive",
+      "msg": "Merchant account is not active"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidRewardAmount",
+      "msg": "Invalid reward amount"
+    },
+    {
+      "code": 6003,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow in calculation"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidTier",
+      "msg": "Invalid customer tier"
+    },
+    {
+      "code": 6005,
+      "name": "RuleNotActive",
+      "msg": "Reward rule is not active"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidTimeRange",
+      "msg": "Invalid time range for reward rule"
+    },
+    {
+      "code": 6007,
+      "name": "NameTooLong",
+      "msg": "Name exceeds maximum length"
+    },
+    {
+      "code": 6008,
+      "name": "NameEmpty",
+      "msg": "Name cannot be empty"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidInterestRate",
+      "msg": "Invalid interest rate"
+    },
+    {
+      "code": 6010,
+      "name": "UnauthorizedAccess",
+      "msg": "Unauthorized access to account"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidMint",
+      "msg": "Invalid mint for token account"
+    }
+  ],
+  "types": [
+    {
+      "name": "Customer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "docs": [
+              "Customer wallet address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "loyalty_program",
+            "docs": [
+              "Associated loyalty program"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "total_earned",
+            "docs": [
+              "Lifetime tokens earned"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_redeemed",
+            "docs": [
+              "Lifetime tokens redeemed"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "tier",
+            "docs": [
+              "Current tier"
+            ],
+            "type": {
+              "defined": {
+                "name": "CustomerTier"
+              }
+            }
+          },
+          {
+            "name": "transaction_count",
+            "docs": [
+              "Number of transactions"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "streak_days",
+            "docs": [
+              "Consecutive days active"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "last_activity",
+            "docs": [
+              "Last activity timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "joined_at",
+            "docs": [
+              "Registration timestamp"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CustomerTier",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Bronze"
+          },
+          {
+            "name": "Silver"
+          },
+          {
+            "name": "Gold"
+          },
+          {
+            "name": "Platinum"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoyaltyProgram",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Program authority (admin)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "SPL Token-2022 mint address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Program name (32 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "total_merchants",
+            "docs": [
+              "Total registered merchants"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_customers",
+            "docs": [
+              "Total registered customers"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_tokens_issued",
+            "docs": [
+              "Total tokens ever minted"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_tokens_redeemed",
+            "docs": [
+              "Total tokens ever burned"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "interest_rate",
+            "docs": [
+              "Interest rate in basis points (500 = 5%)"
+            ],
+            "type": "i16"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Creation timestamp"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Merchant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Merchant wallet address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "loyalty_program",
+            "docs": [
+              "Associated loyalty program"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Business name (32 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "reward_rate",
+            "docs": [
+              "Tokens per dollar spent (e.g., 10 = 10 tokens per $1)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_issued",
+            "docs": [
+              "Total tokens issued by this merchant"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_redeemed",
+            "docs": [
+              "Total tokens redeemed at this merchant"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "docs": [
+              "Active status"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Registration timestamp"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RedemptionEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "redemption_type",
+            "type": {
+              "defined": {
+                "name": "RedemptionType"
+              }
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RedemptionType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Discount",
+            "fields": [
+              {
+                "name": "percentage",
+                "type": "u8"
+              }
+            ]
+          },
+          {
+            "name": "FreeProduct",
+            "fields": [
+              {
+                "name": "product_id",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "name": "Cashback",
+            "fields": [
+              {
+                "name": "amount_lamports",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "ExclusiveAccess",
+            "fields": [
+              {
+                "name": "access_type",
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardRule",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "docs": [
+              "Associated merchant"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "rule_type",
+            "docs": [
+              "Rule type"
+            ],
+            "type": {
+              "defined": {
+                "name": "RuleType"
+              }
+            }
+          },
+          {
+            "name": "multiplier",
+            "docs": [
+              "Bonus multiplier (100 = 1x, 200 = 2x)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_purchase",
+            "docs": [
+              "Minimum purchase to trigger (in cents)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "docs": [
+              "Active status"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "start_time",
+            "docs": [
+              "Start time (0 = immediate)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "docs": [
+              "End time (0 = no expiry)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RuleType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "BaseReward"
+          },
+          {
+            "name": "BonusMultiplier"
+          },
+          {
+            "name": "FirstPurchaseBonus"
+          },
+          {
+            "name": "ReferralBonus"
+          },
+          {
+            "name": "TierBonus"
+          },
+          {
+            "name": "StreakBonus"
+          }
+        ]
+      }
+    }
+  ]
+}

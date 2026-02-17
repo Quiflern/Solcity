@@ -3,18 +3,68 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Dropdown from "@/components/ui/Dropdown";
 import { useState } from "react";
+import { useMerchantRegister } from "@/hooks/useMerchantRegister";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { toast } from "sonner";
 
 export default function MerchantRegisterPage() {
-  const [businessName, setBusinessName] = useState("Blue Bottle Coffee");
-  const [category, setCategory] = useState("Food & Beverage");
+  const { publicKey } = useWallet();
+  const { registerComplete, isLoading, error } = useMerchantRegister();
+
+  const [businessName, setBusinessName] = useState("");
+  const [category, setCategory] = useState("food");
   const [email, setEmail] = useState("");
-  const [rewardRate, setRewardRate] = useState(1.5);
+  const [rewardRate, setRewardRate] = useState(1.0);
   const [interestRate, setInterestRate] = useState(500);
-  const [tokenName, setTokenName] = useState("Solcity Coffee");
-  const [tokenSymbol, setTokenSymbol] = useState("SLCY");
+  const [programName, setProgramName] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
 
   const apyPercent = (interestRate / 100).toFixed(2);
+
+  const handleDeploy = async () => {
+    if (!publicKey) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (!businessName.trim()) {
+      toast.error("Please enter a business name");
+      return;
+    }
+
+    if (!programName.trim()) {
+      toast.error("Please enter a program name");
+      return;
+    }
+
+    try {
+      toast.loading("Deploying loyalty program...");
+
+      // Convert reward rate to basis points (1.0 = 100)
+      const rewardRateBps = Math.floor(rewardRate * 100);
+
+      const result = await registerComplete(
+        programName,
+        businessName,
+        rewardRateBps,
+        interestRate
+      );
+
+      toast.dismiss();
+      toast.success("Loyalty program deployed successfully!");
+      setSuccess(true);
+      setTxSignature(result.signature);
+
+      console.log("Deployment result:", result);
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error(err.message || "Failed to deploy loyalty program");
+      console.error("Deployment error:", err);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -53,29 +103,26 @@ export default function MerchantRegisterPage() {
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="category"
-                    className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
-                  >
-                    Category
-                  </label>
-                  <select
-                    id="category"
+                  <Dropdown
+                    label="Category"
+                    options={[
+                      { value: "food", label: "Food & Beverage" },
+                      { value: "retail", label: "Retail" },
+                      { value: "service", label: "Service" },
+                      { value: "entertainment", label: "Entertainment" },
+                      { value: "health", label: "Health & Fitness" },
+                    ]}
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
-                  >
-                    <option>Food & Beverage</option>
-                    <option>Retail</option>
-                    <option>Service</option>
-                  </select>
+                    onChange={setCategory}
+                    placeholder="Select category"
+                  />
                 </div>
                 <div>
                   <label
                     htmlFor="email"
                     className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
                   >
-                    Contact Email
+                    Contact Email (Optional)
                   </label>
                   <input
                     id="email"
@@ -85,17 +132,6 @@ export default function MerchantRegisterPage() {
                     className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
                     placeholder="admin@business.com"
                   />
-                </div>
-                <div className="col-span-2">
-                  <label
-                    htmlFor="logo"
-                    className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
-                  >
-                    Business Logo
-                  </label>
-                  <div className="border border-dashed border-border p-3 rounded-lg text-center cursor-pointer text-xs text-text-secondary">
-                    Click to upload or drag & drop (PNG, JPG)
-                  </div>
                 </div>
               </div>
             </div>
@@ -171,58 +207,111 @@ export default function MerchantRegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-6">
-                <div>
+                <div className="col-span-2">
                   <label
-                    htmlFor="token-name"
+                    htmlFor="program-name"
                     className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
                   >
-                    Token Name
+                    Program Name
                   </label>
                   <input
-                    id="token-name"
+                    id="program-name"
                     type="text"
-                    value={tokenName}
-                    onChange={(e) => setTokenName(e.target.value)}
+                    value={programName}
+                    onChange={(e) => setProgramName(e.target.value)}
                     className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                    placeholder="e.g. Solcity Loyalty"
                   />
-                </div>
-                <div>
-                  <label
-                    htmlFor="token-symbol"
-                    className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
-                  >
-                    Symbol
-                  </label>
-                  <input
-                    id="token-symbol"
-                    type="text"
-                    value={tokenSymbol}
-                    onChange={(e) => setTokenSymbol(e.target.value)}
-                    className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
-                  />
+                  <p className="text-[0.7rem] text-text-secondary mt-2">
+                    This will be stored on-chain as your loyalty program identifier.
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Deploy Button */}
-            <button
-              type="button"
-              className="bg-accent text-black px-4 py-5 border-none font-bold text-base cursor-pointer rounded-lg w-full transition-transform active:scale-[0.99] flex items-center justify-center gap-3"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                role="img"
-                aria-label="Deploy"
+            {success ? (
+              <div className="bg-accent/10 border border-accent text-accent px-4 py-5 rounded-lg w-full flex flex-col items-center gap-3">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  role="img"
+                  aria-label="Success"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <div className="text-center">
+                  <div className="font-bold text-lg mb-2">Loyalty Program Deployed!</div>
+                  <div className="text-sm text-text-secondary mb-4">
+                    Your on-chain loyalty program is now live
+                  </div>
+                  {txSignature && (
+                    <a
+                      href={`https://explorer.solana.com/tx/${txSignature}?cluster=custom&customUrl=http://localhost:8899`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-accent hover:underline"
+                    >
+                      View Transaction ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDeploy}
+                disabled={isLoading || !publicKey}
+                className="bg-accent text-black px-4 py-5 border-none font-bold text-base cursor-pointer rounded-lg w-full transition-transform active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <path d="M12 2v20M2 12h20" />
-              </svg>
-              Deploy Loyalty Program
-            </button>
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Deploying...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      role="img"
+                      aria-label="Deploy"
+                    >
+                      <path d="M12 2v20M2 12h20" />
+                    </svg>
+                    Deploy Loyalty Program
+                  </>
+                )}
+              </button>
+            )}
             <p className="text-center text-text-secondary text-xs mb-20">
               Requires approx. 0.05 SOL for account initialization and rent.
             </p>
@@ -239,24 +328,32 @@ export default function MerchantRegisterPage() {
                   Verified Merchant
                 </span>
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-[#222] rounded-xl flex items-center justify-center border border-dashed border-[#444]">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#444"
-                      strokeWidth="2"
-                      role="img"
-                      aria-label="Logo placeholder"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                  </div>
+                  {businessName ? (
+                    <img
+                      src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(businessName)}&backgroundColor=d0ff14&textColor=000000`}
+                      alt={businessName}
+                      className="w-12 h-12 rounded-xl"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-[#222] rounded-xl flex items-center justify-center border border-dashed border-[#444]">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#444"
+                        strokeWidth="2"
+                        role="img"
+                        aria-label="Logo placeholder"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                    </div>
+                  )}
                   <div>
-                    <h3 className="text-lg font-bold">{businessName}</h3>
+                    <h3 className="text-lg font-bold">{businessName || "Your Business"}</h3>
                     <p className="text-xs text-text-secondary">{category}</p>
                   </div>
                 </div>
