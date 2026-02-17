@@ -73,6 +73,8 @@ export function useRewardRules() {
         )
         .accounts({
           merchantAuthority: publicKey,
+          merchant: merchant,
+          rewardRule: rewardRule,
         })
         .rpc();
 
@@ -103,6 +105,7 @@ export function useRewardRules() {
     try {
       const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
       const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+      const [rewardRule] = getRewardRulePDA(merchant, params.ruleId);
 
       const ruleIdBN = new BN(params.ruleId);
       const multiplierBN = params.multiplier ? new BN(params.multiplier) : null;
@@ -122,6 +125,8 @@ export function useRewardRules() {
         )
         .accounts({
           merchantAuthority: publicKey,
+          merchant: merchant,
+          rewardRule: rewardRule,
         })
         .rpc();
 
@@ -149,12 +154,18 @@ export function useRewardRules() {
     setError(null);
 
     try {
+      const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+      const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+      const [rewardRule] = getRewardRulePDA(merchant, ruleId);
+
       const ruleIdBN = new BN(ruleId);
 
       const tx = await program.methods
         .toggleRewardRule(ruleIdBN, isActive)
         .accounts({
           merchantAuthority: publicKey,
+          merchant: merchant,
+          rewardRule: rewardRule,
         })
         .rpc();
 
@@ -182,12 +193,18 @@ export function useRewardRules() {
     setError(null);
 
     try {
+      const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+      const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+      const [rewardRule] = getRewardRulePDA(merchant, ruleId);
+
       const ruleIdBN = new BN(ruleId);
 
       const tx = await program.methods
         .deleteRewardRule(ruleIdBN)
         .accounts({
           merchantAuthority: publicKey,
+          merchant: merchant,
+          rewardRule: rewardRule,
         })
         .rpc();
 
