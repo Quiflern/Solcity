@@ -6,6 +6,10 @@ pub struct RewardRule {
     /// Associated merchant
     pub merchant: Pubkey,
     
+    /// Rule name (32 bytes)
+    #[max_len(32)]
+    pub name: String,
+    
     /// Rule type
     pub rule_type: RuleType,
     

@@ -36,12 +36,15 @@ pub struct SetRewardRule<'info> {
 pub fn handler(
     ctx: Context<SetRewardRule>,
     _rule_id: u64,
+    name: String,
     rule_type: RuleType,
     multiplier: u64,
     min_purchase: u64,
     start_time: i64,
     end_time: i64,
 ) -> Result<()> {
+    require!(!name.is_empty(), SolcityError::NameEmpty);
+    require!(name.len() <= 32, SolcityError::NameTooLong);
     require!(multiplier >= 100, SolcityError::InvalidRewardAmount);
     
     if end_time > 0 {
@@ -51,6 +54,7 @@ pub fn handler(
     let reward_rule = &mut ctx.accounts.reward_rule;
 
     reward_rule.merchant = ctx.accounts.merchant.key();
+    reward_rule.name = name.clone();
     reward_rule.rule_type = rule_type.clone();
     reward_rule.multiplier = multiplier;
     reward_rule.min_purchase = min_purchase;
@@ -60,7 +64,8 @@ pub fn handler(
     reward_rule.bump = ctx.bumps.reward_rule;
 
     msg!(
-        "Reward rule created: {:?}, multiplier: {}x, min purchase: ${}",
+        "Reward rule created: {}, {:?}, multiplier: {}x, min purchase: ${}",
+        name,
         rule_type,
         multiplier as f64 / 100.0,
         min_purchase as f64 / 100.0

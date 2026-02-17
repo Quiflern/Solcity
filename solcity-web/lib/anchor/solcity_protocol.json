@@ -8,6 +8,96 @@
   },
   "instructions": [
     {
+      "name": "delete_reward_rule",
+      "docs": [
+        "Delete a reward rule"
+      ],
+      "discriminator": [
+        192,
+        103,
+        154,
+        158,
+        160,
+        197,
+        26,
+        93
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_rule",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  114,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "rule_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "rule_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initialize_program",
       "docs": [
         "Initialize a new loyalty program with Token-2022 mint"
@@ -785,6 +875,10 @@
           "type": "u64"
         },
         {
+          "name": "name",
+          "type": "string"
+        },
+        {
           "name": "rule_type",
           "type": {
             "defined": {
@@ -807,6 +901,100 @@
         {
           "name": "end_time",
           "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "toggle_reward_rule",
+      "docs": [
+        "Toggle reward rule active status (pause/unpause)"
+      ],
+      "discriminator": [
+        58,
+        154,
+        233,
+        17,
+        232,
+        236,
+        177,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_rule",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  114,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "rule_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "rule_id",
+          "type": "u64"
+        },
+        {
+          "name": "is_active",
+          "type": "bool"
         }
       ]
     },
@@ -873,6 +1061,136 @@
           "name": "is_active",
           "type": {
             "option": "bool"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_reward_rule",
+      "docs": [
+        "Update an existing reward rule"
+      ],
+      "discriminator": [
+        233,
+        106,
+        76,
+        105,
+        171,
+        218,
+        108,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_rule",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  114,
+                  117,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "rule_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "rule_id",
+          "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "rule_type",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "RuleType"
+              }
+            }
+          }
+        },
+        {
+          "name": "multiplier",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "min_purchase",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "start_time",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "end_time",
+          "type": {
+            "option": "i64"
           }
         }
       ]
@@ -1348,6 +1666,13 @@
               "Associated merchant"
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "docs": [
+              "Rule name (32 bytes)"
+            ],
+            "type": "string"
           },
           {
             "name": "rule_type",

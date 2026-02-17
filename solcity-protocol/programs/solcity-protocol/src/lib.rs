@@ -61,6 +61,7 @@ pub mod solcity_protocol {
     pub fn set_reward_rule(
         ctx: Context<SetRewardRule>,
         rule_id: u64,
+        name: String,
         rule_type: RuleType,
         multiplier: u64,
         min_purchase: u64,
@@ -70,12 +71,50 @@ pub mod solcity_protocol {
         instructions::set_reward_rule::handler(
             ctx,
             rule_id,
+            name,
             rule_type,
             multiplier,
             min_purchase,
             start_time,
             end_time,
         )
+    }
+
+    /// Update an existing reward rule
+    pub fn update_reward_rule(
+        ctx: Context<UpdateRewardRule>,
+        rule_id: u64,
+        name: Option<String>,
+        rule_type: Option<RuleType>,
+        multiplier: Option<u64>,
+        min_purchase: Option<u64>,
+        start_time: Option<i64>,
+        end_time: Option<i64>,
+    ) -> Result<()> {
+        instructions::update_reward_rule::handler(
+            ctx,
+            rule_id,
+            name,
+            rule_type,
+            multiplier,
+            min_purchase,
+            start_time,
+            end_time,
+        )
+    }
+
+    /// Toggle reward rule active status (pause/unpause)
+    pub fn toggle_reward_rule(
+        ctx: Context<ToggleRewardRule>,
+        rule_id: u64,
+        is_active: bool,
+    ) -> Result<()> {
+        instructions::toggle_reward_rule::handler(ctx, rule_id, is_active)
+    }
+
+    /// Delete a reward rule
+    pub fn delete_reward_rule(ctx: Context<DeleteRewardRule>, rule_id: u64) -> Result<()> {
+        instructions::delete_reward_rule::handler(ctx, rule_id)
     }
 
     /// Update merchant settings
