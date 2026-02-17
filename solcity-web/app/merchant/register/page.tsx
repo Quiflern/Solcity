@@ -60,8 +60,6 @@ export default function MerchantRegisterPage() {
       toast.success("Loyalty program deployed successfully!");
       setSuccess(true);
       setTxSignature(result.signature);
-
-      console.log("Deployment result:", result);
     } catch (err: any) {
       toast.dismiss();
       toast.error(err.message || "Failed to deploy loyalty program");

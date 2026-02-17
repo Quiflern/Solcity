@@ -57,13 +57,15 @@ export function getCustomerPDA(
  */
 export function getRewardRulePDA(
   merchant: PublicKey,
-  ruleId: bigint
+  ruleId: number
 ): [PublicKey, number] {
-  const ruleIdBuffer = Buffer.alloc(8);
-  ruleIdBuffer.writeBigUInt64LE(ruleId);
+  // Convert number to u64 little-endian bytes
+  const ruleIdBuffer = new Uint8Array(8);
+  const view = new DataView(ruleIdBuffer.buffer);
+  view.setBigUint64(0, BigInt(ruleId), true); // true = little-endian
 
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("reward_rule"), merchant.toBuffer(), ruleIdBuffer],
+    [Buffer.from("reward_rule"), merchant.toBuffer(), Buffer.from(ruleIdBuffer)],
     PROGRAM_ID
   );
 }
