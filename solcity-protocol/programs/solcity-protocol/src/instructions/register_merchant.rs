@@ -33,10 +33,12 @@ pub struct RegisterMerchant<'info> {
 pub fn handler(
     ctx: Context<RegisterMerchant>,
     name: String,
+    avatar_url: String,
     reward_rate: u64,
 ) -> Result<()> {
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
+    require!(avatar_url.len() <= 128, SolcityError::NameTooLong); // Reuse error for simplicity
     require!(reward_rate > 0, SolcityError::InvalidRewardAmount);
 
     let merchant = &mut ctx.accounts.merchant;
@@ -46,6 +48,7 @@ pub fn handler(
     merchant.authority = ctx.accounts.merchant_authority.key();
     merchant.loyalty_program = loyalty_program.key();
     merchant.name = name.clone();
+    merchant.avatar_url = avatar_url;
     merchant.reward_rate = reward_rate;
     merchant.total_issued = 0;
     merchant.total_redeemed = 0;

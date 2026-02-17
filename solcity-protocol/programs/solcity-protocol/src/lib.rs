@@ -30,9 +30,10 @@ pub mod solcity_protocol {
     pub fn register_merchant(
         ctx: Context<RegisterMerchant>,
         name: String,
+        avatar_url: String,
         reward_rate: u64,
     ) -> Result<()> {
-        instructions::register_merchant::handler(ctx, name, reward_rate)
+        instructions::register_merchant::handler(ctx, name, avatar_url, reward_rate)
     }
 
     /// Register a new customer in the loyalty program
@@ -121,8 +122,17 @@ pub mod solcity_protocol {
     pub fn update_merchant(
         ctx: Context<UpdateMerchant>,
         new_reward_rate: Option<u64>,
+        avatar_url: Option<String>,
         is_active: Option<bool>,
     ) -> Result<()> {
-        instructions::update_merchant::handler(ctx, new_reward_rate, is_active)
+        instructions::update_merchant::handler(ctx, new_reward_rate, avatar_url, is_active)
+    }
+
+    /// Migrate existing merchant account to add avatar_url field
+    pub fn migrate_merchant(
+        ctx: Context<MigrateMerchant>,
+        avatar_url: String,
+    ) -> Result<()> {
+        instructions::migrate_merchant::handler(ctx, avatar_url)
     }
 }
