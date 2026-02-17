@@ -1,3 +1,5 @@
+#![allow(ambiguous_glob_reexports)]
+
 pub mod initialize_program;
 pub mod register_merchant;
 pub mod register_customer;

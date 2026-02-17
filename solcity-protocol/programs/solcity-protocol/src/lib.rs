@@ -7,6 +7,7 @@ pub mod state;
 
 pub use constants::*;
 pub use errors::*;
+#[allow(ambiguous_glob_reexports)]
 pub use instructions::*;
 pub use state::*;
 
