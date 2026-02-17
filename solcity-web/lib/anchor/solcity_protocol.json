@@ -351,6 +351,69 @@
       ]
     },
     {
+      "name": "migrate_merchant",
+      "docs": [
+        "Migrate existing merchant account to add avatar_url field"
+      ],
+      "discriminator": [
+        74,
+        230,
+        161,
+        163,
+        14,
+        34,
+        101,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "avatar_url",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "redeem_rewards",
       "docs": [
         "Redeem reward tokens for benefits"
@@ -777,6 +840,10 @@
           "type": "string"
         },
         {
+          "name": "avatar_url",
+          "type": "string"
+        },
+        {
           "name": "reward_rate",
           "type": "u64"
         }
@@ -1055,6 +1122,12 @@
           "name": "new_reward_rate",
           "type": {
             "option": "u64"
+          }
+        },
+        {
+          "name": "avatar_url",
+          "type": {
+            "option": "string"
           }
         },
         {
@@ -1531,6 +1604,13 @@
             "name": "name",
             "docs": [
               "Business name (32 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "avatar_url",
+            "docs": [
+              "Avatar URL (128 bytes)"
             ],
             "type": "string"
           },

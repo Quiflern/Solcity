@@ -24,6 +24,7 @@ export function useMerchantAccount() {
         const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
         const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
 
+        // @ts-ignore - Using JSON IDL
         const account = await program.account.merchant.fetchNullable(merchant);
 
         if (account) {
@@ -32,9 +33,14 @@ export function useMerchantAccount() {
         } else {
           setIsRegistered(false);
         }
-      } catch (err) {
-        console.error("Error checking merchant:", err);
-        setIsRegistered(false);
+      } catch (err: any) {
+        // If buffer length error, it means old account structure - needs migration
+        if (err.message?.includes("buffer length")) {
+          setIsRegistered(true); // Account exists but needs migration
+          setMerchantAccount({ needsMigration: true });
+        } else {
+          setIsRegistered(false);
+        }
       } finally {
         setIsLoading(false);
       }

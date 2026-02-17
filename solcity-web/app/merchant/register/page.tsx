@@ -8,15 +8,18 @@ import { useState } from "react";
 import { useMerchantRegister } from "@/hooks/useMerchantRegister";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useMigrateMerchant } from "@/hooks/useMigrateMerchant";
 import { toast } from "sonner";
 import Link from "next/link";
 
 export default function MerchantRegisterPage() {
   const { publicKey } = useWallet();
   const { registerComplete, isLoading, error } = useMerchantRegister();
+  const { migrateMerchant, isLoading: isMigrating } = useMigrateMerchant();
   const { isRegistered, merchantAccount, isLoading: checkingMerchant } = useMerchantAccount();
 
   const [businessName, setBusinessName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [category, setCategory] = useState("food");
   const [email, setEmail] = useState("");
   const [rewardRate, setRewardRate] = useState(1.0);
@@ -26,6 +29,28 @@ export default function MerchantRegisterPage() {
   const [txSignature, setTxSignature] = useState<string | null>(null);
 
   const apyPercent = (interestRate / 100).toFixed(2);
+
+  // Generate random avatar code
+  const generateRandomAvatar = () => {
+    const randomSeed = `avatar-${Math.random().toString(36).substring(2, 9)}`;
+    setAvatarUrl(randomSeed);
+    toast.success("Random avatar generated!");
+  };
+
+  // Generate avatar URL from code or custom URL
+  const getAvatarUrl = (avatarCode: string) => {
+    // If it's a full URL, use it directly
+    if (avatarCode.startsWith('http://') || avatarCode.startsWith('https://')) {
+      return avatarCode;
+    }
+    // Otherwise, generate DiceBear Bottts Neutral avatar
+    return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(avatarCode)}&backgroundColor=d0ff14`;
+  };
+
+  // Generate default avatar code if not provided
+  const displayAvatarUrl = avatarUrl
+    ? getAvatarUrl(avatarUrl)
+    : getAvatarUrl(businessName || "Business");
 
   const handleDeploy = async () => {
     if (!publicKey) {
@@ -52,6 +77,7 @@ export default function MerchantRegisterPage() {
       const result = await registerComplete(
         programName,
         businessName,
+        avatarUrl || displayAvatarUrl, // Use provided URL or generated one
         rewardRateBps,
         interestRate
       );
@@ -63,7 +89,28 @@ export default function MerchantRegisterPage() {
     } catch (err: any) {
       toast.dismiss();
       toast.error(err.message || "Failed to deploy loyalty program");
-      console.error("Deployment error:", err);
+    }
+  };
+
+  const handleMigrate = async () => {
+    if (!publicKey) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      toast.loading("Migrating merchant account...");
+
+      const result = await migrateMerchant(avatarUrl || displayAvatarUrl);
+
+      toast.dismiss();
+      toast.success("Account migrated successfully!");
+
+      // Reload page to fetch updated account
+      window.location.reload();
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error(err.message || "Failed to migrate account");
     }
   };
 
@@ -76,8 +123,77 @@ export default function MerchantRegisterPage() {
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12 grid grid-cols-[1.2fr_0.8fr] gap-12">
           {/* Left Column - Form Steps */}
           <div className="flex flex-col gap-10">
+            {/* Migration Required Message */}
+            {isRegistered && merchantAccount?.needsMigration && (
+              <div className="bg-yellow-500/10 border border-yellow-500 rounded-xl p-6 flex items-start gap-4">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-yellow-500 flex-shrink-0 mt-1"
+                >
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-yellow-500 mb-2">
+                    Account Migration Required
+                  </h3>
+                  <p className="text-sm text-text-secondary mb-4">
+                    Your merchant account needs to be migrated to support the new avatar feature.
+                    This is a one-time process that will add the avatar_url field to your account.
+                  </p>
+                  <div className="mb-4">
+                    <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                      Avatar Code or URL (Optional)
+                    </label>
+                    <div className="flex gap-3 mb-3">
+                      <input
+                        type="text"
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                        placeholder="Enter avatar code or URL"
+                      />
+                      <button
+                        type="button"
+                        onClick={generateRandomAvatar}
+                        className="bg-panel border border-border text-text px-4 py-3 rounded-lg text-sm hover:border-accent transition-colors whitespace-nowrap"
+                      >
+                        Generate Random
+                      </button>
+                    </div>
+                    {(avatarUrl || businessName) && (
+                      <div className="flex items-center gap-2 bg-black border border-border rounded-lg p-2 mb-2">
+                        <span className="text-xs text-text-secondary">Preview:</span>
+                        <img
+                          src={displayAvatarUrl}
+                          alt="Avatar preview"
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-text-secondary">
+                      Leave empty to use auto-generated avatar based on business name
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleMigrate}
+                    disabled={isMigrating}
+                    className="bg-yellow-500 text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-yellow-400 transition-colors disabled:opacity-50"
+                  >
+                    {isMigrating ? "Migrating..." : "Migrate Account"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Already Registered Message */}
-            {isRegistered && merchantAccount && (
+            {isRegistered && merchantAccount && !merchantAccount.needsMigration && (
               <div className="bg-accent/10 border border-accent rounded-xl p-6 flex items-start gap-4">
                 <svg
                   width="24"
@@ -135,6 +251,48 @@ export default function MerchantRegisterPage() {
                     className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
                     placeholder="e.g. Blue Bottle Coffee"
                   />
+                </div>
+                <div className="col-span-2">
+                  <label
+                    htmlFor="avatar-url"
+                    className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                  >
+                    Avatar Code or URL (Optional)
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      id="avatar-url"
+                      type="text"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                      placeholder="e.g., robot-blue or https://example.com/logo.png"
+                    />
+                    <button
+                      type="button"
+                      onClick={generateRandomAvatar}
+                      className="bg-panel border border-border text-text px-4 py-3 rounded-lg text-sm hover:border-accent transition-colors whitespace-nowrap"
+                    >
+                      Generate Random
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-3 mt-3">
+                    <div className="flex-1">
+                      <p className="text-xs text-text-secondary">
+                        Enter a code (e.g., "robot-1") for auto-generated avatar, or a full image URL
+                      </p>
+                    </div>
+                    {(avatarUrl || businessName) && (
+                      <div className="flex items-center gap-2 bg-black border border-border rounded-lg p-2">
+                        <span className="text-xs text-text-secondary">Preview:</span>
+                        <img
+                          src={displayAvatarUrl}
+                          alt="Avatar preview"
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <Dropdown
@@ -364,9 +522,9 @@ export default function MerchantRegisterPage() {
                 <div className="flex items-center gap-3 mb-6">
                   {businessName ? (
                     <img
-                      src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(businessName)}&backgroundColor=d0ff14&textColor=000000`}
+                      src={displayAvatarUrl}
                       alt={businessName}
-                      className="w-12 h-12 rounded-xl"
+                      className="w-12 h-12 rounded-xl object-cover"
                     />
                   ) : (
                     <div className="w-12 h-12 bg-[#222] rounded-xl flex items-center justify-center border border-dashed border-[#444]">
