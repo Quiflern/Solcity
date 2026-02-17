@@ -40,6 +40,7 @@ pub fn handler(
     name: String,
     interest_rate: Option<i16>,
 ) -> Result<()> {
+    require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
     
     let rate = interest_rate.unwrap_or(DEFAULT_INTEREST_RATE);

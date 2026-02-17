@@ -35,6 +35,7 @@ pub fn handler(
     name: String,
     reward_rate: u64,
 ) -> Result<()> {
+    require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
     require!(reward_rate > 0, SolcityError::InvalidRewardAmount);
 

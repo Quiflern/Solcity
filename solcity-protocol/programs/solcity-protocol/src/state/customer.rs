@@ -55,7 +55,7 @@ impl Customer {
         }
     }
     
-    /// Get tier multiplier (in basis points, 100 = 1x)
+    /// Get tier multiplier (percentage-based, 100 = 1x, divide by PERCENTAGE_DIVISOR)
     pub fn get_tier_multiplier(&self) -> u64 {
         match self.tier {
             CustomerTier::Bronze => 100,    // 1.0x

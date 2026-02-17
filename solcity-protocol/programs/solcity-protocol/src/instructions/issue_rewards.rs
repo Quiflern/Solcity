@@ -45,7 +45,11 @@ pub struct IssueRewards<'info> {
     )]
     pub mint: Account<'info, Mint>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        constraint = customer_token_account.owner == customer.wallet @ SolcityError::UnauthorizedAccess,
+        constraint = customer_token_account.mint == mint.key() @ SolcityError::InvalidMint,
+    )]
     pub customer_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token2022>,

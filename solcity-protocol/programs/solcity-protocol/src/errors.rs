@@ -26,6 +26,15 @@ pub enum SolcityError {
     #[msg("Name exceeds maximum length")]
     NameTooLong,
     
+    #[msg("Name cannot be empty")]
+    NameEmpty,
+    
     #[msg("Invalid interest rate")]
     InvalidInterestRate,
+    
+    #[msg("Unauthorized access to account")]
+    UnauthorizedAccess,
+    
+    #[msg("Invalid mint for token account")]
+    InvalidMint,
 }
