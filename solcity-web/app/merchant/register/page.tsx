@@ -6,12 +6,15 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";
 import { useState } from "react";
 import { useMerchantRegister } from "@/hooks/useMerchantRegister";
+import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function MerchantRegisterPage() {
   const { publicKey } = useWallet();
   const { registerComplete, isLoading, error } = useMerchantRegister();
+  const { isRegistered, merchantAccount, isLoading: checkingMerchant } = useMerchantAccount();
 
   const [businessName, setBusinessName] = useState("");
   const [category, setCategory] = useState("food");
@@ -75,6 +78,39 @@ export default function MerchantRegisterPage() {
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12 grid grid-cols-[1.2fr_0.8fr] gap-12">
           {/* Left Column - Form Steps */}
           <div className="flex flex-col gap-10">
+            {/* Already Registered Message */}
+            {isRegistered && merchantAccount && (
+              <div className="bg-accent/10 border border-accent rounded-xl p-6 flex items-start gap-4">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-accent flex-shrink-0 mt-1"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-accent mb-2">
+                    Business Already Registered
+                  </h3>
+                  <p className="text-sm text-text-secondary mb-4">
+                    Your business "{merchantAccount.name}" is already registered on-chain.
+                    You can start issuing rewards from your merchant dashboard.
+                  </p>
+                  <Link
+                    href="/merchant"
+                    className="inline-block bg-accent text-black px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-accent/90 transition-colors"
+                  >
+                    Go to Dashboard
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Section Header */}
             <div className="mb-8">
               <h2 className="text-2xl mb-2">Register Your Business</h2>

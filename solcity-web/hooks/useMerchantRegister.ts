@@ -77,7 +77,7 @@ export function useMerchantRegister() {
         .accounts({
           merchantAuthority: publicKey,
           loyaltyProgram: loyaltyProgram,
-        })
+        } as any)
         .rpc();
 
       console.log("Register merchant tx:", tx);
