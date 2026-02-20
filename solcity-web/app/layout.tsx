@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import WalletProvider from "@/components/providers/WalletProvider";
 import QueryProvider from "@/components/providers/QueryProvider";
+import WalletQueryInvalidator from "@/components/providers/WalletQueryInvalidator";
 import Toaster from "@/components/ui/Toaster";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           <WalletProvider>
+            <WalletQueryInvalidator />
             {children}
             <Toaster />
           </WalletProvider>
