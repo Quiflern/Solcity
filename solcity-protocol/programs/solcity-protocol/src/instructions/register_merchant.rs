@@ -34,12 +34,17 @@ pub fn handler(
     ctx: Context<RegisterMerchant>,
     name: String,
     avatar_url: String,
+    description: Option<String>,
     reward_rate: u64,
 ) -> Result<()> {
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
-    require!(avatar_url.len() <= 128, SolcityError::NameTooLong); // Reuse error for simplicity
+    require!(avatar_url.len() <= 128, SolcityError::NameTooLong);
     require!(reward_rate > 0, SolcityError::InvalidRewardAmount);
+
+    if let Some(ref desc) = description {
+        require!(desc.len() <= 256, SolcityError::NameTooLong);
+    }
 
     let merchant = &mut ctx.accounts.merchant;
     let loyalty_program = &mut ctx.accounts.loyalty_program;
@@ -48,6 +53,7 @@ pub fn handler(
     merchant.authority = ctx.accounts.merchant_authority.key();
     merchant.loyalty_program = loyalty_program.key();
     merchant.name = name.clone();
+    merchant.description = description.unwrap_or_default();
     merchant.avatar_url = avatar_url;
     merchant.reward_rate = reward_rate;
     merchant.total_issued = 0;

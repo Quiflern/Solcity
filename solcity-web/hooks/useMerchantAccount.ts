@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "./useSolcityProgram";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
@@ -9,20 +9,13 @@ export function useMerchantAccount() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
   const { program } = useSolcityProgram();
-  const [merchantAccount, setMerchantAccount] = useState<any>(null);
-  const [isRegistered, setIsRegistered] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const checkMerchant = async () => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["merchant", publicKey?.toString()],
+    queryFn: async () => {
       if (!program || !publicKey) {
-        setIsLoading(false);
-        setIsRegistered(false);
-        setMerchantAccount(null);
-        return;
+        return { merchantAccount: null, isRegistered: false };
       }
-
-      setIsLoading(true);
 
       try {
         const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
@@ -31,12 +24,15 @@ export function useMerchantAccount() {
         const account = await program.account.merchant.fetchNullable(merchant);
 
         if (account) {
-          setMerchantAccount(account);
-          setIsRegistered(true);
-        } else {
-          setIsRegistered(false);
-          setMerchantAccount(null);
+          // Check if account data is valid (not corrupted)
+          if (account.createdAt === 0 || account.bump === 0) {
+            // Corrupted account - treat as not registered
+            console.log("Detected corrupted merchant account - allowing re-registration");
+            return { merchantAccount: null, isRegistered: false };
+          }
+          return { merchantAccount: account, isRegistered: true };
         }
+        return { merchantAccount: null, isRegistered: false };
       } catch (err: any) {
         // Check if account exists but has wrong structure
         const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
@@ -45,28 +41,24 @@ export function useMerchantAccount() {
         try {
           const accountInfo = await connection.getAccountInfo(merchant);
           if (accountInfo && accountInfo.owner.toString() === program.programId.toString()) {
-            // Account exists but can't be deserialized - needs migration
-            setIsRegistered(true);
-            setMerchantAccount({ needsMigration: true });
-          } else {
-            setIsRegistered(false);
-            setMerchantAccount(null);
+            // Account exists but can't be deserialized - treat as corrupted, allow re-registration
+            console.log("Account exists but corrupted - allowing re-registration");
+            return { merchantAccount: null, isRegistered: false };
           }
         } catch {
-          setIsRegistered(false);
-          setMerchantAccount(null);
+          // Ignore
         }
-      } finally {
-        setIsLoading(false);
+        return { merchantAccount: null, isRegistered: false };
       }
-    };
-
-    checkMerchant();
-  }, [program, publicKey, connection]);
+    },
+    enabled: !!program && !!publicKey,
+  });
 
   return {
-    merchantAccount,
-    isRegistered,
+    merchantAccount: data?.merchantAccount || null,
+    isRegistered: data?.isRegistered || false,
     isLoading,
+    error,
+    refetch,
   };
 }

@@ -21,6 +21,7 @@ pub struct UpdateMerchant<'info> {
 pub fn handler(
     ctx: Context<UpdateMerchant>,
     new_reward_rate: Option<u64>,
+    description: Option<String>,
     avatar_url: Option<String>,
     is_active: Option<bool>,
 ) -> Result<()> {
@@ -30,6 +31,12 @@ pub fn handler(
         require!(rate > 0, SolcityError::InvalidRewardAmount);
         merchant.reward_rate = rate;
         msg!("Reward rate updated to: {} tokens/$", rate);
+    }
+
+    if let Some(desc) = description {
+        require!(desc.len() <= 256, SolcityError::NameTooLong);
+        merchant.description = desc;
+        msg!("Description updated");
     }
 
     if let Some(url) = avatar_url {

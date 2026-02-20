@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::{Merchant, RewardRule, RuleType, SolcityError};
+use crate::{LoyaltyProgram, Merchant, RewardRule, RuleType, SolcityError};
 
 #[derive(Accounts)]
 #[instruction(rule_id: u64)]
@@ -9,9 +9,18 @@ pub struct SetRewardRule<'info> {
 
     #[account(
         seeds = [
+            LoyaltyProgram::SEED_PREFIX,
+            merchant_authority.key().as_ref()
+        ],
+        bump = loyalty_program.bump,
+    )]
+    pub loyalty_program: Account<'info, LoyaltyProgram>,
+
+    #[account(
+        seeds = [
             Merchant::SEED_PREFIX,
             merchant_authority.key().as_ref(),
-            merchant.loyalty_program.as_ref()
+            loyalty_program.key().as_ref()
         ],
         bump = merchant.bump,
     )]

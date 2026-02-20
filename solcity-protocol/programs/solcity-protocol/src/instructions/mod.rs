@@ -10,7 +10,6 @@ pub mod update_reward_rule;
 pub mod toggle_reward_rule;
 pub mod delete_reward_rule;
 pub mod update_merchant;
-pub mod migrate_merchant;
 
 pub use initialize_program::*;
 pub use register_merchant::*;
@@ -22,4 +21,3 @@ pub use update_reward_rule::*;
 pub use toggle_reward_rule::*;
 pub use delete_reward_rule::*;
 pub use update_merchant::*;
-pub use migrate_merchant::*;

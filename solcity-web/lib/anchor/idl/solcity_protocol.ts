@@ -35,6 +35,37 @@ export type SolcityProtocol = {
           "signer": true
         },
         {
+          "name": "loyaltyProgram",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -57,8 +88,7 @@ export type SolcityProtocol = {
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "merchant"
+                "path": "loyaltyProgram"
               }
             ]
           }
@@ -353,43 +383,6 @@ export type SolcityProtocol = {
         {
           "name": "purchaseAmount",
           "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "migrateMerchant",
-      "docs": [
-        "Migrate existing merchant account to add avatar_url field"
-      ],
-      "discriminator": [
-        74,
-        230,
-        161,
-        163,
-        14,
-        34,
-        101,
-        166
-      ],
-      "accounts": [
-        {
-          "name": "merchantAuthority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "merchant",
-          "writable": true
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "avatarUrl",
-          "type": "string"
         }
       ]
     },
@@ -824,6 +817,12 @@ export type SolcityProtocol = {
           "type": "string"
         },
         {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
           "name": "rewardRate",
           "type": "u64"
         }
@@ -851,6 +850,37 @@ export type SolcityProtocol = {
           "signer": true
         },
         {
+          "name": "loyaltyProgram",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -873,8 +903,7 @@ export type SolcityProtocol = {
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "merchant"
+                "path": "loyaltyProgram"
               }
             ]
           }
@@ -973,6 +1002,37 @@ export type SolcityProtocol = {
           "signer": true
         },
         {
+          "name": "loyaltyProgram",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -995,8 +1055,7 @@ export type SolcityProtocol = {
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "merchant"
+                "path": "loyaltyProgram"
               }
             ]
           }
@@ -1111,6 +1170,12 @@ export type SolcityProtocol = {
           }
         },
         {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
           "name": "isActive",
           "type": {
             "option": "bool"
@@ -1140,6 +1205,37 @@ export type SolcityProtocol = {
           "signer": true
         },
         {
+          "name": "loyaltyProgram",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -1162,8 +1258,7 @@ export type SolcityProtocol = {
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "merchant"
+                "path": "loyaltyProgram"
               }
             ]
           }
@@ -1584,6 +1679,13 @@ export type SolcityProtocol = {
             "name": "name",
             "docs": [
               "Business name (32 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "docs": [
+              "Business description (256 bytes)"
             ],
             "type": "string"
           },

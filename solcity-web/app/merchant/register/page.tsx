@@ -8,17 +8,16 @@ import { useState } from "react";
 import { useMerchantRegister } from "@/hooks/useMerchantRegister";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMigrateMerchant } from "@/hooks/useMigrateMerchant";
 import { toast } from "sonner";
 import Link from "next/link";
 
 export default function MerchantRegisterPage() {
   const { publicKey } = useWallet();
   const { registerComplete, isLoading, error } = useMerchantRegister();
-  const { migrateMerchant, isLoading: isMigrating } = useMigrateMerchant();
-  const { isRegistered, merchantAccount, isLoading: checkingMerchant } = useMerchantAccount();
+  const { isRegistered, merchantAccount, isLoading: checkingMerchant, refetch } = useMerchantAccount();
 
   const [businessName, setBusinessName] = useState("");
+  const [description, setDescription] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [category, setCategory] = useState("food");
   const [email, setEmail] = useState("");
@@ -54,17 +53,23 @@ export default function MerchantRegisterPage() {
 
   const handleDeploy = async () => {
     if (!publicKey) {
-      toast.error("Please connect your wallet first");
+      toast.error("Wallet not connected", {
+        description: "Please connect your Solana wallet to continue"
+      });
       return;
     }
 
     if (!businessName.trim()) {
-      toast.error("Please enter a business name");
+      toast.error("Business name required", {
+        description: "Please enter your business name"
+      });
       return;
     }
 
     if (!programName.trim()) {
-      toast.error("Please enter a program name");
+      toast.error("Program name required", {
+        description: "Please enter a loyalty program name"
+      });
       return;
     }
 
@@ -78,39 +83,44 @@ export default function MerchantRegisterPage() {
         programName,
         businessName,
         avatarUrl || displayAvatarUrl, // Use provided URL or generated one
+        description,
         rewardRateBps,
         interestRate
       );
 
       toast.dismiss(loadingToast);
-      toast.success("Loyalty program deployed successfully!");
+      toast.success("Loyalty program deployed successfully!", {
+        description: "Your on-chain loyalty program is now live"
+      });
       setSuccess(true);
       setTxSignature(result.signature);
+
+      // Refetch merchant account to update UI
+      setTimeout(() => refetch(), 1000);
     } catch (err: any) {
       toast.dismiss(loadingToast);
-      toast.error(err.message || "Failed to deploy loyalty program");
-    }
-  };
 
-  const handleMigrate = async () => {
-    if (!publicKey) {
-      toast.error("Please connect your wallet first");
-      return;
-    }
+      // Parse error message for better user feedback
+      let errorTitle = "Failed to deploy loyalty program";
+      let errorDescription = err.message || "Unknown error occurred";
 
-    const loadingToast = toast.loading("Migrating merchant account...");
+      if (err.message?.includes("Attempt to debit an account but found no record of a prior credit")) {
+        errorTitle = "Insufficient balance";
+        errorDescription = "Your wallet doesn't have enough SOL. Please add funds to continue.";
+      } else if (err.message?.includes("already in use")) {
+        errorTitle = "Account already exists";
+        errorDescription = "This merchant account is already registered. Try using a different wallet.";
+      } else if (err.message?.includes("Transaction simulation failed")) {
+        errorTitle = "Transaction failed";
+        errorDescription = "The transaction could not be processed. Please try again.";
+      } else if (err.message?.includes("User rejected")) {
+        errorTitle = "Transaction cancelled";
+        errorDescription = "You cancelled the transaction in your wallet.";
+      }
 
-    try {
-      const result = await migrateMerchant(avatarUrl || displayAvatarUrl);
-
-      toast.dismiss(loadingToast);
-      toast.success("Account migrated successfully!");
-
-      // Reload page to fetch updated account
-      window.location.reload();
-    } catch (err: any) {
-      toast.dismiss(loadingToast);
-      toast.error(err.message || "Failed to migrate account");
+      toast.error(errorTitle, {
+        description: errorDescription
+      });
     }
   };
 
@@ -148,8 +158,8 @@ export default function MerchantRegisterPage() {
 
         {/* Setup Container */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
-          {/* Show merchant info if already registered and not needing migration */}
-          {isRegistered && merchantAccount && !merchantAccount.needsMigration ? (
+          {/* Show merchant info if already registered */}
+          {isRegistered && merchantAccount ? (
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
                 <h2 className="text-2xl mb-2">Your Business Profile</h2>
@@ -244,102 +254,6 @@ export default function MerchantRegisterPage() {
             <div className="grid grid-cols-[1.2fr_0.8fr] gap-12">
               {/* Left Column - Form Steps */}
               <div className="flex flex-col gap-10">
-                {/* Migration Required Message */}
-                {isRegistered && merchantAccount?.needsMigration && (
-                  <div className="bg-yellow-500/10 border border-yellow-500 rounded-xl p-6 flex items-start gap-4">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-yellow-500 shrink-0 mt-1"
-                    >
-                      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                      <line x1="12" y1="9" x2="12" y2="13" />
-                      <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-yellow-500 mb-2">
-                        Account Migration Required
-                      </h3>
-                      <p className="text-sm text-text-secondary mb-4">
-                        Your merchant account needs to be migrated to support the new avatar feature.
-                        This is a one-time process that will add the avatar_url field to your account.
-                      </p>
-                      <div className="mb-4">
-                        <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
-                          Avatar Code or URL (Optional)
-                        </label>
-                        <div className="flex gap-3 mb-3">
-                          <input
-                            type="text"
-                            value={avatarUrl}
-                            onChange={(e) => setAvatarUrl(e.target.value)}
-                            className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
-                            placeholder="Enter avatar code or URL"
-                          />
-                          <button
-                            type="button"
-                            onClick={generateRandomAvatar}
-                            className="bg-panel border border-border text-text px-4 py-3 rounded-lg text-sm hover:border-accent transition-colors whitespace-nowrap"
-                          >
-                            Generate Random
-                          </button>
-                        </div>
-                        {(avatarUrl || businessName) && (
-                          <div className="flex items-center gap-2 bg-black border border-border rounded-lg p-2 mb-2">
-                            <span className="text-xs text-text-secondary">Preview:</span>
-                            <img
-                              src={displayAvatarUrl}
-                              alt="Avatar preview"
-                              className="w-10 h-10 rounded-lg object-cover"
-                            />
-                          </div>
-                        )}
-                        <p className="text-xs text-text-secondary">
-                          Leave empty to use auto-generated avatar based on business name
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleMigrate}
-                        disabled={isMigrating}
-                        className="bg-yellow-500 text-black px-6 py-2.5 rounded-lg font-semibold hover:bg-yellow-400 transition-colors disabled:opacity-50"
-                      >
-                        {isMigrating ? "Migrating..." : "Migrate Account"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Already Registered Message */}
-                {isRegistered && merchantAccount && !merchantAccount.needsMigration && (
-                  <div className="bg-accent/10 border border-accent rounded-xl p-6 flex items-start gap-4">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-accent shrink-0 mt-1"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-accent mb-2">
-                        Business Already Registered
-                      </h3>
-                      <p className="text-sm text-text-secondary mb-4">
-                        Your business "{merchantAccount.name}" is already registered on-chain.
-                        Scroll down to view your business profile.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {/* Section Header */}
                 <div className="mb-8">
                   <h2 className="text-2xl mb-2">Register Your Business</h2>
@@ -408,6 +322,26 @@ export default function MerchantRegisterPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                    <div className="col-span-2">
+                      <label
+                        htmlFor="description"
+                        className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                      >
+                        Business Description (Optional)
+                      </label>
+                      <textarea
+                        id="description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent resize-none"
+                        placeholder="Tell customers about your business..."
+                        rows={3}
+                        maxLength={256}
+                      />
+                      <p className="text-xs text-text-secondary mt-2">
+                        {description.length}/256 characters
+                      </p>
                     </div>
                     <div>
                       <Dropdown

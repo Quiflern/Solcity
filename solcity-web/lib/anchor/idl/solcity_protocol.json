@@ -29,6 +29,37 @@
           "signer": true
         },
         {
+          "name": "loyalty_program",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -51,8 +82,7 @@
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "path": "loyalty_program"
               }
             ]
           }
@@ -347,43 +377,6 @@
         {
           "name": "purchase_amount",
           "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "migrate_merchant",
-      "docs": [
-        "Migrate existing merchant account to add avatar_url field"
-      ],
-      "discriminator": [
-        74,
-        230,
-        161,
-        163,
-        14,
-        34,
-        101,
-        166
-      ],
-      "accounts": [
-        {
-          "name": "merchant_authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "merchant",
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "avatar_url",
-          "type": "string"
         }
       ]
     },
@@ -818,6 +811,12 @@
           "type": "string"
         },
         {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
           "name": "reward_rate",
           "type": "u64"
         }
@@ -845,6 +844,37 @@
           "signer": true
         },
         {
+          "name": "loyalty_program",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -867,8 +897,7 @@
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "path": "loyalty_program"
               }
             ]
           }
@@ -967,6 +996,37 @@
           "signer": true
         },
         {
+          "name": "loyalty_program",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -989,8 +1049,7 @@
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "path": "loyalty_program"
               }
             ]
           }
@@ -1105,6 +1164,12 @@
           }
         },
         {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
           "name": "is_active",
           "type": {
             "option": "bool"
@@ -1134,6 +1199,37 @@
           "signer": true
         },
         {
+          "name": "loyalty_program",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              }
+            ]
+          }
+        },
+        {
           "name": "merchant",
           "pda": {
             "seeds": [
@@ -1156,8 +1252,7 @@
               },
               {
                 "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "path": "loyalty_program"
               }
             ]
           }
@@ -1578,6 +1673,13 @@
             "name": "name",
             "docs": [
               "Business name (32 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "docs": [
+              "Business description (256 bytes)"
             ],
             "type": "string"
           },
