@@ -71,7 +71,7 @@ export function useRewardRules() {
           startTimeBN,
           endTimeBN
         )
-        .accounts({
+        .accountsPartial({
           merchantAuthority: publicKey,
           merchant: merchant,
           rewardRule: rewardRule,
@@ -123,7 +123,7 @@ export function useRewardRules() {
           startTimeBN,
           endTimeBN
         )
-        .accounts({
+        .accountsPartial({
           merchantAuthority: publicKey,
           merchant: merchant,
           rewardRule: rewardRule,
@@ -162,7 +162,7 @@ export function useRewardRules() {
 
       const tx = await program.methods
         .toggleRewardRule(ruleIdBN, isActive)
-        .accounts({
+        .accountsPartial({
           merchantAuthority: publicKey,
           merchant: merchant,
           rewardRule: rewardRule,
@@ -201,7 +201,7 @@ export function useRewardRules() {
 
       const tx = await program.methods
         .deleteRewardRule(ruleIdBN)
-        .accounts({
+        .accountsPartial({
           merchantAuthority: publicKey,
           merchant: merchant,
           rewardRule: rewardRule,
@@ -233,7 +233,6 @@ export function useRewardRules() {
       const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
       const [rewardRule] = getRewardRulePDA(merchant, ruleId);
 
-      // @ts-ignore - Using JSON IDL, types not available
       const ruleAccount = await program.account.rewardRule.fetch(rewardRule);
       return ruleAccount;
     } catch (err: any) {

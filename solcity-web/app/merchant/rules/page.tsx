@@ -94,6 +94,8 @@ export default function MerchantRulesPage() {
       return;
     }
 
+    const loadingToast = toast.loading("Creating reward rule...");
+
     try {
       const ruleTypeEnum: RuleType = { [ruleType]: {} } as RuleType;
       const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
@@ -111,6 +113,7 @@ export default function MerchantRulesPage() {
         endTime,
       });
 
+      toast.dismiss(loadingToast);
       toast.success("Reward rule created successfully!", {
         description: `Transaction: ${result.signature.slice(0, 8)}...${result.signature.slice(-8)}`,
       });
@@ -131,6 +134,7 @@ export default function MerchantRulesPage() {
 
       resetForm();
     } catch (err: any) {
+      toast.dismiss(loadingToast);
       toast.error("Failed to create reward rule", {
         description: err.message || "Unknown error occurred",
       });
@@ -151,6 +155,8 @@ export default function MerchantRulesPage() {
   const handleUpdateRule = async () => {
     if (!editingRule) return;
 
+    const loadingToast = toast.loading("Updating reward rule...");
+
     try {
       const ruleTypeEnum: RuleType = { [ruleType]: {} } as RuleType;
       const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
@@ -167,6 +173,7 @@ export default function MerchantRulesPage() {
         endTime,
       });
 
+      toast.dismiss(loadingToast);
       toast.success("Rule updated successfully!", {
         description: `Transaction: ${result.signature.slice(0, 8)}...`,
       });
@@ -191,6 +198,7 @@ export default function MerchantRulesPage() {
       setEditingRule(null);
       resetForm();
     } catch (err: any) {
+      toast.dismiss(loadingToast);
       toast.error("Failed to update rule", {
         description: err.message,
       });
@@ -198,9 +206,12 @@ export default function MerchantRulesPage() {
   };
 
   const handleToggleRule = async (ruleId: number, currentStatus: boolean) => {
+    const loadingToast = toast.loading(`${!currentStatus ? "Activating" : "Pausing"} rule...`);
+
     try {
       await toggleRewardRule(ruleId, !currentStatus);
 
+      toast.dismiss(loadingToast);
       toast.success(`Rule ${!currentStatus ? "activated" : "paused"}`);
 
       setCreatedRules((prev) =>
@@ -209,6 +220,7 @@ export default function MerchantRulesPage() {
         )
       );
     } catch (err: any) {
+      toast.dismiss(loadingToast);
       toast.error("Failed to toggle rule", {
         description: err.message,
       });
@@ -220,13 +232,17 @@ export default function MerchantRulesPage() {
       return;
     }
 
+    const loadingToast = toast.loading("Deleting rule...");
+
     try {
       await deleteRewardRule(ruleId);
 
+      toast.dismiss(loadingToast);
       toast.success("Rule deleted successfully");
 
       setCreatedRules((prev) => prev.filter((rule) => rule.id !== ruleId));
     } catch (err: any) {
+      toast.dismiss(loadingToast);
       toast.error("Failed to delete rule", {
         description: err.message,
       });
@@ -272,6 +288,33 @@ export default function MerchantRulesPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
         <Navbar />
+
+        {/* Wallet Not Connected Banner */}
+        {!publicKey && (
+          <div className="bg-yellow-500/10 border-b border-yellow-500/30 py-4">
+            <div className="max-w-[1400px] mx-auto px-8 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-yellow-500"
+                >
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-yellow-500">Wallet Not Connected</p>
+                  <p className="text-xs text-text-secondary">Please connect your Solana wallet to manage reward rules</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
           <div className="flex justify-between items-center mb-8">

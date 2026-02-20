@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "./useSolcityProgram";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
 export function useMigrateMerchant() {
   const { connection } = useConnection();
@@ -20,10 +21,21 @@ export function useMigrateMerchant() {
     setError(null);
 
     try {
+      // First, we need to get the merchant account to read its loyalty_program field
+      const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+      const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+
+      // Fetch the raw account data to get the loyalty_program pubkey
+      const accountInfo = await connection.getAccountInfo(merchant);
+      if (!accountInfo) {
+        throw new Error("Merchant account not found");
+      }
+
       const tx = await program.methods
         .migrateMerchant(avatarUrl)
-        .accounts({
+        .accountsPartial({
           merchantAuthority: publicKey,
+          merchant: merchant,
         })
         .rpc();
 

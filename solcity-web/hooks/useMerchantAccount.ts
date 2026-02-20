@@ -17,14 +17,17 @@ export function useMerchantAccount() {
     const checkMerchant = async () => {
       if (!program || !publicKey) {
         setIsLoading(false);
+        setIsRegistered(false);
+        setMerchantAccount(null);
         return;
       }
+
+      setIsLoading(true);
 
       try {
         const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
         const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
 
-        // @ts-ignore - Using JSON IDL
         const account = await program.account.merchant.fetchNullable(merchant);
 
         if (account) {
@@ -32,14 +35,26 @@ export function useMerchantAccount() {
           setIsRegistered(true);
         } else {
           setIsRegistered(false);
+          setMerchantAccount(null);
         }
       } catch (err: any) {
-        // If buffer length error, it means old account structure - needs migration
-        if (err.message?.includes("buffer length")) {
-          setIsRegistered(true); // Account exists but needs migration
-          setMerchantAccount({ needsMigration: true });
-        } else {
+        // Check if account exists but has wrong structure
+        const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+        const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+
+        try {
+          const accountInfo = await connection.getAccountInfo(merchant);
+          if (accountInfo && accountInfo.owner.toString() === program.programId.toString()) {
+            // Account exists but can't be deserialized - needs migration
+            setIsRegistered(true);
+            setMerchantAccount({ needsMigration: true });
+          } else {
+            setIsRegistered(false);
+            setMerchantAccount(null);
+          }
+        } catch {
           setIsRegistered(false);
+          setMerchantAccount(null);
         }
       } finally {
         setIsLoading(false);

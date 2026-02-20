@@ -1,14 +1,20 @@
-{
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/solcity_protocol.json`.
+ */
+export type SolcityProtocol = {
   "address": "67XD1wBu5Ja1H5e4Zg4vsjZDoAcB8KwTZqawodZZwqv9",
   "metadata": {
-    "name": "solcity_protocol",
+    "name": "solcityProtocol",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "delete_reward_rule",
+      "name": "deleteRewardRule",
       "docs": [
         "Delete a reward rule"
       ],
@@ -24,7 +30,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -47,18 +53,18 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
                 "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "account": "merchant"
               }
             ]
           }
         },
         {
-          "name": "reward_rule",
+          "name": "rewardRule",
           "writable": true,
           "pda": {
             "seeds": [
@@ -84,7 +90,7 @@
               },
               {
                 "kind": "arg",
-                "path": "rule_id"
+                "path": "ruleId"
               }
             ]
           }
@@ -92,13 +98,13 @@
       ],
       "args": [
         {
-          "name": "rule_id",
+          "name": "ruleId",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "initialize_program",
+      "name": "initializeProgram",
       "docs": [
         "Initialize a new loyalty program with Token-2022 mint"
       ],
@@ -119,7 +125,7 @@
           "signer": true
         },
         {
-          "name": "loyalty_program",
+          "name": "loyaltyProgram",
           "writable": true,
           "pda": {
             "seeds": [
@@ -169,17 +175,17 @@
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
         {
@@ -193,7 +199,7 @@
           "type": "string"
         },
         {
-          "name": "interest_rate",
+          "name": "interestRate",
           "type": {
             "option": "i16"
           }
@@ -201,7 +207,7 @@
       ]
     },
     {
-      "name": "issue_rewards",
+      "name": "issueRewards",
       "docs": [
         "Issue reward tokens to a customer for a purchase"
       ],
@@ -217,7 +223,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -241,11 +247,11 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
@@ -271,17 +277,17 @@
               {
                 "kind": "account",
                 "path": "customer.wallet",
-                "account": "Customer"
+                "account": "customer"
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "loyalty_program",
+          "name": "loyaltyProgram",
           "writable": true,
           "pda": {
             "seeds": [
@@ -308,7 +314,7 @@
               {
                 "kind": "account",
                 "path": "loyalty_program.authority",
-                "account": "LoyaltyProgram"
+                "account": "loyaltyProgram"
               }
             ]
           }
@@ -329,29 +335,29 @@
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "customer_token_account",
+          "name": "customerTokenAccount",
           "writable": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
       "args": [
         {
-          "name": "purchase_amount",
+          "name": "purchaseAmount",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "migrate_merchant",
+      "name": "migrateMerchant",
       "docs": [
         "Migrate existing merchant account to add avatar_url field"
       ],
@@ -367,54 +373,28 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
         {
           "name": "merchant",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  101,
-                  114,
-                  99,
-                  104,
-                  97,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "merchant_authority"
-              },
-              {
-                "kind": "account",
-                "path": "merchant.loyalty_program",
-                "account": "Merchant"
-              }
-            ]
-          }
+          "writable": true
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "avatar_url",
+          "name": "avatarUrl",
           "type": "string"
         }
       ]
     },
     {
-      "name": "redeem_rewards",
+      "name": "redeemRewards",
       "docs": [
         "Redeem reward tokens for benefits"
       ],
@@ -430,7 +410,7 @@
       ],
       "accounts": [
         {
-          "name": "customer_authority",
+          "name": "customerAuthority",
           "writable": true,
           "signer": true
         },
@@ -454,11 +434,11 @@
               },
               {
                 "kind": "account",
-                "path": "customer_authority"
+                "path": "customerAuthority"
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
@@ -484,17 +464,17 @@
               {
                 "kind": "account",
                 "path": "merchant.authority",
-                "account": "Merchant"
+                "account": "merchant"
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "loyalty_program",
+          "name": "loyaltyProgram",
           "writable": true,
           "pda": {
             "seeds": [
@@ -521,7 +501,7 @@
               {
                 "kind": "account",
                 "path": "loyalty_program.authority",
-                "account": "LoyaltyProgram"
+                "account": "loyaltyProgram"
               }
             ]
           }
@@ -542,17 +522,17 @@
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "customer_token_account",
+          "name": "customerTokenAccount",
           "writable": true
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
@@ -562,17 +542,17 @@
           "type": "u64"
         },
         {
-          "name": "redemption_type",
+          "name": "redemptionType",
           "type": {
             "defined": {
-              "name": "RedemptionType"
+              "name": "redemptionType"
             }
           }
         }
       ]
     },
     {
-      "name": "register_customer",
+      "name": "registerCustomer",
       "docs": [
         "Register a new customer in the loyalty program"
       ],
@@ -588,7 +568,7 @@
       ],
       "accounts": [
         {
-          "name": "customer_authority",
+          "name": "customerAuthority",
           "writable": true,
           "signer": true
         },
@@ -612,17 +592,17 @@
               },
               {
                 "kind": "account",
-                "path": "customer_authority"
+                "path": "customerAuthority"
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "loyalty_program",
+          "name": "loyaltyProgram",
           "writable": true,
           "pda": {
             "seeds": [
@@ -649,7 +629,7 @@
               {
                 "kind": "account",
                 "path": "loyalty_program.authority",
-                "account": "LoyaltyProgram"
+                "account": "loyaltyProgram"
               }
             ]
           }
@@ -669,23 +649,23 @@
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "customer_token_account",
+          "name": "customerTokenAccount",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "account",
-                "path": "customer_authority"
+                "path": "customerAuthority"
               },
               {
                 "kind": "account",
-                "path": "token_program"
+                "path": "tokenProgram"
               },
               {
                 "kind": "account",
@@ -732,22 +712,22 @@
           }
         },
         {
-          "name": "token_program",
+          "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "associated_token_program",
+          "name": "associatedTokenProgram",
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
     },
     {
-      "name": "register_merchant",
+      "name": "registerMerchant",
       "docs": [
         "Register a new merchant in the loyalty program"
       ],
@@ -763,7 +743,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -787,17 +767,17 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
-                "path": "loyalty_program"
+                "path": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "loyalty_program",
+          "name": "loyaltyProgram",
           "writable": true,
           "pda": {
             "seeds": [
@@ -824,13 +804,13 @@
               {
                 "kind": "account",
                 "path": "loyalty_program.authority",
-                "account": "LoyaltyProgram"
+                "account": "loyaltyProgram"
               }
             ]
           }
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -840,17 +820,17 @@
           "type": "string"
         },
         {
-          "name": "avatar_url",
+          "name": "avatarUrl",
           "type": "string"
         },
         {
-          "name": "reward_rate",
+          "name": "rewardRate",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "set_reward_rule",
+      "name": "setRewardRule",
       "docs": [
         "Create a new reward rule for a merchant"
       ],
@@ -866,7 +846,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -889,18 +869,18 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
                 "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "account": "merchant"
               }
             ]
           }
         },
         {
-          "name": "reward_rule",
+          "name": "rewardRule",
           "writable": true,
           "pda": {
             "seeds": [
@@ -926,19 +906,19 @@
               },
               {
                 "kind": "arg",
-                "path": "rule_id"
+                "path": "ruleId"
               }
             ]
           }
         },
         {
-          "name": "system_program",
+          "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "rule_id",
+          "name": "ruleId",
           "type": "u64"
         },
         {
@@ -946,10 +926,10 @@
           "type": "string"
         },
         {
-          "name": "rule_type",
+          "name": "ruleType",
           "type": {
             "defined": {
-              "name": "RuleType"
+              "name": "ruleType"
             }
           }
         },
@@ -958,21 +938,21 @@
           "type": "u64"
         },
         {
-          "name": "min_purchase",
+          "name": "minPurchase",
           "type": "u64"
         },
         {
-          "name": "start_time",
+          "name": "startTime",
           "type": "i64"
         },
         {
-          "name": "end_time",
+          "name": "endTime",
           "type": "i64"
         }
       ]
     },
     {
-      "name": "toggle_reward_rule",
+      "name": "toggleRewardRule",
       "docs": [
         "Toggle reward rule active status (pause/unpause)"
       ],
@@ -988,7 +968,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -1011,18 +991,18 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
                 "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "account": "merchant"
               }
             ]
           }
         },
         {
-          "name": "reward_rule",
+          "name": "rewardRule",
           "writable": true,
           "pda": {
             "seeds": [
@@ -1048,7 +1028,7 @@
               },
               {
                 "kind": "arg",
-                "path": "rule_id"
+                "path": "ruleId"
               }
             ]
           }
@@ -1056,17 +1036,17 @@
       ],
       "args": [
         {
-          "name": "rule_id",
+          "name": "ruleId",
           "type": "u64"
         },
         {
-          "name": "is_active",
+          "name": "isActive",
           "type": "bool"
         }
       ]
     },
     {
-      "name": "update_merchant",
+      "name": "updateMerchant",
       "docs": [
         "Update merchant settings"
       ],
@@ -1082,7 +1062,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -1106,12 +1086,12 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
                 "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "account": "merchant"
               }
             ]
           }
@@ -1119,19 +1099,19 @@
       ],
       "args": [
         {
-          "name": "new_reward_rate",
+          "name": "newRewardRate",
           "type": {
             "option": "u64"
           }
         },
         {
-          "name": "avatar_url",
+          "name": "avatarUrl",
           "type": {
             "option": "string"
           }
         },
         {
-          "name": "is_active",
+          "name": "isActive",
           "type": {
             "option": "bool"
           }
@@ -1139,7 +1119,7 @@
       ]
     },
     {
-      "name": "update_reward_rule",
+      "name": "updateRewardRule",
       "docs": [
         "Update an existing reward rule"
       ],
@@ -1155,7 +1135,7 @@
       ],
       "accounts": [
         {
-          "name": "merchant_authority",
+          "name": "merchantAuthority",
           "writable": true,
           "signer": true
         },
@@ -1178,18 +1158,18 @@
               },
               {
                 "kind": "account",
-                "path": "merchant_authority"
+                "path": "merchantAuthority"
               },
               {
                 "kind": "account",
                 "path": "merchant.loyalty_program",
-                "account": "Merchant"
+                "account": "merchant"
               }
             ]
           }
         },
         {
-          "name": "reward_rule",
+          "name": "rewardRule",
           "writable": true,
           "pda": {
             "seeds": [
@@ -1215,7 +1195,7 @@
               },
               {
                 "kind": "arg",
-                "path": "rule_id"
+                "path": "ruleId"
               }
             ]
           }
@@ -1223,7 +1203,7 @@
       ],
       "args": [
         {
-          "name": "rule_id",
+          "name": "ruleId",
           "type": "u64"
         },
         {
@@ -1233,11 +1213,11 @@
           }
         },
         {
-          "name": "rule_type",
+          "name": "ruleType",
           "type": {
             "option": {
               "defined": {
-                "name": "RuleType"
+                "name": "ruleType"
               }
             }
           }
@@ -1249,19 +1229,19 @@
           }
         },
         {
-          "name": "min_purchase",
+          "name": "minPurchase",
           "type": {
             "option": "u64"
           }
         },
         {
-          "name": "start_time",
+          "name": "startTime",
           "type": {
             "option": "i64"
           }
         },
         {
-          "name": "end_time",
+          "name": "endTime",
           "type": {
             "option": "i64"
           }
@@ -1271,7 +1251,7 @@
   ],
   "accounts": [
     {
-      "name": "Customer",
+      "name": "customer",
       "discriminator": [
         112,
         147,
@@ -1284,7 +1264,7 @@
       ]
     },
     {
-      "name": "LoyaltyProgram",
+      "name": "loyaltyProgram",
       "discriminator": [
         170,
         241,
@@ -1297,7 +1277,7 @@
       ]
     },
     {
-      "name": "Merchant",
+      "name": "merchant",
       "discriminator": [
         71,
         235,
@@ -1310,7 +1290,7 @@
       ]
     },
     {
-      "name": "RewardRule",
+      "name": "rewardRule",
       "discriminator": [
         22,
         164,
@@ -1325,7 +1305,7 @@
   ],
   "events": [
     {
-      "name": "RedemptionEvent",
+      "name": "redemptionEvent",
       "discriminator": [
         72,
         165,
@@ -1341,68 +1321,68 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InsufficientBalance",
+      "name": "insufficientBalance",
       "msg": "Insufficient token balance for redemption"
     },
     {
       "code": 6001,
-      "name": "MerchantNotActive",
+      "name": "merchantNotActive",
       "msg": "Merchant account is not active"
     },
     {
       "code": 6002,
-      "name": "InvalidRewardAmount",
+      "name": "invalidRewardAmount",
       "msg": "Invalid reward amount"
     },
     {
       "code": 6003,
-      "name": "Overflow",
+      "name": "overflow",
       "msg": "Arithmetic overflow in calculation"
     },
     {
       "code": 6004,
-      "name": "InvalidTier",
+      "name": "invalidTier",
       "msg": "Invalid customer tier"
     },
     {
       "code": 6005,
-      "name": "RuleNotActive",
+      "name": "ruleNotActive",
       "msg": "Reward rule is not active"
     },
     {
       "code": 6006,
-      "name": "InvalidTimeRange",
+      "name": "invalidTimeRange",
       "msg": "Invalid time range for reward rule"
     },
     {
       "code": 6007,
-      "name": "NameTooLong",
+      "name": "nameTooLong",
       "msg": "Name exceeds maximum length"
     },
     {
       "code": 6008,
-      "name": "NameEmpty",
+      "name": "nameEmpty",
       "msg": "Name cannot be empty"
     },
     {
       "code": 6009,
-      "name": "InvalidInterestRate",
+      "name": "invalidInterestRate",
       "msg": "Invalid interest rate"
     },
     {
       "code": 6010,
-      "name": "UnauthorizedAccess",
+      "name": "unauthorizedAccess",
       "msg": "Unauthorized access to account"
     },
     {
       "code": 6011,
-      "name": "InvalidMint",
+      "name": "invalidMint",
       "msg": "Invalid mint for token account"
     }
   ],
   "types": [
     {
-      "name": "Customer",
+      "name": "customer",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1414,21 +1394,21 @@
             "type": "pubkey"
           },
           {
-            "name": "loyalty_program",
+            "name": "loyaltyProgram",
             "docs": [
               "Associated loyalty program"
             ],
             "type": "pubkey"
           },
           {
-            "name": "total_earned",
+            "name": "totalEarned",
             "docs": [
               "Lifetime tokens earned"
             ],
             "type": "u64"
           },
           {
-            "name": "total_redeemed",
+            "name": "totalRedeemed",
             "docs": [
               "Lifetime tokens redeemed"
             ],
@@ -1441,26 +1421,26 @@
             ],
             "type": {
               "defined": {
-                "name": "CustomerTier"
+                "name": "customerTier"
               }
             }
           },
           {
-            "name": "transaction_count",
+            "name": "transactionCount",
             "docs": [
               "Number of transactions"
             ],
             "type": "u64"
           },
           {
-            "name": "streak_days",
+            "name": "streakDays",
             "docs": [
               "Consecutive days active"
             ],
             "type": "u16"
           },
           {
-            "name": "last_activity",
+            "name": "lastActivity",
             "docs": [
               "Last activity timestamp"
             ],
@@ -1474,7 +1454,7 @@
             "type": "u8"
           },
           {
-            "name": "joined_at",
+            "name": "joinedAt",
             "docs": [
               "Registration timestamp"
             ],
@@ -1484,27 +1464,27 @@
       }
     },
     {
-      "name": "CustomerTier",
+      "name": "customerTier",
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "Bronze"
+            "name": "bronze"
           },
           {
-            "name": "Silver"
+            "name": "silver"
           },
           {
-            "name": "Gold"
+            "name": "gold"
           },
           {
-            "name": "Platinum"
+            "name": "platinum"
           }
         ]
       }
     },
     {
-      "name": "LoyaltyProgram",
+      "name": "loyaltyProgram",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1530,35 +1510,35 @@
             "type": "string"
           },
           {
-            "name": "total_merchants",
+            "name": "totalMerchants",
             "docs": [
               "Total registered merchants"
             ],
             "type": "u64"
           },
           {
-            "name": "total_customers",
+            "name": "totalCustomers",
             "docs": [
               "Total registered customers"
             ],
             "type": "u64"
           },
           {
-            "name": "total_tokens_issued",
+            "name": "totalTokensIssued",
             "docs": [
               "Total tokens ever minted"
             ],
             "type": "u64"
           },
           {
-            "name": "total_tokens_redeemed",
+            "name": "totalTokensRedeemed",
             "docs": [
               "Total tokens ever burned"
             ],
             "type": "u64"
           },
           {
-            "name": "interest_rate",
+            "name": "interestRate",
             "docs": [
               "Interest rate in basis points (500 = 5%)"
             ],
@@ -1572,7 +1552,7 @@
             "type": "u8"
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "docs": [
               "Creation timestamp"
             ],
@@ -1582,7 +1562,7 @@
       }
     },
     {
-      "name": "Merchant",
+      "name": "merchant",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1594,7 +1574,7 @@
             "type": "pubkey"
           },
           {
-            "name": "loyalty_program",
+            "name": "loyaltyProgram",
             "docs": [
               "Associated loyalty program"
             ],
@@ -1608,35 +1588,35 @@
             "type": "string"
           },
           {
-            "name": "avatar_url",
+            "name": "avatarUrl",
             "docs": [
               "Avatar URL (128 bytes)"
             ],
             "type": "string"
           },
           {
-            "name": "reward_rate",
+            "name": "rewardRate",
             "docs": [
               "Tokens per dollar spent (e.g., 10 = 10 tokens per $1)"
             ],
             "type": "u64"
           },
           {
-            "name": "total_issued",
+            "name": "totalIssued",
             "docs": [
               "Total tokens issued by this merchant"
             ],
             "type": "u64"
           },
           {
-            "name": "total_redeemed",
+            "name": "totalRedeemed",
             "docs": [
               "Total tokens redeemed at this merchant"
             ],
             "type": "u64"
           },
           {
-            "name": "is_active",
+            "name": "isActive",
             "docs": [
               "Active status"
             ],
@@ -1650,7 +1630,7 @@
             "type": "u8"
           },
           {
-            "name": "created_at",
+            "name": "createdAt",
             "docs": [
               "Registration timestamp"
             ],
@@ -1660,7 +1640,7 @@
       }
     },
     {
-      "name": "RedemptionEvent",
+      "name": "redemptionEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1677,10 +1657,10 @@
             "type": "u64"
           },
           {
-            "name": "redemption_type",
+            "name": "redemptionType",
             "type": {
               "defined": {
-                "name": "RedemptionType"
+                "name": "redemptionType"
               }
             }
           },
@@ -1692,12 +1672,12 @@
       }
     },
     {
-      "name": "RedemptionType",
+      "name": "redemptionType",
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "Discount",
+            "name": "discount",
             "fields": [
               {
                 "name": "percentage",
@@ -1706,28 +1686,28 @@
             ]
           },
           {
-            "name": "FreeProduct",
+            "name": "freeProduct",
             "fields": [
               {
-                "name": "product_id",
+                "name": "productId",
                 "type": "string"
               }
             ]
           },
           {
-            "name": "Cashback",
+            "name": "cashback",
             "fields": [
               {
-                "name": "amount_lamports",
+                "name": "amountLamports",
                 "type": "u64"
               }
             ]
           },
           {
-            "name": "ExclusiveAccess",
+            "name": "exclusiveAccess",
             "fields": [
               {
-                "name": "access_type",
+                "name": "accessType",
                 "type": "string"
               }
             ]
@@ -1736,7 +1716,7 @@
       }
     },
     {
-      "name": "RewardRule",
+      "name": "rewardRule",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1755,13 +1735,13 @@
             "type": "string"
           },
           {
-            "name": "rule_type",
+            "name": "ruleType",
             "docs": [
               "Rule type"
             ],
             "type": {
               "defined": {
-                "name": "RuleType"
+                "name": "ruleType"
               }
             }
           },
@@ -1773,28 +1753,28 @@
             "type": "u64"
           },
           {
-            "name": "min_purchase",
+            "name": "minPurchase",
             "docs": [
               "Minimum purchase to trigger (in cents)"
             ],
             "type": "u64"
           },
           {
-            "name": "is_active",
+            "name": "isActive",
             "docs": [
               "Active status"
             ],
             "type": "bool"
           },
           {
-            "name": "start_time",
+            "name": "startTime",
             "docs": [
               "Start time (0 = immediate)"
             ],
             "type": "i64"
           },
           {
-            "name": "end_time",
+            "name": "endTime",
             "docs": [
               "End time (0 = no expiry)"
             ],
@@ -1811,30 +1791,30 @@
       }
     },
     {
-      "name": "RuleType",
+      "name": "ruleType",
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "BaseReward"
+            "name": "baseReward"
           },
           {
-            "name": "BonusMultiplier"
+            "name": "bonusMultiplier"
           },
           {
-            "name": "FirstPurchaseBonus"
+            "name": "firstPurchaseBonus"
           },
           {
-            "name": "ReferralBonus"
+            "name": "referralBonus"
           },
           {
-            "name": "TierBonus"
+            "name": "tierBonus"
           },
           {
-            "name": "StreakBonus"
+            "name": "streakBonus"
           }
         ]
       }
     }
   ]
-}
+};
