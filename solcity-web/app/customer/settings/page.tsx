@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useWalletInfo } from "@/hooks/useWalletInfo";
 import { useState } from "react";
@@ -17,7 +15,6 @@ export default function SettingsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-text-primary flex flex-col">
-        <Navbar />
 
         {/* Settings Container */}
         <div className="max-w-[1400px] mx-auto my-16 px-8 grid grid-cols-[280px_1fr] gap-16 w-full">
@@ -298,7 +295,6 @@ export default function SettingsPage() {
           </main>
         </div>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

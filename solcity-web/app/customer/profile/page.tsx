@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useWalletInfo } from "@/hooks/useWalletInfo";
 
@@ -11,7 +9,6 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background text-text-primary flex flex-col">
-        <Navbar />
 
         <main className="max-w-[1400px] mx-auto px-8 py-12 w-full">
           <section className="flex items-center gap-8 mb-12">
@@ -175,7 +172,6 @@ export default function ProfilePage() {
           </section>
         </main>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

@@ -86,12 +86,11 @@ export default function RewardHistoryPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-bg flex flex-col">
-
+      <div className="min-h-screen bg-bg-primary">
         {/* Content */}
-        <div className="px-12 py-10 max-w-[1200px] mx-auto">
+        <div className="max-w-[1400px] mx-auto px-8 py-12">
           {/* Page Header */}
-          <header className="flex justify-between items-center mb-10">
+          <header className="flex justify-between items-center mb-12">
             <h1 className="text-[1.75rem] font-bold">Reward History</h1>
             <button
               type="button"
@@ -117,31 +116,31 @@ export default function RewardHistoryPage() {
           </header>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-6 mb-10">
-            <div className="bg-panel border border-border p-6 rounded-lg">
-              <div className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+          <div className="grid grid-cols-3 gap-8 mb-12">
+            <div className="bg-panel border border-border p-8 rounded-lg">
+              <div className="text-[0.7rem] uppercase text-text-secondary mb-4 tracking-wider">
                 Earned this month
               </div>
-              <div className="text-2xl font-semibold">2,410.50 SOLC</div>
+              <div className="text-3xl font-semibold">2,410.50 SOLC</div>
             </div>
-            <div className="bg-panel border border-border p-6 rounded-lg">
-              <div className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+            <div className="bg-panel border border-border p-8 rounded-lg">
+              <div className="text-[0.7rem] uppercase text-text-secondary mb-4 tracking-wider">
                 Redeemed this month
               </div>
-              <div className="text-2xl font-semibold">850.00 SOLC</div>
+              <div className="text-3xl font-semibold">850.00 SOLC</div>
             </div>
-            <div className="bg-panel border border-border p-6 rounded-lg">
-              <div className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+            <div className="bg-panel border border-border p-8 rounded-lg">
+              <div className="text-[0.7rem] uppercase text-text-secondary mb-4 tracking-wider">
                 Net growth
               </div>
-              <div className="text-2xl font-semibold text-accent">
+              <div className="text-3xl font-semibold text-accent">
                 +1,560.50 SOLC
               </div>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="flex justify-between items-center mb-6 border-b border-border pb-0">
+          <div className="flex justify-between items-center mb-8 border-b border-border pb-0">
             <div className="flex gap-8">
               <button
                 type="button"

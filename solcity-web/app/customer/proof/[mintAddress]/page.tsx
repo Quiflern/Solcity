@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -26,7 +25,6 @@ export default function TokenProofPage() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary flex flex-col">
-      <Navbar />
 
       {/* Main Content */}
       <main className="max-w-[1400px] mx-auto my-16 px-8 grid grid-cols-2 gap-16 items-start">

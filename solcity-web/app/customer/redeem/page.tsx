@@ -111,10 +111,9 @@ export default function RedeemPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-bg flex flex-col">
-
+      <div className="min-h-screen bg-bg-primary">
         {/* Page Header */}
-        <div className="px-12 py-10 pb-6 flex justify-between items-end bg-linear-to-b from-[#050505] to-bg">
+        <div className="max-w-[1400px] mx-auto px-8 py-12 pb-8 flex justify-between items-end">
           <div>
             <h1 className="text-[2rem] font-extrabold mb-2">Redeem Rewards</h1>
             <p className="text-text-secondary text-sm">
@@ -132,7 +131,7 @@ export default function RedeemPage() {
         </div>
 
         {/* Tabs */}
-        <div className="px-10 border-b border-border flex gap-10">
+        <div className="max-w-[1400px] mx-auto px-8 border-b border-border flex gap-10">
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
@@ -158,9 +157,9 @@ export default function RedeemPage() {
         </div>
 
         {/* Content */}
-        <div className="h-[calc(900px-72px-140px-50px)] overflow-y-auto p-10">
+        <div className="max-w-[1400px] mx-auto px-8 py-10">
           {activeTab === "marketplace" && (
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 gap-8">
               {rewards.map((reward) => (
                 <div
                   key={reward.id}
