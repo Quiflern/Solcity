@@ -71,6 +71,10 @@ export function useMerchantRegister() {
       const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
       const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
 
+      // Fetch loyalty program to get treasury address
+      const loyaltyProgramAccount = await program.account.loyaltyProgram.fetch(loyaltyProgram);
+      const platformTreasury = loyaltyProgramAccount.treasury;
+
       // Convert to BN for Anchor
       const rewardRateBN = new BN(rewardRate);
 
@@ -79,6 +83,7 @@ export function useMerchantRegister() {
         .accounts({
           merchantAuthority: publicKey,
           loyaltyProgram: loyaltyProgram,
+          platformTreasury: platformTreasury,
         } as any)
         .rpc();
 

@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
-use crate::{LoyaltyProgram, Merchant, SolcityError};
+use anchor_lang::system_program;
+use crate::{LoyaltyProgram, Merchant, SolcityError, MERCHANT_REGISTRATION_FEE};
 
 #[derive(Accounts)]
 #[instruction(name: String)]
@@ -27,6 +28,13 @@ pub struct RegisterMerchant<'info> {
     )]
     pub loyalty_program: Account<'info, LoyaltyProgram>,
 
+    /// CHECK: Platform treasury account to receive fees
+    #[account(
+        mut,
+        constraint = platform_treasury.key() == loyalty_program.treasury @ SolcityError::InvalidTreasury
+    )]
+    pub platform_treasury: AccountInfo<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -45,6 +53,18 @@ pub fn handler(
     if let Some(ref desc) = description {
         require!(desc.len() <= 256, SolcityError::NameTooLong);
     }
+
+    // Collect registration fee
+    system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.merchant_authority.to_account_info(),
+                to: ctx.accounts.platform_treasury.to_account_info(),
+            },
+        ),
+        MERCHANT_REGISTRATION_FEE,
+    )?;
 
     let merchant = &mut ctx.accounts.merchant;
     let loyalty_program = &mut ctx.accounts.loyalty_program;
@@ -67,7 +87,12 @@ pub fn handler(
         .checked_add(1)
         .ok_or(SolcityError::Overflow)?;
 
-    msg!("Merchant '{}' registered with reward rate: {} tokens/$", name, reward_rate);
+    loyalty_program.total_fees_collected = loyalty_program
+        .total_fees_collected
+        .checked_add(MERCHANT_REGISTRATION_FEE)
+        .ok_or(SolcityError::Overflow)?;
+
+    msg!("Merchant '{}' registered with reward rate: {} tokens/$ (Fee: {} lamports)", name, reward_rate, MERCHANT_REGISTRATION_FEE);
     
     Ok(())
 }

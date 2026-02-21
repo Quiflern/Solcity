@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
-use crate::{LoyaltyProgram, Merchant, Customer, SolcityError, PERCENTAGE_DIVISOR};
+use crate::{LoyaltyProgram, Merchant, Customer, SolcityError, PERCENTAGE_DIVISOR, ISSUANCE_FEE_PER_TOKEN};
 
 #[derive(Accounts)]
 pub struct IssueRewards<'info> {
@@ -52,7 +53,15 @@ pub struct IssueRewards<'info> {
     )]
     pub customer_token_account: InterfaceAccount<'info, TokenAccount>,
 
+    /// CHECK: Platform treasury account to receive fees
+    #[account(
+        mut,
+        constraint = platform_treasury.key() == loyalty_program.treasury @ SolcityError::InvalidTreasury
+    )]
+    pub platform_treasury: AccountInfo<'info>,
+
     pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn handler(
@@ -82,6 +91,29 @@ pub fn handler(
         .ok_or(SolcityError::Overflow)?;
 
     require!(final_reward > 0, SolcityError::InvalidRewardAmount);
+
+    // Calculate and collect platform fee
+    let platform_fee = final_reward
+        .checked_mul(ISSUANCE_FEE_PER_TOKEN)
+        .ok_or(SolcityError::Overflow)?;
+    
+    if platform_fee > 0 {
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.merchant_authority.to_account_info(),
+                    to: ctx.accounts.platform_treasury.to_account_info(),
+                },
+            ),
+            platform_fee,
+        )?;
+
+        loyalty_program.total_fees_collected = loyalty_program
+            .total_fees_collected
+            .checked_add(platform_fee)
+            .ok_or(SolcityError::Overflow)?;
+    }
 
     // Mint tokens to customer using PDA authority
     let program_seeds = &[
@@ -136,11 +168,12 @@ pub fn handler(
     }
 
     msg!(
-        "Issued {} tokens (purchase: ${}, tier: {:?}, multiplier: {}x)",
+        "Issued {} tokens (purchase: ${}, tier: {:?}, multiplier: {}x, fee: {} lamports)",
         final_reward,
         purchase_amount as f64 / 100.0,
         customer.tier,
-        tier_multiplier as f64 / 100.0
+        tier_multiplier as f64 / 100.0,
+        platform_fee
     );
 
     Ok(())

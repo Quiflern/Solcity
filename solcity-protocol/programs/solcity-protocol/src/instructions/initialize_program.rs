@@ -51,12 +51,14 @@ pub fn handler(
     let clock = Clock::get()?;
 
     loyalty_program.authority = ctx.accounts.authority.key();
+    loyalty_program.treasury = ctx.accounts.authority.key(); // Treasury is authority for now
     loyalty_program.mint = ctx.accounts.mint.key();
     loyalty_program.name = name.clone();
     loyalty_program.total_merchants = 0;
     loyalty_program.total_customers = 0;
     loyalty_program.total_tokens_issued = 0;
     loyalty_program.total_tokens_redeemed = 0;
+    loyalty_program.total_fees_collected = 0;
     loyalty_program.interest_rate = rate;
     loyalty_program.bump = ctx.bumps.loyalty_program;
     loyalty_program.created_at = clock.unix_timestamp;

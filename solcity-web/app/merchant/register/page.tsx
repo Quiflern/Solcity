@@ -7,6 +7,7 @@ import Dropdown from "@/components/ui/Dropdown";
 import { useState } from "react";
 import { useMerchantRegister } from "@/hooks/useMerchantRegister";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
+import { useLoyaltyProgram } from "@/hooks/useLoyaltyProgram";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -15,6 +16,7 @@ export default function MerchantRegisterPage() {
   const { publicKey } = useWallet();
   const { registerComplete, isLoading, error } = useMerchantRegister();
   const { isRegistered, merchantAccount, isLoading: checkingMerchant, refetch } = useMerchantAccount();
+  const { loyaltyProgram } = useLoyaltyProgram();
 
   const [businessName, setBusinessName] = useState("");
   const [description, setDescription] = useState("");
@@ -504,57 +506,121 @@ export default function MerchantRegisterPage() {
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleDeploy}
-                    disabled={isLoading || !publicKey}
-                    className="bg-accent text-black px-4 py-5 border-none font-bold text-base cursor-pointer rounded-lg w-full transition-transform active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg
-                          className="animate-spin h-5 w-5"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
+                  <>
+                    {/* Fee Information Box */}
+                    <div className="bg-panel border border-border rounded-xl p-6 mb-6">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-accent/10 p-3 rounded-lg">
+                          <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="var(--accent)"
+                            strokeWidth="2"
+                            role="img"
+                            aria-label="Info"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold mb-2">Platform Fees</h4>
+                          <div className="space-y-2 text-sm text-text-secondary">
+                            <div className="flex justify-between items-center">
+                              <span>Registration Fee:</span>
+                              <span className="text-accent font-semibold">0.01 SOL</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Account Rent:</span>
+                              <span className="text-text font-semibold">~0.04 SOL</span>
+                            </div>
+                            <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
+                              <span className="font-semibold text-text">Total Required:</span>
+                              <span className="text-accent font-bold">~0.05 SOL</span>
+                            </div>
+                          </div>
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <p className="text-xs text-text-secondary mb-3">
+                              <span className="font-semibold text-text">Where fees go:</span> Registration fees are collected by the platform treasury to support development and maintenance.
+                              Account rent is required by Solana for on-chain storage and is refundable if you close your account.
+                            </p>
+                            <div className="bg-black border border-border rounded-lg p-3">
+                              <p className="text-[0.65rem] uppercase text-text-secondary mb-1">Platform Treasury</p>
+                              {loyaltyProgram?.treasury ? (
+                                <>
+                                  <p className="font-mono text-xs text-accent break-all">
+                                    {loyaltyProgram.treasury.toString()}
+                                  </p>
+                                  <p className="text-[0.65rem] text-text-secondary mt-2">
+                                    💡 This is the wallet that initialized the loyalty program. All fees (0.01 SOL registration + issuance fees) are sent here.
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-xs text-text-secondary">
+                                  Treasury wallet will be set to whoever initializes the loyalty program (typically the platform deployer).
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDeploy}
+                      disabled={isLoading || !publicKey}
+                      className="bg-accent text-black px-4 py-5 border-none font-bold text-base cursor-pointer rounded-lg w-full transition-transform active:scale-[0.99] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          Deploying...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
                             stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          />
-                        </svg>
-                        Deploying...
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          role="img"
-                          aria-label="Deploy"
-                        >
-                          <path d="M12 2v20M2 12h20" />
-                        </svg>
-                        Deploy Loyalty Program
-                      </>
-                    )}
-                  </button>
+                            strokeWidth="2"
+                            role="img"
+                            aria-label="Deploy"
+                          >
+                            <path d="M12 2v20M2 12h20" />
+                          </svg>
+                          Deploy Loyalty Program (0.01 SOL Fee)
+                        </>
+                      )}
+                    </button>
+                  </>
                 )}
                 <p className="text-center text-text-secondary text-xs mb-20">
-                  Requires approx. 0.05 SOL for account initialization and rent.
+                  By deploying, you agree to pay the platform registration fee. Additional small fees apply when issuing rewards.
                 </p>
               </div>
 

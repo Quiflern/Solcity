@@ -369,8 +369,16 @@
           "writable": true
         },
         {
+          "name": "platform_treasury",
+          "writable": true
+        },
+        {
           "name": "token_program",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -795,6 +803,10 @@
               }
             ]
           }
+        },
+        {
+          "name": "platform_treasury",
+          "writable": true
         },
         {
           "name": "system_program",
@@ -1467,6 +1479,11 @@
       "code": 6011,
       "name": "InvalidMint",
       "msg": "Invalid mint for token account"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidTreasury",
+      "msg": "Invalid platform treasury account"
     }
   ],
   "types": [
@@ -1585,6 +1602,13 @@
             "type": "pubkey"
           },
           {
+            "name": "treasury",
+            "docs": [
+              "Platform treasury for collecting fees"
+            ],
+            "type": "pubkey"
+          },
+          {
             "name": "mint",
             "docs": [
               "SPL Token-2022 mint address"
@@ -1623,6 +1647,13 @@
             "name": "total_tokens_redeemed",
             "docs": [
               "Total tokens ever burned"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_collected",
+            "docs": [
+              "Total fees collected (in lamports)"
             ],
             "type": "u64"
           },

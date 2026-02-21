@@ -37,4 +37,7 @@ pub enum SolcityError {
     
     #[msg("Invalid mint for token account")]
     InvalidMint,
+    
+    #[msg("Invalid platform treasury account")]
+    InvalidTreasury,
 }

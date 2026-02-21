@@ -17,3 +17,7 @@ pub const DEFAULT_INTEREST_RATE: i16 = 500; // 5% APY (in basis points)
 /// Basis points divisor
 pub const BASIS_POINTS: u64 = 10_000;
 pub const PERCENTAGE_DIVISOR: u64 = 100;
+
+/// Platform fees (in lamports)
+pub const MERCHANT_REGISTRATION_FEE: u64 = 10_000_000; // 0.01 SOL
+pub const ISSUANCE_FEE_PER_TOKEN: u64 = 100; // 0.0000001 SOL per token (very small for demo)

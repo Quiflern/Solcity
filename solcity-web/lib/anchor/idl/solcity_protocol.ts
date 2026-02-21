@@ -375,8 +375,16 @@ export type SolcityProtocol = {
           "writable": true
         },
         {
+          "name": "platformTreasury",
+          "writable": true
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -801,6 +809,10 @@ export type SolcityProtocol = {
               }
             ]
           }
+        },
+        {
+          "name": "platformTreasury",
+          "writable": true
         },
         {
           "name": "systemProgram",
@@ -1473,6 +1485,11 @@ export type SolcityProtocol = {
       "code": 6011,
       "name": "invalidMint",
       "msg": "Invalid mint for token account"
+    },
+    {
+      "code": 6012,
+      "name": "invalidTreasury",
+      "msg": "Invalid platform treasury account"
     }
   ],
   "types": [
@@ -1591,6 +1608,13 @@ export type SolcityProtocol = {
             "type": "pubkey"
           },
           {
+            "name": "treasury",
+            "docs": [
+              "Platform treasury for collecting fees"
+            ],
+            "type": "pubkey"
+          },
+          {
             "name": "mint",
             "docs": [
               "SPL Token-2022 mint address"
@@ -1629,6 +1653,13 @@ export type SolcityProtocol = {
             "name": "totalTokensRedeemed",
             "docs": [
               "Total tokens ever burned"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalFeesCollected",
+            "docs": [
+              "Total fees collected (in lamports)"
             ],
             "type": "u64"
           },

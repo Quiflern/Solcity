@@ -6,6 +6,9 @@ pub struct LoyaltyProgram {
     /// Program authority (admin)
     pub authority: Pubkey,
     
+    /// Platform treasury for collecting fees
+    pub treasury: Pubkey,
+    
     /// SPL Token-2022 mint address
     pub mint: Pubkey,
     
@@ -24,6 +27,9 @@ pub struct LoyaltyProgram {
     
     /// Total tokens ever burned
     pub total_tokens_redeemed: u64,
+    
+    /// Total fees collected (in lamports)
+    pub total_fees_collected: u64,
     
     /// Interest rate in basis points (500 = 5%)
     pub interest_rate: i16,
