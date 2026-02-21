@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 
@@ -89,7 +87,6 @@ export default function RewardHistoryPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
 
         {/* Content */}
         <div className="px-12 py-10 max-w-[1200px] mx-auto">
@@ -309,7 +306,6 @@ export default function RewardHistoryPage() {
           </div>
         </div>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

@@ -4,12 +4,12 @@ import HeroBanner from "@/components/landing/HeroBanner";
 import MetricsBar from "@/components/landing/MetricsBar";
 import StatsShowcase from "@/components/landing/StatsShowcase";
 import Footer from "@/components/layout/Footer";
-import Navbar from "@/components/layout/Navbar";
+import LandingNavbar from "@/components/layout/LandingNavbar";
 
 export default function Home() {
   return (
     <>
-      <Navbar />
+      <LandingNavbar />
       <main className="w-full flex flex-col">
         <HeroBanner />
         <MetricsBar />

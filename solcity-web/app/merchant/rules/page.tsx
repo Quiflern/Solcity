@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -284,7 +282,6 @@ export default function MerchantRulesPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
 
         {/* Wallet Not Connected Banner */}
         {!publicKey && (
@@ -651,7 +648,6 @@ export default function MerchantRulesPage() {
           </div>
         </Modal>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

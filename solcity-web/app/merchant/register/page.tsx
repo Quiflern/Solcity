@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";
 import { useState } from "react";
@@ -129,7 +127,6 @@ export default function MerchantRegisterPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
 
         {/* Wallet Not Connected Banner */}
         {!publicKey && (
@@ -717,7 +714,6 @@ export default function MerchantRegisterPage() {
           )}
         </div>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

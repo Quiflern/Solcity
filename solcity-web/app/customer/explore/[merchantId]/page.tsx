@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -110,14 +108,12 @@ export default function MerchantDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-text-secondary">Loading merchant...</p>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -125,7 +121,6 @@ export default function MerchantDetailPage() {
   if (error || !merchant) {
     return (
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-500 mb-2">Failed to load merchant</p>
@@ -138,14 +133,12 @@ export default function MerchantDetailPage() {
             </Link>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Navbar />
 
       {/* Content */}
       <div className="max-w-[1400px] mx-auto px-8 py-12">
@@ -372,7 +365,6 @@ export default function MerchantDetailPage() {
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 }

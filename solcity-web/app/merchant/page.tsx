@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 import Link from "next/link";
@@ -137,7 +135,6 @@ export default function MerchantDashboard() {
           </div>
         )}
 
-        <Navbar />
 
         {/* Dashboard Layout */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-10">
@@ -408,7 +405,6 @@ export default function MerchantDashboard() {
         }
       `}</style>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

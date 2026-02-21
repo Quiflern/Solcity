@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useAllMerchants } from "@/hooks/useAllMerchants";
@@ -56,7 +54,6 @@ export default function ExploreMerchantsPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      <Navbar />
 
       {/* Header */}
       <header className="py-16 px-8 pb-8 max-w-[1400px] mx-auto w-full">
@@ -168,7 +165,6 @@ export default function ExploreMerchantsPage() {
         )}
       </main>
 
-      <Footer />
     </div>
   );
 }

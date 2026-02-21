@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 
 export default function HeroBanner() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -147,18 +148,18 @@ export default function HeroBanner() {
         </p>
 
         <div className="flex gap-4">
-          <button
-            type="button"
-            className="bg-accent text-black px-10 py-4 border-none font-semibold text-[0.95rem] cursor-pointer rounded transition-all duration-300 shadow-[0_0_30px_rgba(208,255,20,0.3)] hover:bg-[#b8e612] hover:-translate-y-0.5 hover:shadow-[0_8px_40px_rgba(208,255,20,0.5)]"
+          <Link
+            href="/merchant/register"
+            className="bg-accent text-black px-10 py-4 border-none font-semibold text-[0.95rem] cursor-pointer rounded transition-all duration-300 shadow-[0_0_30px_rgba(208,255,20,0.3)] hover:bg-[#b8e612] hover:-translate-y-0.5 hover:shadow-[0_8px_40px_rgba(208,255,20,0.5)] inline-block"
           >
-            Start Your Program
-          </button>
-          <button
-            type="button"
-            className="border border-border bg-transparent text-text-primary px-10 py-4 font-medium text-[0.95rem] cursor-pointer rounded transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:text-accent"
+            For Merchants
+          </Link>
+          <Link
+            href="/customer"
+            className="border border-border bg-transparent text-text-primary px-10 py-4 font-medium text-[0.95rem] cursor-pointer rounded transition-all duration-300 hover:border-accent hover:bg-accent/10 hover:text-accent inline-block"
           >
-            See How It Works
-          </button>
+            For Customers
+          </Link>
         </div>
       </div>
     </section>

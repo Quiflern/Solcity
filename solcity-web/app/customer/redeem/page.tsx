@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 
@@ -114,7 +112,6 @@ export default function RedeemPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
 
         {/* Page Header */}
         <div className="px-12 py-10 pb-6 flex justify-between items-end bg-linear-to-b from-[#050505] to-bg">
@@ -354,7 +351,6 @@ export default function RedeemPage() {
           </div>
         )}
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

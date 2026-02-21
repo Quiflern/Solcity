@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 
@@ -40,7 +38,6 @@ export default function MerchantAnalyticsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-        <Navbar />
 
         {/* Container */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
@@ -301,7 +298,6 @@ export default function MerchantAnalyticsPage() {
           </div>
         </div>
 
-        <Footer />
       </div>
     </ProtectedRoute>
   );

@@ -4,37 +4,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import WalletModal from "@/components/wallet/WalletModal";
 
-export default function Navbar() {
+export default function CustomerNavbar() {
   const pathname = usePathname();
   const { publicKey, disconnect } = useWallet();
   const [walletDropdownOpen, setWalletDropdownOpen] = useState(false);
-  const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [showCopyToast, setShowCopyToast] = useState(false);
   const walletDropdownRef = useRef<HTMLDivElement>(null);
-  const businessDropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => {
-    if (path === "/") return pathname === path;
+    if (path === "/customer") return pathname === path;
     return pathname.startsWith(path);
   };
 
-  // Format wallet address to show 8 characters on each side (16 total)
   const formatAddress = (address: string) => {
     return `${address.slice(0, 8)}...${address.slice(-8)}`;
   };
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (walletDropdownRef.current && !walletDropdownRef.current.contains(event.target as Node)) {
         setWalletDropdownOpen(false);
-      }
-      if (businessDropdownRef.current && !businessDropdownRef.current.contains(event.target as Node)) {
-        setBusinessDropdownOpen(false);
       }
     };
 
@@ -67,6 +59,13 @@ export default function Navbar() {
 
           <div className="flex gap-10 items-center">
             <Link
+              href="/customer"
+              className={`text-sm font-medium transition-colors ${isActive("/customer") && pathname === "/customer" ? "text-accent" : "text-text-secondary hover:text-accent"
+                }`}
+            >
+              Dashboard
+            </Link>
+            <Link
               href="/customer/explore"
               className={`text-sm font-medium transition-colors ${isActive("/customer/explore") ? "text-accent" : "text-text-secondary hover:text-accent"
                 }`}
@@ -74,83 +73,31 @@ export default function Navbar() {
               Explore
             </Link>
             <Link
-              href="/customer"
-              className={`text-sm font-medium transition-colors ${isActive("/customer") ? "text-accent" : "text-text-secondary hover:text-accent"
+              href="/customer/history"
+              className={`text-sm font-medium transition-colors ${isActive("/customer/history") ? "text-accent" : "text-text-secondary hover:text-accent"
                 }`}
             >
-              Dashboard
+              History
             </Link>
-
-            {/* For Businesses Dropdown */}
-            <div
-              className="relative"
-              ref={businessDropdownRef}
-              onMouseEnter={() => setBusinessDropdownOpen(true)}
-              onMouseLeave={() => setBusinessDropdownOpen(false)}
+            <Link
+              href="/customer/redeem"
+              className={`text-sm font-medium transition-colors ${isActive("/customer/redeem") ? "text-accent" : "text-text-secondary hover:text-accent"
+                }`}
             >
-              <button
-                type="button"
-                className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${isActive("/merchant") ? "text-accent" : "text-text-secondary hover:text-accent"
-                  }`}
-              >
-                For Businesses
-                <motion.svg
-                  animate={{ rotate: businessDropdownOpen ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </motion.svg>
-              </button>
-
-              {/* Business Dropdown Menu */}
-              <AnimatePresence>
-                {businessDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute left-0 mt-2 w-52 bg-[#0a0a0a] border border-border rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden"
-                  >
-                    <Link
-                      href="/merchant"
-                      className="block px-4 py-3 text-sm hover:bg-white/5 transition-colors text-text-primary"
-                    >
-                      <div className="font-medium">Merchant Dashboard</div>
-                      <div className="text-xs text-text-secondary">Issue rewards</div>
-                    </Link>
-                    <Link
-                      href="/merchant/register"
-                      className="block px-4 py-3 text-sm hover:bg-white/5 transition-colors text-text-primary"
-                    >
-                      <div className="font-medium">Register Business</div>
-                      <div className="text-xs text-text-secondary">Get started</div>
-                    </Link>
-                    <Link
-                      href="/merchant/analytics"
-                      className="block px-4 py-3 text-sm hover:bg-white/5 transition-colors text-text-primary"
-                    >
-                      <div className="font-medium">View Analytics</div>
-                      <div className="text-xs text-text-secondary">Track performance</div>
-                    </Link>
-                    <Link
-                      href="/merchant/rules"
-                      className="block px-4 py-3 text-sm hover:bg-white/5 transition-colors text-text-primary"
-                    >
-                      <div className="font-medium">Manage Rules</div>
-                      <div className="text-xs text-text-secondary">Configure rewards</div>
-                    </Link>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+              Redeem
+            </Link>
+            <Link
+              href="/merchant"
+              className="text-sm font-medium text-text-secondary hover:text-accent transition-colors flex items-center gap-1"
+            >
+              Merchant View
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
 
-          {/* Wallet Connection Button */}
+          {/* Wallet Connection */}
           <div className="wallet-adapter-button-wrapper relative" ref={walletDropdownRef}>
             {publicKey ? (
               <>
@@ -171,9 +118,8 @@ export default function Navbar() {
                   </svg>
                 </button>
 
-                {/* Wallet Dropdown Menu */}
                 {walletDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-80 lg:w-96 bg-[#0a0a0a] border border-border rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden z-50">
+                  <div className="absolute right-0 mt-2 w-80 bg-[#0a0a0a] border border-border rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden z-50">
                     <div className="p-5 border-b border-border bg-panel">
                       <div className="flex items-center justify-between mb-3">
                         <div className="text-xs text-text-secondary uppercase tracking-wider font-semibold">Connected Wallet</div>
@@ -201,21 +147,6 @@ export default function Navbar() {
                         <div className="text-xs text-text-secondary">Copy to clipboard</div>
                       </div>
                     </button>
-                    <Link
-                      href="/profile"
-                      onClick={() => setWalletDropdownOpen(false)}
-                      className="w-full px-5 py-3.5 text-left text-sm hover:bg-white/5 transition-colors flex items-center gap-3 text-text-primary group"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-panel border border-border flex items-center justify-center group-hover:border-accent transition-colors">
-                        <svg className="w-4 h-4 text-text-secondary group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">Profile</div>
-                        <div className="text-xs text-text-secondary">View your profile</div>
-                      </div>
-                    </Link>
                     <div className="border-t border-border">
                       <button
                         type="button"
@@ -249,10 +180,8 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Custom Wallet Modal */}
       <WalletModal isOpen={walletModalOpen} onClose={() => setWalletModalOpen(false)} />
 
-      {/* Copy Toast Notification */}
       {showCopyToast && (
         <div className="fixed bottom-8 right-8 bg-panel border border-accent text-text-primary px-5 py-3 rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 z-[100000] animate-[slideIn_0.2s_ease-out]">
           <div className="w-5 h-5 bg-accent/20 rounded-full flex items-center justify-center">
