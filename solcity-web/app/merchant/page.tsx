@@ -5,45 +5,117 @@ import Footer from "@/components/layout/Footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 import Link from "next/link";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import { useMerchantAccount } from "@/hooks/useMerchantAccount";
+import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
+import { useIssueRewards } from "@/hooks/useIssueRewards";
+import { toast } from "sonner";
+import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
+import { useQueryClient } from "@tanstack/react-query";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function MerchantDashboard() {
+  const { publicKey } = useWallet();
+  const { merchantAccount, isLoading: merchantLoading } = useMerchantAccount();
+  const { issueRewards, isLoading: issuingRewards } = useIssueRewards();
+  const queryClient = useQueryClient();
+
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [customerWallet, setCustomerWallet] = useState("");
   const [purchaseAmount, setPurchaseAmount] = useState("");
 
-  const baseReward = purchaseAmount ? parseFloat(purchaseAmount) * 1.0 : 0;
-  const multiplier = customerWallet ? 1.2 : 0;
-  const estimatedIssuance = baseReward * (multiplier || 1);
+  // Get merchant PDA for fetching rules
+  const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
+  const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPDA);
 
-  const recentIssuances = [
-    {
-      id: "issue-1",
-      customer: "8xY2...pL9n",
-      amountUSD: "$14.50",
-      reward: "+17.40",
-      multiplier: "1.2x Platinum",
-      multiplierStyle: "platinum",
-      timestamp: "Just now",
-    },
-    {
-      id: "issue-2",
-      customer: "Am2k...9vR3",
-      amountUSD: "$8.00",
-      reward: "+8.00",
-      multiplier: "1.0x Base",
-      multiplierStyle: "base",
-      timestamp: "12 mins ago",
-    },
-    {
-      id: "issue-3",
-      customer: "KLp4...o0Pz",
-      amountUSD: "$22.00",
-      reward: "+33.00",
-      multiplier: "1.5x Elite",
-      multiplierStyle: "elite",
-      timestamp: "45 mins ago",
-    },
+  // Get active rules count
+  const activeRulesCount = rules.filter(rule => rule.isActive).length;
+
+  // Calculate base reward (merchant's reward rate)
+  const rewardRate = merchantAccount ? Number(merchantAccount.rewardRate) / 100 : 1.0;
+  const baseReward = purchaseAmount ? parseFloat(purchaseAmount) * rewardRate : 0;
+
+  // For now, we'll use a simple 1.0x multiplier (tier multipliers are applied on-chain)
+  const multiplier = 1.0;
+  const estimatedIssuance = baseReward * multiplier;
+
+  // Chart data - mock data for now, will be replaced with real transaction history
+  const chartData = [
+    { week: "Week 1", issued: 3500 },
+    { week: "Week 2", issued: 4800 },
+    { week: "Week 3", issued: 4200 },
+    { week: "Week 4", issued: 6500 },
+    { week: "Week 5", issued: 5200 },
+    { week: "Week 6", issued: 7800 },
+    { week: "Week 7", issued: 9200 },
+    { week: "Week 8", issued: 8500 },
+    { week: "Week 9", issued: 7000 },
+    { week: "Week 10", issued: 9500 },
+    { week: "Week 11", issued: 8200 },
+    { week: "Week 12", issued: 8800 },
   ];
+
+  const handleIssueRewards = async () => {
+    if (!customerWallet || !purchaseAmount) {
+      toast.error("Missing Information", {
+        description: "Please enter both customer wallet and purchase amount",
+      });
+      return;
+    }
+
+    try {
+      // Validate wallet address
+      const customerPubkey = new PublicKey(customerWallet);
+      const amount = parseFloat(purchaseAmount);
+
+      if (amount <= 0) {
+        toast.error("Invalid Amount", {
+          description: "Purchase amount must be greater than 0",
+        });
+        return;
+      }
+
+      toast.loading("Issuing rewards...", { id: "issue-rewards" });
+
+      await issueRewards(customerPubkey, amount);
+
+      toast.success("Rewards Issued!", {
+        id: "issue-rewards",
+        description: `Successfully issued ${estimatedIssuance.toFixed(2)} SLCY tokens`,
+      });
+
+      // Invalidate merchant account query to refresh stats
+      queryClient.invalidateQueries({ queryKey: ["merchant", publicKey?.toString()] });
+
+      // Clear form
+      setCustomerWallet("");
+      setPurchaseAmount("");
+    } catch (err: any) {
+      console.error("Issue rewards error:", err);
+
+      let errorTitle = "Failed to Issue Rewards";
+      let errorDescription = "An unexpected error occurred";
+
+      if (err.message?.includes("insufficient")) {
+        errorTitle = "Insufficient Balance";
+        errorDescription = "Not enough SOL to complete the transaction";
+      } else if (err.message?.includes("User rejected")) {
+        errorTitle = "Transaction Cancelled";
+        errorDescription = "You cancelled the transaction";
+      } else if (err.message?.includes("Invalid public key")) {
+        errorTitle = "Invalid Wallet Address";
+        errorDescription = "Please enter a valid Solana wallet address";
+      } else if (err.message) {
+        errorDescription = err.message;
+      }
+
+      toast.error(errorTitle, {
+        id: "issue-rewards",
+        description: errorDescription,
+      });
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -69,255 +141,257 @@ export default function MerchantDashboard() {
 
         {/* Dashboard Layout */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-10">
-          <div className="grid grid-cols-[1fr_400px] gap-8">
-            {/* Main Column */}
-            <main>
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-6 mb-10">
-                <div className="bg-panel border border-border p-6 rounded-xl">
-                  <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
-                    Total Customers
-                  </h4>
-                  <p className="text-2xl font-semibold">1,429</p>
-                </div>
-                <div className="bg-panel border border-border p-6 rounded-xl">
-                  <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
-                    Tokens Issued
-                  </h4>
-                  <p className="text-2xl font-semibold">248.5k</p>
-                </div>
-                <div className="bg-panel border border-border p-6 rounded-xl">
-                  <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
-                    Tokens Redeemed
-                  </h4>
-                  <p className="text-2xl font-semibold">82.1k</p>
-                </div>
-                <div className="bg-panel border border-border p-6 rounded-xl">
-                  <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
-                    Active Rules
-                  </h4>
-                  <p className="text-2xl font-semibold">4</p>
-                </div>
-              </div>
-
-              {/* Chart Section */}
-              <div className="bg-panel border border-border rounded-xl p-8 mb-10 h-[300px] flex flex-col">
-                <div className="flex justify-between mb-8">
-                  <h3 className="text-lg font-semibold">Issuance Trend</h3>
-                  <div className="flex gap-4 text-xs">
-                    <span className="text-text-secondary">Weekly SLCY Issued</span>
+          {merchantLoading ? (
+            <div className="text-center py-20">
+              <p className="text-text-secondary">Loading merchant data...</p>
+            </div>
+          ) : !merchantAccount ? (
+            <div className="text-center py-20">
+              <p className="text-text-secondary mb-4">No merchant account found</p>
+              <Link href="/merchant/register" className="text-accent hover:underline">
+                Register as a merchant
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[1fr_400px] gap-8">
+              {/* Main Column */}
+              <main>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-4 gap-6 mb-10">
+                  <div className="bg-panel border border-border p-6 rounded-xl">
+                    <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+                      Reward Rate
+                    </h4>
+                    <p className="text-2xl font-semibold">{rewardRate.toFixed(2)} SLCY/$</p>
+                  </div>
+                  <div className="bg-panel border border-border p-6 rounded-xl">
+                    <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+                      Tokens Issued
+                    </h4>
+                    <p className="text-2xl font-semibold">
+                      {merchantAccount.totalIssued ? Number(merchantAccount.totalIssued).toLocaleString() : "0"}
+                    </p>
+                  </div>
+                  <div className="bg-panel border border-border p-6 rounded-xl">
+                    <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+                      Tokens Redeemed
+                    </h4>
+                    <p className="text-2xl font-semibold">
+                      {merchantAccount.totalRedeemed ? Number(merchantAccount.totalRedeemed).toLocaleString() : "0"}
+                    </p>
+                  </div>
+                  <div className="bg-panel border border-border p-6 rounded-xl">
+                    <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
+                      Active Rules
+                    </h4>
+                    <p className="text-2xl font-semibold">{activeRulesCount}</p>
                   </div>
                 </div>
-                <div className="grow flex items-end gap-3 pb-2.5 border-b border-border">
-                  {/* biome-ignore lint/suspicious/noArrayIndexKey: Static decorative chart bars */}
-                  {[35, 48, 42, 65, 52, 78, 92, 85, 70, 95, 82, 88].map(
-                    (height, i) => (
-                      <div
-                        key={`chart-${i}`}
-                        className="flex-1 bg-linear-to-t from-accent/5 to-accent/30 rounded-t min-h-[20px]"
-                        style={{ height: `${height}%` }}
+
+                {/* Chart Section */}
+                <div className="bg-panel border border-border rounded-xl p-8 mb-10">
+                  <div className="flex justify-between mb-6">
+                    <h3 className="text-lg font-semibold">Issuance Trend</h3>
+                    <div className="flex gap-4 text-xs">
+                      <span className="text-text-secondary">Weekly SLCY Issued</span>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#c0ff00" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#c0ff00" stopOpacity={0.2} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                      <XAxis
+                        dataKey="week"
+                        stroke="#888"
+                        style={{ fontSize: '0.7rem' }}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                    ),
-                  )}
-                </div>
-              </div>
-
-              {/* Recent Issuance Feed */}
-              <div>
-                <h3 className="text-lg mb-6">Recent Issuance Feed</h3>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="text-left text-[0.7rem] uppercase text-text-secondary p-4 border-b border-border">
-                        Customer
-                      </th>
-                      <th className="text-left text-[0.7rem] uppercase text-text-secondary p-4 border-b border-border">
-                        Amount (USD)
-                      </th>
-                      <th className="text-left text-[0.7rem] uppercase text-text-secondary p-4 border-b border-border">
-                        Reward (SLCY)
-                      </th>
-                      <th className="text-left text-[0.7rem] uppercase text-text-secondary p-4 border-b border-border">
-                        Multiplier
-                      </th>
-                      <th className="text-left text-[0.7rem] uppercase text-text-secondary p-4 border-b border-border">
-                        Timestamp
-                      </th>
-                      <th className="text-left text-[0.7rem] uppercase text-text-secondary p-4 border-b border-border">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentIssuances.map((issue) => (
-                      <tr key={issue.id}>
-                        <td className="py-5 px-4 border-b border-border text-sm">
-                          <code>{issue.customer}</code>
-                        </td>
-                        <td className="py-5 px-4 border-b border-border text-sm">
-                          {issue.amountUSD}
-                        </td>
-                        <td className="py-5 px-4 border-b border-border text-sm font-semibold text-accent">
-                          {issue.reward}
-                        </td>
-                        <td className="py-5 px-4 border-b border-border text-sm">
-                          <span
-                            className={`text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold ${issue.multiplierStyle === "platinum"
-                              ? "bg-accent/10 text-accent"
-                              : issue.multiplierStyle === "elite"
-                                ? "bg-accent/10 text-accent border border-accent"
-                                : "bg-[#222] text-[#888]"
-                              }`}
-                          >
-                            {issue.multiplier}
-                          </span>
-                        </td>
-                        <td className="py-5 px-4 border-b border-border text-sm">
-                          {issue.timestamp}
-                        </td>
-                        <td className="py-5 px-4 border-b border-border text-sm">
-                          <a
-                            href="https://explorer.solana.com"
-                            className="text-text-secondary text-xs"
-                          >
-                            Confirmed ↗
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </main>
-
-            {/* Sidebar */}
-            <aside>
-              {/* Issue Rewards Panel */}
-              <div className="bg-panel border border-border p-8 rounded-xl">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold">Issue Rewards</h3>
-                  <svg
-                    width="20"
-                    height="20"
-                    fill="var(--accent)"
-                    viewBox="0 0 24 24"
-                    role="img"
-                    aria-label="Info"
-                  >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                  </svg>
+                      <YAxis
+                        stroke="#888"
+                        style={{ fontSize: '0.7rem' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1a1a1a',
+                          border: '1px solid #333',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '0.875rem'
+                        }}
+                        cursor={{ fill: 'rgba(192, 255, 0, 0.05)' }}
+                      />
+                      <Bar
+                        dataKey="issued"
+                        fill="url(#barGradient)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
 
-                <div className="mb-6">
-                  <label
-                    htmlFor="customer-wallet"
-                    className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
-                  >
-                    Customer Wallet
-                  </label>
-                  <div className="flex gap-2">
+                {/* Recent Issuance Feed */}
+                <div>
+                  <h3 className="text-lg mb-6">Recent Issuance Feed</h3>
+                  <div className="bg-panel border border-border rounded-xl p-8 text-center">
+                    <p className="text-text-secondary text-sm">
+                      Transaction history coming soon
+                    </p>
+                    <p className="text-text-secondary text-xs mt-2">
+                      Issue rewards to see them appear here
+                    </p>
+                  </div>
+                </div>
+              </main>
+
+              {/* Sidebar */}
+              <aside>
+                {/* Issue Rewards Panel */}
+                <div className="bg-panel border border-border p-8 rounded-xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold">Issue Rewards</h3>
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="var(--accent)"
+                      viewBox="0 0 24 24"
+                      role="img"
+                      aria-label="Info"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                    </svg>
+                  </div>
+
+                  <div className="mb-6">
+                    <label
+                      htmlFor="customer-wallet"
+                      className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                    >
+                      Customer Wallet
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="customer-wallet"
+                        type="text"
+                        value={customerWallet}
+                        onChange={(e) => setCustomerWallet(e.target.value)}
+                        className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                        placeholder="Paste address or .sol domain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowQRScanner(true)}
+                        className="bg-border border-none text-text w-[46px] rounded-lg cursor-pointer flex items-center justify-center"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                          role="img"
+                          aria-label="Scan QR"
+                        >
+                          <path d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                          <path d="M7 12h10M12 7v10" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label
+                      htmlFor="purchase-amount"
+                      className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                    >
+                      Purchase Amount (USD)
+                    </label>
                     <input
-                      id="customer-wallet"
-                      type="text"
-                      value={customerWallet}
-                      onChange={(e) => setCustomerWallet(e.target.value)}
-                      className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
-                      placeholder="Paste address or .sol domain"
+                      id="purchase-amount"
+                      type="number"
+                      value={purchaseAmount}
+                      onChange={(e) => setPurchaseAmount(e.target.value)}
+                      className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
                     />
+                  </div>
+
+                  <div className="bg-black border border-dashed border-border rounded-lg p-5 mb-6">
+                    <div className="flex justify-between text-sm text-text-secondary mb-2">
+                      <span>Base Reward ({rewardRate.toFixed(2)} SLCY/$)</span>
+                      <span>{baseReward.toFixed(2)} SLCY</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-text-secondary mb-2">
+                      <span>Customer Tier Multiplier</span>
+                      <span>Applied on-chain</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-text font-semibold mt-3 pt-3 border-t border-border">
+                      <span>Estimated Issuance</span>
+                      <span className="text-accent">
+                        ~{estimatedIssuance.toFixed(2)} SLCY
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleIssueRewards}
+                    disabled={issuingRewards || !customerWallet || !purchaseAmount}
+                    className="bg-accent text-black px-4 py-4 border-none font-bold text-base cursor-pointer rounded-lg w-full transition-transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {issuingRewards ? "Processing..." : "Confirm & Issue Reward"}
+                  </button>
+
+                  <p className="text-[0.7rem] text-text-secondary text-center mt-4">
+                    Transactions are finalized on Solana.
+                    <br />
+                    Customer tier multipliers applied automatically.
+                  </p>
+                </div>
+
+                {/* Quick Rule Management */}
+                <div className="mt-10 p-6 border border-border rounded-xl">
+                  <h4 className="text-[0.75rem] text-text-secondary uppercase mb-4">
+                    Quick Rule Management
+                  </h4>
+                  {rulesLoading ? (
+                    <p className="text-sm text-text-secondary">Loading rules...</p>
+                  ) : rules.length === 0 ? (
+                    <p className="text-sm text-text-secondary">No rules created yet</p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {rules.slice(0, 3).map((rule) => (
+                        <div key={rule.publicKey.toString()} className="flex justify-between items-center">
+                          <span className="text-sm">{rule.name}</span>
+                          <span className={`text-xs ${rule.isActive ? "text-accent" : "text-text-secondary"}`}>
+                            {rule.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Link href="/merchant/rules">
                     <button
                       type="button"
-                      onClick={() => setShowQRScanner(true)}
-                      className="bg-border border-none text-text w-[46px] rounded-lg cursor-pointer flex items-center justify-center"
+                      className="w-full mt-6 bg-transparent border border-border text-text px-4 py-2.5 rounded-md text-xs cursor-pointer hover:border-accent hover:text-accent transition-colors"
                     >
-                      <svg
-                        width="20"
-                        height="20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                        role="img"
-                        aria-label="Scan QR"
-                      >
-                        <path d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-                        <path d="M7 12h10M12 7v10" />
-                      </svg>
+                      Edit All Rules
                     </button>
-                  </div>
+                  </Link>
                 </div>
-
-                <div className="mb-6">
-                  <label
-                    htmlFor="purchase-amount"
-                    className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
-                  >
-                    Purchase Amount (USD)
-                  </label>
-                  <input
-                    id="purchase-amount"
-                    type="number"
-                    value={purchaseAmount}
-                    onChange={(e) => setPurchaseAmount(e.target.value)}
-                    className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div className="bg-black border border-dashed border-border rounded-lg p-5 mb-6">
-                  <div className="flex justify-between text-sm text-text-secondary mb-2">
-                    <span>Base Reward (1.0 SLCY/$)</span>
-                    <span>{baseReward.toFixed(2)} SLCY</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-text-secondary mb-2">
-                    <span>Customer Tier Multiplier</span>
-                    <span>{customerWallet ? "1.2x" : "--"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-text font-semibold mt-3 pt-3 border-t border-border">
-                    <span>Estimated Issuance</span>
-                    <span className="text-accent">
-                      {estimatedIssuance.toFixed(2)} SLCY
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="bg-accent text-black px-4 py-4 border-none font-bold text-base cursor-pointer rounded-lg w-full transition-transform active:scale-[0.99]"
-                >
-                  Confirm & Issue Reward
-                </button>
-
-                <p className="text-[0.7rem] text-text-secondary text-center mt-4">
-                  Transactions are finalized on Solana Mainnet.
-                  <br />
-                  Gas fees covered by Merchant Pool.
-                </p>
-              </div>
-
-              {/* Quick Rule Management */}
-              <div className="mt-10 p-6 border border-border rounded-xl">
-                <h4 className="text-[0.75rem] text-text-secondary uppercase mb-4">
-                  Quick Rule Management
-                </h4>
-                <div className="flex flex-col gap-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Base Rate: 1.0 / $</span>
-                    <span className="text-accent text-xs">Active</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Happy Hour (2x)</span>
-                    <span className="text-text-secondary text-xs">Scheduled</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="w-full mt-6 bg-transparent border border-border text-text px-4 py-2.5 rounded-md text-xs cursor-pointer hover:border-accent hover:text-accent transition-colors"
-                >
-                  <Link href="/merchant/rules">Edit All Rules</Link>
-                </button>
-              </div>
-            </aside>
-          </div>
+              </aside>
+            </div>
+          )}
         </div>
 
         <style jsx>{`
