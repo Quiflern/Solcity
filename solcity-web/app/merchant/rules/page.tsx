@@ -12,8 +12,11 @@ import Modal from "@/components/ui/Modal";
 import { useState } from "react";
 import { useRewardRules, type RuleType } from "@/hooks/useRewardRules";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
+import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
+import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
 import { toast } from "sonner";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Rule {
   id: number;
@@ -28,12 +31,27 @@ interface Rule {
 
 export default function MerchantRulesPage() {
   const { publicKey } = useWallet();
+  const queryClient = useQueryClient();
   const { createRewardRule, updateRewardRule, toggleRewardRule, deleteRewardRule, isLoading } = useRewardRules();
   const { merchantAccount, isLoading: merchantLoading } = useMerchantAccount();
 
-  const [createdRules, setCreatedRules] = useState<Rule[]>([]);
-  const [editingRule, setEditingRule] = useState<Rule | null>(null);
+  // Get merchant PDA to fetch rules
+  const merchantPubkey = merchantAccount && publicKey
+    ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
+    : null;
+
+  // Fetch rules from blockchain
+  const { data: fetchedRules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPubkey);
+
+  // Debug logging
+  console.log("Fetched rules:", fetchedRules);
+  console.log("Merchant pubkey:", merchantPubkey?.toString());
+  console.log("Merchant account:", merchantAccount);
+
+  const [editingRule, setEditingRule] = useState<any | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [ruleName, setRuleName] = useState("");
   const [ruleType, setRuleType] = useState("bonusMultiplier");
@@ -118,19 +136,8 @@ export default function MerchantRulesPage() {
         description: `Transaction: ${result.signature.slice(0, 8)}...${result.signature.slice(-8)}`,
       });
 
-      setCreatedRules((prev) => [
-        ...prev,
-        {
-          id: ruleId,
-          name: ruleName,
-          type: ruleType,
-          multiplier: parseInt(multiplier),
-          minPurchase: minPurchaseCents,
-          startTime,
-          endTime,
-          isActive: true,
-        },
-      ]);
+      // Invalidate queries to refetch rules
+      queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
 
       resetForm();
     } catch (err: any) {
@@ -141,10 +148,10 @@ export default function MerchantRulesPage() {
     }
   };
 
-  const handleEditRule = (rule: Rule) => {
+  const handleEditRule = (rule: any) => {
     setEditingRule(rule);
     setRuleName(rule.name);
-    setRuleType(rule.type);
+    setRuleType(Object.keys(rule.ruleType)[0]);
     setMultiplier(rule.multiplier.toString());
     setMinPurchase((rule.minPurchase / 100).toFixed(2));
     setStartDate(rule.startTime ? new Date(rule.startTime * 1000).toISOString().split('T')[0] : "");
@@ -164,7 +171,7 @@ export default function MerchantRulesPage() {
       const endTime = endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0;
 
       const result = await updateRewardRule({
-        ruleId: editingRule.id,
+        ruleId: editingRule.ruleId,
         name: ruleName,
         ruleType: ruleTypeEnum,
         multiplier: parseInt(multiplier),
@@ -178,21 +185,8 @@ export default function MerchantRulesPage() {
         description: `Transaction: ${result.signature.slice(0, 8)}...`,
       });
 
-      setCreatedRules((prev) =>
-        prev.map((rule) =>
-          rule.id === editingRule.id
-            ? {
-              ...rule,
-              name: ruleName,
-              type: ruleType,
-              multiplier: parseInt(multiplier),
-              minPurchase: minPurchaseCents,
-              startTime,
-              endTime,
-            }
-            : rule
-        )
-      );
+      // Invalidate queries to refetch rules
+      queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
 
       setShowEditModal(false);
       setEditingRule(null);
@@ -209,17 +203,23 @@ export default function MerchantRulesPage() {
     const loadingToast = toast.loading(`${!currentStatus ? "Activating" : "Pausing"} rule...`);
 
     try {
+      // Find the rule to get its actual addresses
+      const rule = fetchedRules.find(r => r.ruleId === ruleId);
+      console.log("Toggling rule:", ruleId, "Current status:", currentStatus);
+      console.log("Rule data:", rule);
+      console.log("Rule merchant from blockchain:", rule?.merchant.toString());
+      console.log("Merchant pubkey we're using:", merchantPubkey?.toString());
+      console.log("Rule publicKey from blockchain:", rule?.publicKey.toString());
+
       await toggleRewardRule(ruleId, !currentStatus);
 
       toast.dismiss(loadingToast);
       toast.success(`Rule ${!currentStatus ? "activated" : "paused"}`);
 
-      setCreatedRules((prev) =>
-        prev.map((rule) =>
-          rule.id === ruleId ? { ...rule, isActive: !currentStatus } : rule
-        )
-      );
+      // Invalidate queries to refetch rules
+      queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
     } catch (err: any) {
+      console.error("Toggle error:", err);
       toast.dismiss(loadingToast);
       toast.error("Failed to toggle rule", {
         description: err.message,
@@ -228,19 +228,26 @@ export default function MerchantRulesPage() {
   };
 
   const handleDeleteRule = async (ruleId: number) => {
-    if (!confirm("Are you sure you want to delete this rule? This action cannot be undone.")) {
-      return;
-    }
+    setDeletingRuleId(ruleId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteRule = async () => {
+    if (!deletingRuleId) return;
 
     const loadingToast = toast.loading("Deleting rule...");
 
     try {
-      await deleteRewardRule(ruleId);
+      await deleteRewardRule(deletingRuleId);
 
       toast.dismiss(loadingToast);
       toast.success("Rule deleted successfully");
 
-      setCreatedRules((prev) => prev.filter((rule) => rule.id !== ruleId));
+      // Invalidate queries to refetch rules
+      queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
+
+      setShowDeleteModal(false);
+      setDeletingRuleId(null);
     } catch (err: any) {
       toast.dismiss(loadingToast);
       toast.error("Failed to delete rule", {
@@ -333,7 +340,14 @@ export default function MerchantRulesPage() {
 
           <div className="grid grid-cols-[1fr_450px] gap-10">
             <div className="flex flex-col gap-4">
-              {createdRules.length === 0 ? (
+              {rulesLoading ? (
+                <Card className="py-12 px-6 text-center cursor-default">
+                  <div className="text-text-secondary">
+                    <div className="w-16 h-16 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-sm">Loading rules...</p>
+                  </div>
+                </Card>
+              ) : fetchedRules.length === 0 ? (
                 <Card className="py-12 px-6 text-center cursor-default">
                   <div className="text-text-secondary">
                     <svg
@@ -356,14 +370,14 @@ export default function MerchantRulesPage() {
                   </div>
                 </Card>
               ) : (
-                createdRules.map((rule) => (
+                fetchedRules.map((rule) => (
                   <Card
-                    key={rule.id}
+                    key={rule.publicKey.toString()}
                     className="py-5 px-6 flex items-center justify-between cursor-default"
                   >
                     <div className="flex items-center gap-6">
                       <div className="w-10 h-10 bg-[#1a1a1a] rounded-lg flex items-center justify-center text-accent">
-                        {getRuleIcon(rule.type)}
+                        {getRuleIcon(Object.keys(rule.ruleType)[0])}
                       </div>
                       <div>
                         <h4 className="text-base font-semibold mb-1">{rule.name}</h4>
@@ -383,7 +397,7 @@ export default function MerchantRulesPage() {
                       </div>
                       <Toggle
                         checked={rule.isActive}
-                        onChange={() => handleToggleRule(rule.id, rule.isActive)}
+                        onChange={() => handleToggleRule(rule.ruleId, rule.isActive)}
                       />
                       <Button variant="outline" size="sm" onClick={() => handleEditRule(rule)}>
                         Edit
@@ -392,7 +406,7 @@ export default function MerchantRulesPage() {
                         variant="ghost"
                         size="sm"
                         className="text-red-500 hover:text-red-400"
-                        onClick={() => handleDeleteRule(rule.id)}
+                        onClick={() => handleDeleteRule(rule.ruleId)}
                       >
                         Delete
                       </Button>
@@ -512,7 +526,7 @@ export default function MerchantRulesPage() {
                   {!publicKey ? "Connect Wallet" : !merchantAccount ? "Register First" : "Create Rule"}
                 </Button>
 
-                {createdRules.length > 0 && (
+                {fetchedRules.length > 0 && (
                   <Button
                     variant="ghost"
                     size="md"
@@ -610,6 +624,42 @@ export default function MerchantRulesPage() {
             </div>
           </Modal>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeletingRuleId(null);
+          }}
+          title="Delete Reward Rule"
+        >
+          <div className="space-y-4">
+            <p className="text-text-secondary">
+              Are you sure you want to delete this rule? This action cannot be undone and will permanently remove the rule from the blockchain.
+            </p>
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                className="flex-1 bg-red-500 hover:bg-red-600"
+                onClick={confirmDeleteRule}
+                isLoading={isLoading}
+              >
+                Delete Rule
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletingRuleId(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         <Footer />
       </div>

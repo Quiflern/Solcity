@@ -5,12 +5,12 @@ import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from "@sol
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
-import { useMemo } from "react";
+import { useMemo, ReactNode } from "react";
 
 // Import wallet adapter CSS
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-export default function WalletProvider({ children }: { children: React.ReactNode }) {
+export default function WalletProvider({ children }: { children: ReactNode }) {
   // Use localhost for development with local validator
   const network = WalletAdapterNetwork.Devnet;
 

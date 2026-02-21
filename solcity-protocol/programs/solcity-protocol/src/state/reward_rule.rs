@@ -6,6 +6,9 @@ pub struct RewardRule {
     /// Associated merchant
     pub merchant: Pubkey,
     
+    /// Rule ID (used in PDA derivation)
+    pub rule_id: u64,
+    
     /// Rule name (32 bytes)
     #[max_len(32)]
     pub name: String,

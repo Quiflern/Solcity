@@ -1830,6 +1830,13 @@ export type SolcityProtocol = {
             "type": "pubkey"
           },
           {
+            "name": "ruleId",
+            "docs": [
+              "Rule ID (used in PDA derivation)"
+            ],
+            "type": "u64"
+          },
+          {
             "name": "name",
             "docs": [
               "Rule name (32 bytes)"

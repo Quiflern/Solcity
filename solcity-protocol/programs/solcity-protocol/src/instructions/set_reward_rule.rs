@@ -63,6 +63,7 @@ pub fn handler(
     let reward_rule = &mut ctx.accounts.reward_rule;
 
     reward_rule.merchant = ctx.accounts.merchant.key();
+    reward_rule.rule_id = _rule_id;
     reward_rule.name = name.clone();
     reward_rule.rule_type = rule_type.clone();
     reward_rule.multiplier = multiplier;
