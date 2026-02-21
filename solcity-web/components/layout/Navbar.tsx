@@ -254,7 +254,7 @@ export default function Navbar() {
 
       {/* Copy Toast Notification */}
       {showCopyToast && (
-        <div className="fixed bottom-8 right-8 bg-panel border border-accent text-text-primary px-5 py-3 rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 z-[100000] animate-[slideIn_0.2s_ease-out]">
+        <div className="fixed bottom-8 right-8 bg-panel border border-accent text-text-primary px-5 py-3 rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 z-100000 animate-[slideIn_0.2s_ease-out]">
           <div className="w-5 h-5 bg-accent/20 rounded-full flex items-center justify-center">
             <svg className="w-3 h-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />

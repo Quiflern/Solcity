@@ -130,8 +130,8 @@ export default function MerchantAnalyticsPage() {
                     <div
                       key={`bar-${i}`}
                       className={`flex-1 rounded-t-sm ${i % 2 === 0
-                        ? "bg-linear-to-t from-accent/[0.02] to-accent/20"
-                        : "bg-linear-to-t from-white/[0.02] to-white/10"
+                        ? "bg-linear-to-t from-accent/2 to-accent/20"
+                        : "bg-linear-to-t from-white/2 to-white/10"
                         }`}
                       style={{ height: `${height}%` }}
                     />
@@ -154,7 +154,7 @@ export default function MerchantAnalyticsPage() {
             <div className="bg-panel border border-border rounded-xl p-6">
               <div className="text-sm font-semibold mb-6">Tier Distribution</div>
               <div className="flex items-center justify-center relative h-[200px]">
-                <div className="w-[140px] h-[140px] rounded-full border-[15px] border-border border-t-accent border-r-[#A3C910] rotate-45" />
+                <div className="w-[140px] h-[140px] rounded-full border-15 border-border border-t-accent border-r-[#A3C910] rotate-45" />
                 <div className="absolute text-center">
                   <div className="text-xl font-bold">1,429</div>
                   <div className="text-[0.6rem] text-text-secondary">TOTAL</div>
@@ -243,7 +243,7 @@ export default function MerchantAnalyticsPage() {
             <div className="bg-panel border border-border rounded-xl overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-white/[0.02]">
+                  <tr className="bg-white/2">
                     <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
                       Wallet Address
                     </th>
