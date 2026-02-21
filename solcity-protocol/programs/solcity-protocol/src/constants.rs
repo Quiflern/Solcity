@@ -5,9 +5,9 @@ pub const GOLD_THRESHOLD: u64 = 10_000;
 pub const PLATINUM_THRESHOLD: u64 = 50_000;
 
 /// Tier multipliers (percentage-based, 100 = 1.0x, divide by PERCENTAGE_DIVISOR)
-pub const BRONZE_MULTIPLIER: u64 = 100;   // 1.0x
-pub const SILVER_MULTIPLIER: u64 = 125;   // 1.25x
-pub const GOLD_MULTIPLIER: u64 = 150;     // 1.5x
+pub const BRONZE_MULTIPLIER: u64 = 100; // 1.0x
+pub const SILVER_MULTIPLIER: u64 = 125; // 1.25x
+pub const GOLD_MULTIPLIER: u64 = 150; // 1.5x
 pub const PLATINUM_MULTIPLIER: u64 = 200; // 2.0x
 
 /// Token configuration

@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::{LoyaltyProgram, Merchant, RewardRule, RuleType, SolcityError};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(rule_id: u64)]
@@ -76,7 +76,10 @@ pub fn handler(
 
     if let Some(new_end_time) = end_time {
         if new_end_time > 0 {
-            require!(new_end_time > reward_rule.start_time, SolcityError::InvalidTimeRange);
+            require!(
+                new_end_time > reward_rule.start_time,
+                SolcityError::InvalidTimeRange
+            );
         }
         reward_rule.end_time = new_end_time;
     }

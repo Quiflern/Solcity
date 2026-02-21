@@ -1,8 +1,10 @@
+use crate::{
+    Customer, LoyaltyProgram, Merchant, SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
+};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
-use crate::{LoyaltyProgram, Merchant, Customer, SolcityError, PERCENTAGE_DIVISOR, ISSUANCE_FEE_PER_TOKEN};
 
 #[derive(Accounts)]
 pub struct IssueRewards<'info> {
@@ -96,7 +98,7 @@ pub fn handler(
     let platform_fee = final_reward
         .checked_mul(ISSUANCE_FEE_PER_TOKEN)
         .ok_or(SolcityError::Overflow)?;
-    
+
     if platform_fee > 0 {
         system_program::transfer(
             CpiContext::new(

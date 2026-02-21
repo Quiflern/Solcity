@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::{Merchant, SolcityError};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct UpdateMerchant<'info> {

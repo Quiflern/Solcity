@@ -43,10 +43,7 @@ pub mod solcity_protocol {
     }
 
     /// Issue reward tokens to a customer for a purchase
-    pub fn issue_rewards(
-        ctx: Context<IssueRewards>,
-        purchase_amount: u64,
-    ) -> Result<()> {
+    pub fn issue_rewards(ctx: Context<IssueRewards>, purchase_amount: u64) -> Result<()> {
         instructions::issue_rewards::handler(ctx, purchase_amount)
     }
 
@@ -127,6 +124,12 @@ pub mod solcity_protocol {
         description: Option<String>,
         is_active: Option<bool>,
     ) -> Result<()> {
-        instructions::update_merchant::handler(ctx, new_reward_rate, avatar_url, description, is_active)
+        instructions::update_merchant::handler(
+            ctx,
+            new_reward_rate,
+            avatar_url,
+            description,
+            is_active,
+        )
     }
 }

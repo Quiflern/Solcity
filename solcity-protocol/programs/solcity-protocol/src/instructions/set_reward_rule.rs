@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::{LoyaltyProgram, Merchant, RewardRule, RuleType, SolcityError};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(rule_id: u64)]
@@ -55,7 +55,7 @@ pub fn handler(
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
     require!(multiplier >= 100, SolcityError::InvalidRewardAmount);
-    
+
     if end_time > 0 {
         require!(end_time > start_time, SolcityError::InvalidTimeRange);
     }

@@ -1,8 +1,8 @@
+use crate::{Customer, CustomerTier, LoyaltyProgram, SolcityError};
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_2022::Token2022;
 use anchor_spl::token_interface::{Mint, TokenAccount};
-use anchor_spl::associated_token::AssociatedToken;
-use crate::{LoyaltyProgram, Customer, CustomerTier, SolcityError};
 
 #[derive(Accounts)]
 pub struct RegisterCustomer<'info> {
@@ -71,6 +71,6 @@ pub fn handler(ctx: Context<RegisterCustomer>) -> Result<()> {
         .ok_or(SolcityError::Overflow)?;
 
     msg!("Customer registered with Bronze tier");
-    
+
     Ok(())
 }

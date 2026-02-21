@@ -1,7 +1,7 @@
+use crate::{LoyaltyProgram, SolcityError, DEFAULT_INTEREST_RATE};
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::Token2022;
 use anchor_spl::token_interface::Mint;
-use crate::{LoyaltyProgram, SolcityError, DEFAULT_INTEREST_RATE};
 
 #[derive(Accounts)]
 #[instruction(name: String)]
@@ -43,9 +43,12 @@ pub fn handler(
 ) -> Result<()> {
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
-    
+
     let rate = interest_rate.unwrap_or(DEFAULT_INTEREST_RATE);
-    require!(rate >= 0 && rate <= 10000, SolcityError::InvalidInterestRate);
+    require!(
+        rate >= 0 && rate <= 10000,
+        SolcityError::InvalidInterestRate
+    );
 
     let loyalty_program = &mut ctx.accounts.loyalty_program;
     let clock = Clock::get()?;
@@ -63,7 +66,11 @@ pub fn handler(
     loyalty_program.bump = ctx.bumps.loyalty_program;
     loyalty_program.created_at = clock.unix_timestamp;
 
-    msg!("Loyalty Program '{}' initialized with {}% APY", name, rate as f64 / 100.0);
-    
+    msg!(
+        "Loyalty Program '{}' initialized with {}% APY",
+        name,
+        rate as f64 / 100.0
+    );
+
     Ok(())
 }

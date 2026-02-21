@@ -1,6 +1,6 @@
+use crate::{LoyaltyProgram, Merchant, SolcityError, MERCHANT_REGISTRATION_FEE};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use crate::{LoyaltyProgram, Merchant, SolcityError, MERCHANT_REGISTRATION_FEE};
 
 #[derive(Accounts)]
 #[instruction(name: String)]
@@ -92,7 +92,12 @@ pub fn handler(
         .checked_add(MERCHANT_REGISTRATION_FEE)
         .ok_or(SolcityError::Overflow)?;
 
-    msg!("Merchant '{}' registered with reward rate: {} tokens/$ (Fee: {} lamports)", name, reward_rate, MERCHANT_REGISTRATION_FEE);
-    
+    msg!(
+        "Merchant '{}' registered with reward rate: {} tokens/$ (Fee: {} lamports)",
+        name,
+        reward_rate,
+        MERCHANT_REGISTRATION_FEE
+    );
+
     Ok(())
 }

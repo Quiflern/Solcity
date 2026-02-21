@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::{LoyaltyProgram, Merchant, RewardRule, SolcityError};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(rule_id: u64)]

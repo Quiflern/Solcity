@@ -1,7 +1,7 @@
+use crate::{Customer, LoyaltyProgram, Merchant, SolcityError};
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
-use crate::{LoyaltyProgram, Merchant, Customer, SolcityError};
 
 #[derive(Accounts)]
 pub struct RedeemRewards<'info> {
