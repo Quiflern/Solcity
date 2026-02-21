@@ -32,17 +32,10 @@ export function useMerchantRewardRules(merchantPubkey: PublicKey | null) {
         // Fetch all reward rule accounts
         const allRules = await program.account.rewardRule.all();
 
-        console.log("All rules fetched:", allRules.length);
-        console.log("First rule sample:", allRules[0]);
-        console.log("First rule account:", allRules[0]?.account);
-        console.log("First rule ruleId type:", typeof allRules[0]?.account?.ruleId);
-        console.log("First rule ruleId value:", allRules[0]?.account?.ruleId);
-
         // Filter rules for this merchant
         const merchantRules = allRules
           .filter((rule) => {
             if (!rule || !rule.account) {
-              console.warn("Invalid rule found:", rule);
               return false;
             }
             return rule.account.merchant.equals(merchantPubkey);
@@ -63,16 +56,13 @@ export function useMerchantRewardRules(merchantPubkey: PublicKey | null) {
                 isActive: account.isActive || false,
               };
             } catch (err) {
-              console.error("Error mapping rule:", err, rule);
               return null;
             }
           })
           .filter((rule): rule is RewardRule => rule !== null);
 
-        console.log("Merchant rules:", merchantRules.length);
         return merchantRules;
       } catch (err) {
-        console.error("Error fetching merchant reward rules:", err);
         return [];
       }
     },

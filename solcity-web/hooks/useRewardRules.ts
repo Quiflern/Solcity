@@ -159,11 +159,6 @@ export function useRewardRules() {
       const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
       const [rewardRule] = getRewardRulePDA(merchant, ruleId);
 
-      console.log("Toggle - Loyalty Program:", loyaltyProgram.toString());
-      console.log("Toggle - Merchant:", merchant.toString());
-      console.log("Toggle - Rule ID:", ruleId);
-      console.log("Toggle - Reward Rule PDA:", rewardRule.toString());
-
       const ruleIdBN = new BN(ruleId);
 
       const tx = await program.methods

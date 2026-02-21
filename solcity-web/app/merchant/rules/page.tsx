@@ -43,11 +43,6 @@ export default function MerchantRulesPage() {
   // Fetch rules from blockchain
   const { data: fetchedRules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPubkey);
 
-  // Debug logging
-  console.log("Fetched rules:", fetchedRules);
-  console.log("Merchant pubkey:", merchantPubkey?.toString());
-  console.log("Merchant account:", merchantAccount);
-
   const [editingRule, setEditingRule] = useState<any | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
@@ -205,11 +200,6 @@ export default function MerchantRulesPage() {
     try {
       // Find the rule to get its actual addresses
       const rule = fetchedRules.find(r => r.ruleId === ruleId);
-      console.log("Toggling rule:", ruleId, "Current status:", currentStatus);
-      console.log("Rule data:", rule);
-      console.log("Rule merchant from blockchain:", rule?.merchant.toString());
-      console.log("Merchant pubkey we're using:", merchantPubkey?.toString());
-      console.log("Rule publicKey from blockchain:", rule?.publicKey.toString());
 
       await toggleRewardRule(ruleId, !currentStatus);
 
