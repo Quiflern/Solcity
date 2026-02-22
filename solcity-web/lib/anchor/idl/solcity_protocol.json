@@ -1102,6 +1102,10 @@
           "type": "string"
         },
         {
+          "name": "category",
+          "type": "string"
+        },
+        {
           "name": "description",
           "type": {
             "option": "string"
@@ -1539,13 +1543,19 @@
           }
         },
         {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
           "name": "avatar_url",
           "type": {
             "option": "string"
           }
         },
         {
-          "name": "description",
+          "name": "category",
           "type": {
             "option": "string"
           }
@@ -2241,6 +2251,13 @@
             "name": "avatar_url",
             "docs": [
               "Avatar URL (128 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "docs": [
+              "Business category (32 bytes)"
             ],
             "type": "string"
           },

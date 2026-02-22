@@ -31,7 +31,9 @@ export default function MerchantRegisterPage() {
 
   // Generate random avatar code
   const generateRandomAvatar = () => {
-    const randomSeed = `avatar-${Math.random().toString(36).substring(2, 9)}`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 9);
+    const randomSeed = `avatar-${timestamp}-${random}`;
     setAvatarUrl(randomSeed);
     toast.success("Random avatar generated!");
   };
@@ -62,6 +64,34 @@ export default function MerchantRegisterPage() {
     if (!businessName.trim()) {
       toast.error("Business name required", {
         description: "Please enter your business name"
+      });
+      return;
+    }
+
+    if (businessName.length > 32) {
+      toast.error("Business name too long", {
+        description: "Business name must be 32 characters or less"
+      });
+      return;
+    }
+
+    if (avatarUrl && avatarUrl.length > 256) {
+      toast.error("Avatar URL too long", {
+        description: "Avatar URL must be 256 characters or less. Consider using a URL shortener or an avatar code instead."
+      });
+      return;
+    }
+
+    if (category.length > 32) {
+      toast.error("Category too long", {
+        description: "Category must be 32 characters or less"
+      });
+      return;
+    }
+
+    if (description && description.length > 256) {
+      toast.error("Description too long", {
+        description: "Description must be 256 characters or less"
       });
       return;
     }
@@ -296,6 +326,7 @@ export default function MerchantRegisterPage() {
                           onChange={(e) => setAvatarUrl(e.target.value)}
                           className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
                           placeholder="e.g., robot-blue or https://example.com/logo.png"
+                          maxLength={256}
                         />
                         <button
                           type="button"
@@ -310,6 +341,11 @@ export default function MerchantRegisterPage() {
                           <p className="text-xs text-text-secondary">
                             Enter a code (e.g., "robot-1") for auto-generated avatar, or a direct image URL (must end in .jpg, .png, .gif, etc.)
                           </p>
+                          {avatarUrl && (
+                            <p className="text-xs text-text-secondary mt-1">
+                              {avatarUrl.length}/256 characters {avatarUrl.length > 200 && <span className="text-yellow-500">(getting long)</span>}
+                            </p>
+                          )}
                         </div>
                         {(avatarUrl || businessName) && (
                           <div className="flex items-center gap-2 bg-black border border-border rounded-lg p-2">

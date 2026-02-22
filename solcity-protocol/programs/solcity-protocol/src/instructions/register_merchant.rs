@@ -48,7 +48,7 @@ pub fn handler(
 ) -> Result<()> {
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
-    require!(avatar_url.len() <= 128, SolcityError::NameTooLong);
+    require!(avatar_url.len() <= 256, SolcityError::NameTooLong);
     require!(!category.is_empty(), SolcityError::NameEmpty);
     require!(category.len() <= 32, SolcityError::NameTooLong);
     require!(reward_rate > 0, SolcityError::InvalidRewardAmount);

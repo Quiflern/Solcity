@@ -17,8 +17,8 @@ pub struct Merchant {
     #[max_len(256)]
     pub description: String,
 
-    /// Avatar URL (128 bytes)
-    #[max_len(128)]
+    /// Avatar URL (256 bytes)
+    #[max_len(256)]
     pub avatar_url: String,
 
     /// Business category (32 bytes)

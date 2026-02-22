@@ -1108,6 +1108,10 @@ export type SolcityProtocol = {
           "type": "string"
         },
         {
+          "name": "category",
+          "type": "string"
+        },
+        {
           "name": "description",
           "type": {
             "option": "string"
@@ -1545,13 +1549,19 @@ export type SolcityProtocol = {
           }
         },
         {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
           "name": "avatarUrl",
           "type": {
             "option": "string"
           }
         },
         {
-          "name": "description",
+          "name": "category",
           "type": {
             "option": "string"
           }
@@ -2247,6 +2257,13 @@ export type SolcityProtocol = {
             "name": "avatarUrl",
             "docs": [
               "Avatar URL (128 bytes)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "docs": [
+              "Business category (32 bytes)"
             ],
             "type": "string"
           },
