@@ -308,7 +308,7 @@ export default function MerchantRegisterPage() {
                       <div className="flex items-start gap-3 mt-3">
                         <div className="flex-1">
                           <p className="text-xs text-text-secondary">
-                            Enter a code (e.g., "robot-1") for auto-generated avatar, or a full image URL
+                            Enter a code (e.g., "robot-1") for auto-generated avatar, or a direct image URL (must end in .jpg, .png, .gif, etc.)
                           </p>
                         </div>
                         {(avatarUrl || businessName) && (
@@ -318,6 +318,16 @@ export default function MerchantRegisterPage() {
                               src={displayAvatarUrl}
                               alt="Avatar preview"
                               className="w-10 h-10 rounded-lg object-cover"
+                              onError={(e) => {
+                                // Fallback to generated avatar if URL fails to load
+                                const target = e.target as HTMLImageElement;
+                                if (target.src !== getAvatarUrl(businessName || "Business")) {
+                                  target.src = getAvatarUrl(businessName || "Business");
+                                  toast.error("Invalid image URL", {
+                                    description: "Using auto-generated avatar instead. Please provide a direct image URL (ending in .jpg, .png, etc.)"
+                                  });
+                                }
+                              }}
                             />
                           </div>
                         )}

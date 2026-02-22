@@ -449,114 +449,118 @@ export default function MerchantDetailPage() {
 
           {/* Sidebar */}
           <aside className="flex flex-col gap-8">
-            {/* CTA Widget with QR Code or Register Button */}
-            {publicKey && merchantAccount && merchantAccount.publicKey.toString() === merchant.publicKey.toString() ? (
-              // Show QR code for the merchant owner
-              <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
-                <h3 className="text-xl font-bold mb-6">Your Merchant QR Code</h3>
-                <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
-                    alt="Merchant QR Code"
-                    className="w-full h-full"
-                  />
-                </div>
-                <p className="text-sm opacity-80">
-                  Customers scan this code to register and earn rewards at your business.
-                </p>
-              </div>
-            ) : (
-              // Show register/earn CTA for customers
-              <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
-                <h3 className="text-xl font-bold mb-6">Start Earning Here</h3>
-                <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
-                    alt="Merchant QR Code"
-                    className="w-full h-full"
-                  />
-                </div>
-                {publicKey ? (
-                  customerAccount ? (
-                    <div className="bg-black/20 border border-black/30 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-semibold">You're Registered!</span>
-                      </div>
-                      <p className="text-sm opacity-80">
-                        Start earning rewards on your next purchase
-                      </p>
+            {merchant && (
+              <>
+                {/* CTA Widget with QR Code or Register Button */}
+                {publicKey && merchantAccount?.publicKey && merchantAccount.publicKey.toString() === merchant.publicKey.toString() ? (
+                  // Show QR code for the merchant owner
+                  <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
+                    <h3 className="text-xl font-bold mb-6">Your Merchant QR Code</h3>
+                    <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
+                        alt="Merchant QR Code"
+                        className="w-full h-full"
+                      />
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleRegisterCustomer}
-                      disabled={isRegistering}
-                      className="bg-black text-accent px-6 py-3 rounded-lg font-semibold hover:bg-black/90 transition-colors w-full mb-4 disabled:opacity-50"
-                    >
-                      {isRegistering ? "Registering..." : "Register to Earn Rewards"}
-                    </button>
-                  )
-                ) : (
-                  <>
-                    <p className="text-sm opacity-80 mb-4">
-                      Connect your wallet to register and start earning rewards at this merchant.
+                    <p className="text-sm opacity-80">
+                      Customers scan this code to register and earn rewards at your business.
                     </p>
-                  </>
+                  </div>
+                ) : (
+                  // Show register/earn CTA for customers
+                  <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
+                    <h3 className="text-xl font-bold mb-6">Start Earning Here</h3>
+                    <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
+                        alt="Merchant QR Code"
+                        className="w-full h-full"
+                      />
+                    </div>
+                    {publicKey ? (
+                      customerAccount ? (
+                        <div className="bg-black/20 border border-black/30 rounded-lg p-4 mb-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-semibold">You're Registered!</span>
+                          </div>
+                          <p className="text-sm opacity-80">
+                            Start earning rewards on your next purchase
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleRegisterCustomer}
+                          disabled={isRegistering}
+                          className="bg-black text-accent px-6 py-3 rounded-lg font-semibold hover:bg-black/90 transition-colors w-full mb-4 disabled:opacity-50"
+                        >
+                          {isRegistering ? "Registering..." : "Register to Earn Rewards"}
+                        </button>
+                      )
+                    ) : (
+                      <>
+                        <p className="text-sm opacity-80 mb-4">
+                          Connect your wallet to register and start earning rewards at this merchant.
+                        </p>
+                      </>
+                    )}
+                    <p className="text-sm opacity-80">
+                      Scan this code at checkout to earn rewards instantly.
+                    </p>
+                  </div>
                 )}
-                <p className="text-sm opacity-80">
-                  Scan this code at checkout to earn rewards instantly.
-                </p>
-              </div>
+
+                {/* On-Chain Verification Widget */}
+                <div className="bg-panel border border-border p-6 rounded-lg">
+                  <h4 className="text-sm mb-6 tracking-wider uppercase text-text-secondary">
+                    On-Chain Verification
+                  </h4>
+
+                  <div className="mb-5">
+                    <span className="text-[0.65rem] uppercase text-text-secondary block mb-1.5">
+                      Merchant Address
+                    </span>
+                    <span className="font-mono text-xs text-text break-all bg-black p-2.5 border border-border block rounded">
+                      {merchant.publicKey.toString()}
+                    </span>
+                  </div>
+
+                  <div className="mb-5">
+                    <span className="text-[0.65rem] uppercase text-text-secondary block mb-1.5">
+                      Authority
+                    </span>
+                    <span className="font-mono text-xs text-text break-all bg-black p-2.5 border border-border block rounded">
+                      {merchant.authority.toString()}
+                    </span>
+                  </div>
+
+                  <div className="mb-5">
+                    <span className="text-[0.65rem] uppercase text-text-secondary block mb-1.5">
+                      Loyalty Program
+                    </span>
+                    <span className="font-mono text-xs text-text break-all bg-black p-2.5 border border-border block rounded">
+                      {merchant.loyaltyProgram.toString()}
+                    </span>
+                  </div>
+
+                  <a
+                    href={`https://explorer.solana.com/address/${merchant.publicKey.toString()}?cluster=custom&customUrl=http://localhost:8899`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent text-xs flex items-center gap-1.5 mt-4 hover:underline"
+                  >
+                    View on Solana Explorer
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+                    </svg>
+                  </a>
+                </div>
+              </>
             )}
-
-            {/* On-Chain Verification Widget */}
-            <div className="bg-panel border border-border p-6 rounded-lg">
-              <h4 className="text-sm mb-6 tracking-wider uppercase text-text-secondary">
-                On-Chain Verification
-              </h4>
-
-              <div className="mb-5">
-                <span className="text-[0.65rem] uppercase text-text-secondary block mb-1.5">
-                  Merchant Address
-                </span>
-                <span className="font-mono text-xs text-text break-all bg-black p-2.5 border border-border block rounded">
-                  {merchant.publicKey.toString()}
-                </span>
-              </div>
-
-              <div className="mb-5">
-                <span className="text-[0.65rem] uppercase text-text-secondary block mb-1.5">
-                  Authority
-                </span>
-                <span className="font-mono text-xs text-text break-all bg-black p-2.5 border border-border block rounded">
-                  {merchant.authority.toString()}
-                </span>
-              </div>
-
-              <div className="mb-5">
-                <span className="text-[0.65rem] uppercase text-text-secondary block mb-1.5">
-                  Loyalty Program
-                </span>
-                <span className="font-mono text-xs text-text break-all bg-black p-2.5 border border-border block rounded">
-                  {merchant.loyaltyProgram.toString()}
-                </span>
-              </div>
-
-              <a
-                href={`https://explorer.solana.com/address/${merchant.publicKey.toString()}?cluster=custom&customUrl=http://localhost:8899`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent text-xs flex items-center gap-1.5 mt-4 hover:underline"
-              >
-                View on Solana Explorer
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
-                </svg>
-              </a>
-            </div>
           </aside>
         </div>
       </div>

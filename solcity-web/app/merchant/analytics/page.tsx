@@ -11,6 +11,7 @@ export default function MerchantAnalyticsPage() {
   const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "custom">(
     "30d",
   );
+  const [showTierInfo, setShowTierInfo] = useState(false);
 
   const topCustomers = [
     {
@@ -193,7 +194,19 @@ export default function MerchantAnalyticsPage() {
 
                 {/* Tier Distribution */}
                 <div className="bg-panel border border-border rounded-xl p-6">
-                  <div className="text-sm font-semibold mb-6">Tier Distribution</div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="text-sm font-semibold">Tier Distribution</div>
+                    <button
+                      type="button"
+                      onClick={() => setShowTierInfo(true)}
+                      className="text-accent hover:text-accent/80 transition-colors"
+                      title="Learn about customer tiers"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="flex items-center justify-center relative h-[200px]">
                     <div className="w-[140px] h-[140px] rounded-full border-15 border-border border-t-accent border-r-[#A3C910] rotate-45" />
                     <div className="absolute text-center">
@@ -340,6 +353,142 @@ export default function MerchantAnalyticsPage() {
             </>
           ) : null}
         </div>
+
+        {/* Tier Info Modal */}
+        {showTierInfo && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-8">
+            <div className="bg-panel border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Customer Tier System</h2>
+                  <button
+                    type="button"
+                    onClick={() => setShowTierInfo(false)}
+                    className="text-text-secondary hover:text-text transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                    <p className="text-sm text-text-secondary">
+                      Customer tiers are <span className="text-accent font-semibold">automatically calculated</span> based on lifetime tokens earned.
+                      As customers earn more, they unlock higher tiers with better reward multipliers.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Platinum */}
+                    <div className="bg-black border border-border rounded-lg p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-sm bg-accent" />
+                          <h3 className="text-lg font-semibold text-accent">Platinum</h3>
+                        </div>
+                        <span className="text-accent font-bold">2.0x Multiplier</span>
+                      </div>
+                      <p className="text-sm text-text-secondary mb-2">
+                        50,000+ lifetime tokens earned
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        Elite customers earn double rewards on every purchase
+                      </p>
+                    </div>
+
+                    {/* Gold */}
+                    <div className="bg-black border border-border rounded-lg p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-sm bg-[#FFD700]" />
+                          <h3 className="text-lg font-semibold text-[#FFD700]">Gold</h3>
+                        </div>
+                        <span className="text-[#FFD700] font-bold">1.5x Multiplier</span>
+                      </div>
+                      <p className="text-sm text-text-secondary mb-2">
+                        10,000 - 49,999 lifetime tokens earned
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        Loyal customers earn 50% bonus rewards
+                      </p>
+                    </div>
+
+                    {/* Silver */}
+                    <div className="bg-black border border-border rounded-lg p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-sm bg-[#C0C0C0]" />
+                          <h3 className="text-lg font-semibold text-[#C0C0C0]">Silver</h3>
+                        </div>
+                        <span className="text-[#C0C0C0] font-bold">1.25x Multiplier</span>
+                      </div>
+                      <p className="text-sm text-text-secondary mb-2">
+                        1,000 - 9,999 lifetime tokens earned
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        Regular customers earn 25% bonus rewards
+                      </p>
+                    </div>
+
+                    {/* Bronze */}
+                    <div className="bg-black border border-border rounded-lg p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-sm bg-[#CD7F32]" />
+                          <h3 className="text-lg font-semibold text-[#CD7F32]">Bronze</h3>
+                        </div>
+                        <span className="text-[#CD7F32] font-bold">1.0x Multiplier</span>
+                      </div>
+                      <p className="text-sm text-text-secondary mb-2">
+                        0 - 999 lifetime tokens earned
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        New customers start here with standard rewards
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-black border border-dashed border-border rounded-lg p-5">
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      How It Works
+                    </h4>
+                    <ul className="space-y-2 text-sm text-text-secondary">
+                      <li className="flex items-start gap-2">
+                        <span className="text-accent mt-0.5">•</span>
+                        <span>Tiers are calculated automatically based on lifetime tokens earned</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-accent mt-0.5">•</span>
+                        <span>Customers are upgraded instantly when they reach the next tier threshold</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-accent mt-0.5">•</span>
+                        <span>Multipliers are applied automatically when issuing rewards</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-accent mt-0.5">•</span>
+                        <span>No merchant configuration needed - it's all handled on-chain</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowTierInfo(false)}
+                    className="w-full bg-accent text-black px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
+                  >
+                    Got It
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </ProtectedRoute>
