@@ -48,12 +48,8 @@ pub mod solcity_protocol {
     }
 
     /// Redeem reward tokens for benefits
-    pub fn redeem_rewards(
-        ctx: Context<RedeemRewards>,
-        amount: u64,
-        redemption_type: RedemptionType,
-    ) -> Result<()> {
-        instructions::redeem_rewards::handler(ctx, amount, redemption_type)
+    pub fn redeem_rewards(ctx: Context<RedeemRewards>) -> Result<()> {
+        instructions::redeem_rewards::handler(ctx)
     }
 
     /// Create a new reward rule for a merchant
@@ -131,5 +127,55 @@ pub mod solcity_protocol {
             description,
             is_active,
         )
+    }
+
+    /// Create a new redemption offer
+    pub fn create_redemption_offer(
+        ctx: Context<CreateRedemptionOffer>,
+        name: String,
+        description: String,
+        cost: u64,
+        offer_type: RedemptionType,
+        quantity_limit: Option<u64>,
+        expiration: Option<i64>,
+    ) -> Result<()> {
+        instructions::create_redemption_offer::handler(
+            ctx,
+            name,
+            description,
+            cost,
+            offer_type,
+            quantity_limit,
+            expiration,
+        )
+    }
+
+    /// Update an existing redemption offer
+    pub fn update_redemption_offer(
+        ctx: Context<UpdateRedemptionOffer>,
+        description: Option<String>,
+        cost: Option<u64>,
+        offer_type: Option<RedemptionType>,
+        quantity_limit: Option<Option<u64>>,
+        expiration: Option<Option<i64>>,
+    ) -> Result<()> {
+        instructions::update_redemption_offer::handler(
+            ctx,
+            description,
+            cost,
+            offer_type,
+            quantity_limit,
+            expiration,
+        )
+    }
+
+    /// Toggle redemption offer active status
+    pub fn toggle_redemption_offer(ctx: Context<ToggleRedemptionOffer>) -> Result<()> {
+        instructions::toggle_redemption_offer::handler(ctx)
+    }
+
+    /// Delete a redemption offer
+    pub fn delete_redemption_offer(ctx: Context<DeleteRedemptionOffer>) -> Result<()> {
+        instructions::delete_redemption_offer::handler(ctx)
     }
 }

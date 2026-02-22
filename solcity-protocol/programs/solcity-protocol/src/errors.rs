@@ -40,4 +40,7 @@ pub enum SolcityError {
 
     #[msg("Invalid platform treasury account")]
     InvalidTreasury,
+
+    #[msg("Redemption offer is not available (expired, sold out, or inactive)")]
+    OfferNotAvailable,
 }

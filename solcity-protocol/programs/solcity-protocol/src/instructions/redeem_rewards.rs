@@ -1,4 +1,4 @@
-use crate::{Customer, LoyaltyProgram, Merchant, SolcityError};
+use crate::{Customer, LoyaltyProgram, Merchant, RedemptionOffer, RedemptionType, SolcityError};
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
@@ -51,25 +51,36 @@ pub struct RedeemRewards<'info> {
     )]
     pub customer_token_account: InterfaceAccount<'info, TokenAccount>,
 
+    #[account(
+        mut,
+        seeds = [
+            RedemptionOffer::SEED_PREFIX,
+            merchant.key().as_ref(),
+            redemption_offer.name.as_bytes()
+        ],
+        bump = redemption_offer.bump,
+        constraint = redemption_offer.merchant == merchant.key() @ SolcityError::UnauthorizedAccess,
+    )]
+    pub redemption_offer: Account<'info, RedemptionOffer>,
+
     pub token_program: Program<'info, Token2022>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub enum RedemptionType {
-    Discount { percentage: u8 },
-    FreeProduct { product_id: String },
-    Cashback { amount_lamports: u64 },
-    ExclusiveAccess { access_type: String },
-}
-
-pub fn handler(
-    ctx: Context<RedeemRewards>,
-    amount: u64,
-    redemption_type: RedemptionType,
-) -> Result<()> {
-    require!(amount > 0, SolcityError::InvalidRewardAmount);
+pub fn handler(ctx: Context<RedeemRewards>) -> Result<()> {
+    let clock = Clock::get()?;
+    
+    // Check if offer is available (borrow immutably first)
+    let offer_cost = ctx.accounts.redemption_offer.cost;
+    let offer_name = ctx.accounts.redemption_offer.name.clone();
+    let offer_type = ctx.accounts.redemption_offer.offer_type.clone();
+    
     require!(
-        ctx.accounts.customer_token_account.amount >= amount,
+        ctx.accounts.redemption_offer.is_available(clock.unix_timestamp),
+        SolcityError::OfferNotAvailable
+    );
+
+    require!(
+        ctx.accounts.customer_token_account.amount >= offer_cost,
         SolcityError::InsufficientBalance
     );
 
@@ -83,28 +94,33 @@ pub fn handler(
                 authority: ctx.accounts.customer_authority.to_account_info(),
             },
         ),
-        amount,
+        offer_cost,
     )?;
 
     // Update state
     let customer = &mut ctx.accounts.customer;
     let merchant = &mut ctx.accounts.merchant;
     let loyalty_program = &mut ctx.accounts.loyalty_program;
-    let clock = Clock::get()?;
+    let redemption_offer = &mut ctx.accounts.redemption_offer;
 
     customer.total_redeemed = customer
         .total_redeemed
-        .checked_add(amount)
+        .checked_add(offer_cost)
         .ok_or(SolcityError::Overflow)?;
 
     merchant.total_redeemed = merchant
         .total_redeemed
-        .checked_add(amount)
+        .checked_add(offer_cost)
         .ok_or(SolcityError::Overflow)?;
 
     loyalty_program.total_tokens_redeemed = loyalty_program
         .total_tokens_redeemed
-        .checked_add(amount)
+        .checked_add(offer_cost)
+        .ok_or(SolcityError::Overflow)?;
+
+    redemption_offer.quantity_claimed = redemption_offer
+        .quantity_claimed
+        .checked_add(1)
         .ok_or(SolcityError::Overflow)?;
 
     customer.last_activity = clock.unix_timestamp;
@@ -113,12 +129,13 @@ pub fn handler(
     emit!(RedemptionEvent {
         customer: customer.wallet,
         merchant: merchant.authority,
-        amount,
-        redemption_type,
+        offer_name,
+        amount: offer_cost,
+        redemption_type: offer_type,
         timestamp: clock.unix_timestamp,
     });
 
-    msg!("Redeemed {} tokens", amount);
+    msg!("Redeemed {} tokens for offer", offer_cost);
 
     Ok(())
 }
@@ -127,6 +144,7 @@ pub fn handler(
 pub struct RedemptionEvent {
     pub customer: Pubkey,
     pub merchant: Pubkey,
+    pub offer_name: String,
     pub amount: u64,
     pub redemption_type: RedemptionType,
     pub timestamp: i64,
