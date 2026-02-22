@@ -67,8 +67,8 @@ export default function Navbar() {
 
           <div className="flex gap-10 items-center">
             <Link
-              href="/customer/explore"
-              className={`text-sm font-medium transition-colors ${isActive("/customer/explore") ? "text-accent" : "text-text-secondary hover:text-accent"
+              href="/explore"
+              className={`text-sm font-medium transition-colors ${pathname === "/explore" ? "text-accent" : "text-text-secondary hover:text-accent"
                 }`}
             >
               Explore

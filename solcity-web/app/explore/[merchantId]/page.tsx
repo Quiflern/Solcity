@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useSolcityProgram } from "@/hooks/useSolcityProgram";
 import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
+import { useMerchantRedemptionOffers } from "@/hooks/useMerchantRedemptionOffers";
+import { IconRenderer } from "@/contexts/IconPickerContext";
+import { Gift } from "lucide-react";
+import Card from "@/components/ui/Card";
 
 interface MerchantData {
   publicKey: PublicKey;
@@ -31,6 +35,11 @@ export default function MerchantDetailPage() {
 
   // Fetch reward rules for this merchant
   const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(
+    merchant ? merchant.publicKey : null
+  );
+
+  // Fetch redemption offers for this merchant
+  const { data: offers = [], isLoading: offersLoading } = useMerchantRedemptionOffers(
     merchant ? merchant.publicKey : null
   );
 
@@ -155,21 +164,23 @@ export default function MerchantDetailPage() {
 
         {/* Merchant Header */}
         <header className="flex gap-10 mb-16 items-start">
-          <div className="w-[120px] h-[120px] bg-panel border border-border flex items-center justify-center relative rounded-xl overflow-hidden">
+          <div className="w-[120px] h-[120px] bg-panel border border-border flex items-center justify-center rounded-xl overflow-hidden">
             <img
               src={getAvatarUrl(merchant.avatarUrl, merchant.name)}
               alt={merchant.name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute -bottom-2.5 -right-2.5 bg-accent text-black text-[10px] font-extrabold px-2 py-1 rounded-sm tracking-wider">
-              VERIFIED
-            </div>
           </div>
           <div className="flex-1">
             <span className="text-accent text-xs uppercase tracking-widest mb-2 block">
               {merchant.isActive ? "Active Merchant" : "Inactive"}
             </span>
-            <h1 className="text-4xl font-medium tracking-tight mb-4">{merchant.name}</h1>
+            <div className="flex items-center gap-3 mb-4">
+              <h1 className="text-4xl font-medium tracking-tight">{merchant.name}</h1>
+              <div className="bg-accent text-black text-[10px] font-extrabold px-2 py-1 rounded-sm tracking-wider">
+                VERIFIED
+              </div>
+            </div>
             <p className="text-text-secondary leading-relaxed max-w-[600px] mb-6">
               {merchant.description || "No description provided"}
             </p>
@@ -205,6 +216,75 @@ export default function MerchantDetailPage() {
         <div className="grid grid-cols-[2fr_1fr] gap-12">
           {/* Main Content */}
           <div>
+            {/* Redemption Offers */}
+            <section className="mb-12">
+              <h2 className="text-xl font-medium mb-8 flex items-center gap-3">
+                <span className="w-1 h-[18px] bg-accent" />
+                Redemption Offers ({offers.filter(o => o.isActive).length} available)
+              </h2>
+              {offersLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-text-secondary">Loading offers...</p>
+                </div>
+              ) : offers.length === 0 ? (
+                <div className="bg-panel border border-border p-8 text-center rounded-lg">
+                  <Gift className="w-12 h-12 text-text-secondary mx-auto mb-3 opacity-50" />
+                  <p className="text-text-secondary">No redemption offers available yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {offers
+                    .filter(offer => offer.isActive)
+                    .map((offer) => {
+                      const now = Date.now() / 1000;
+                      const isExpired = offer.expiration && offer.expiration.toNumber() < now;
+                      const isSoldOut = offer.quantityLimit && offer.quantityClaimed >= offer.quantityLimit;
+                      const isAvailable = !isExpired && !isSoldOut;
+
+                      return (
+                        <div
+                          key={offer.publicKey.toString()}
+                          className={`bg-panel border p-6 transition-all hover:-translate-y-0.5 rounded-lg ${isAvailable ? 'border-border hover:border-accent' : 'border-border/50 opacity-60'
+                            }`}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            {offer.icon ? (
+                              <IconRenderer icon={offer.icon} className="w-8 h-8 text-accent" />
+                            ) : (
+                              <Gift className="w-8 h-8 text-accent" />
+                            )}
+                            <div className="flex flex-col gap-2 items-end">
+                              <span className="text-xs text-accent bg-accent/10 px-2 py-1 rounded font-semibold">
+                                {offer.cost.toString()} SLCY
+                              </span>
+                              {!isAvailable && (
+                                <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">
+                                  {isSoldOut ? 'Sold Out' : 'Expired'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <h4 className="text-base mb-2 font-semibold">{offer.name}</h4>
+                          <p className="text-sm text-text-secondary mb-3 line-clamp-2">
+                            {offer.description}
+                          </p>
+                          {offer.quantityLimit && (
+                            <div className="text-xs text-text-secondary mb-2">
+                              {offer.quantityClaimed.toString()} / {offer.quantityLimit.toString()} claimed
+                            </div>
+                          )}
+                          {offer.expiration && (
+                            <div className="text-xs text-text-secondary">
+                              Expires: {new Date(offer.expiration.toNumber() * 1000).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </section>
+
             {/* Active Reward Rules */}
             <section className="mb-12">
               <h2 className="text-xl font-medium mb-8 flex items-center gap-3">
@@ -222,10 +302,9 @@ export default function MerchantDetailPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   {rules.map((rule) => (
-                    <div
+                    <Card
                       key={rule.ruleId.toString()}
-                      className={`bg-panel border p-6 transition-all hover:-translate-y-0.5 rounded-lg ${rule.isActive ? 'border-border hover:border-accent' : 'border-border/50 opacity-60'
-                        }`}
+                      className={`${!rule.isActive ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-start justify-between mb-4">
                         <svg
@@ -254,7 +333,7 @@ export default function MerchantDetailPage() {
                       <div className="text-xs text-text-secondary">
                         {new Date(rule.startTime * 1000).toLocaleDateString()} - {new Date(rule.endTime * 1000).toLocaleDateString()}
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}
