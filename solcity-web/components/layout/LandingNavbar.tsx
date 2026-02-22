@@ -52,6 +52,12 @@ export default function LandingNavbar() {
 
           <div className="flex gap-6 items-center">
             <Link
+              href="/customer/explore"
+              className="text-sm font-medium text-text-secondary hover:text-accent transition-colors"
+            >
+              Explore
+            </Link>
+            <Link
               href="/customer"
               className="text-sm font-medium text-text-secondary hover:text-accent transition-colors"
             >
