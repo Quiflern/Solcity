@@ -42,12 +42,15 @@ pub fn handler(
     ctx: Context<RegisterMerchant>,
     name: String,
     avatar_url: String,
+    category: String,
     description: Option<String>,
     reward_rate: u64,
 ) -> Result<()> {
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 32, SolcityError::NameTooLong);
     require!(avatar_url.len() <= 128, SolcityError::NameTooLong);
+    require!(!category.is_empty(), SolcityError::NameEmpty);
+    require!(category.len() <= 32, SolcityError::NameTooLong);
     require!(reward_rate > 0, SolcityError::InvalidRewardAmount);
 
     if let Some(ref desc) = description {
@@ -75,6 +78,7 @@ pub fn handler(
     merchant.name = name.clone();
     merchant.description = description.unwrap_or_default();
     merchant.avatar_url = avatar_url;
+    merchant.category = category;
     merchant.reward_rate = reward_rate;
     merchant.total_issued = 0;
     merchant.total_redeemed = 0;

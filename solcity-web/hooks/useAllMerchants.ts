@@ -12,6 +12,7 @@ export interface MerchantData {
   authority: PublicKey;
   loyaltyProgram: PublicKey;
   name: string;
+  category: string;
   avatarUrl: string;
   rewardRate: number;
   totalIssued: number;
@@ -53,6 +54,7 @@ export function useAllMerchants() {
           authority: account.account.authority,
           loyaltyProgram: account.account.loyaltyProgram,
           name: account.account.name,
+          category: account.account.category || "Other",
           avatarUrl: account.account.avatarUrl || "",
           rewardRate: account.account.rewardRate,
           totalIssued: account.account.totalIssued,

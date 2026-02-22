@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export default function MerchantDashboard() {
   const { publicKey } = useWallet();
-  const { merchantAccount, isLoading: merchantLoading } = useMerchantAccount();
+  const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
   const { issueRewards, isLoading: issuingRewards } = useIssueRewards();
   const queryClient = useQueryClient();
 
@@ -140,16 +140,40 @@ export default function MerchantDashboard() {
         <div className="max-w-[1400px] mx-auto px-8 w-full py-10">
           {merchantLoading ? (
             <div className="text-center py-20">
+              <div className="w-16 h-16 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-text-secondary">Loading merchant data...</p>
             </div>
-          ) : !merchantAccount ? (
-            <div className="text-center py-20">
-              <p className="text-text-secondary mb-4">No merchant account found</p>
-              <Link href="/merchant/register" className="text-accent hover:underline">
-                Register as a merchant
-              </Link>
+          ) : !isRegistered && publicKey ? (
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-panel border border-border rounded-xl p-12 text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-accent"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold mb-3">No Merchant Account Found</h2>
+                <p className="text-text-secondary mb-8 max-w-md mx-auto">
+                  You need to register as a merchant before you can access the dashboard. Register your business to get started with your loyalty program.
+                </p>
+                <a
+                  href="/merchant/register"
+                  className="inline-block bg-accent text-black px-8 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
+                >
+                  Register as Merchant
+                </a>
+              </div>
             </div>
-          ) : (
+          ) : merchantAccount ? (
             <div className="grid grid-cols-[1fr_400px] gap-8">
               {/* Main Column */}
               <main>
@@ -388,7 +412,7 @@ export default function MerchantDashboard() {
                 </div>
               </aside>
             </div>
-          )}
+          ) : null}
         </div>
 
         <style jsx>{`

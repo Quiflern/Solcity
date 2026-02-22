@@ -4,18 +4,24 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "@/hooks/useSolcityProgram";
+import { useMerchantAccount } from "@/hooks/useMerchantAccount";
+import { useCustomerAccount } from "@/hooks/useCustomerAccount";
 import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
 import { useMerchantRedemptionOffers } from "@/hooks/useMerchantRedemptionOffers";
 import { IconRenderer } from "@/contexts/IconPickerContext";
 import { Gift } from "lucide-react";
 import Card from "@/components/ui/Card";
+import { toast } from "sonner";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 interface MerchantData {
   publicKey: PublicKey;
   authority: PublicKey;
   loyaltyProgram: PublicKey;
   name: string;
+  category: string;
   description: string;
   avatarUrl: string;
   rewardRate: number;
@@ -29,9 +35,14 @@ export default function MerchantDetailPage() {
   const params = useParams();
   const merchantId = params.merchantId as string;
   const { program } = useSolcityProgram();
+  const { connection } = useConnection();
+  const { publicKey } = useWallet();
+  const { merchantAccount } = useMerchantAccount();
+  const { customerAccount, refetch: refetchCustomer } = useCustomerAccount();
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   // Fetch reward rules for this merchant
   const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(
@@ -42,6 +53,63 @@ export default function MerchantDetailPage() {
   const { data: offers = [], isLoading: offersLoading } = useMerchantRedemptionOffers(
     merchant ? merchant.publicKey : null
   );
+
+  // Handle customer registration
+  const handleRegisterCustomer = async () => {
+    if (!program || !publicKey) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (customerAccount) {
+      toast.info("You're already registered!");
+      return;
+    }
+
+    setIsRegistering(true);
+    const loadingToast = toast.loading("Registering as customer...");
+
+    try {
+      const [loyaltyProgram] = await program.account.merchant.fetch(merchant!.publicKey).then(m => [m.loyaltyProgram]);
+
+      const tx = await program.methods
+        .registerCustomer()
+        .accounts({
+          customerAuthority: publicKey,
+          loyaltyProgram: loyaltyProgram,
+        } as any)
+        .rpc();
+
+      // Wait for confirmation
+      const latestBlockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+        signature: tx,
+        ...latestBlockhash,
+      });
+
+      toast.dismiss(loadingToast);
+      toast.success("Successfully registered!", {
+        description: "You can now earn rewards at this merchant"
+      });
+
+      // Refetch customer account
+      setTimeout(() => refetchCustomer(), 1000);
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      toast.dismiss(loadingToast);
+
+      if (err.message?.includes("already in use")) {
+        toast.info("You're already registered!");
+        refetchCustomer();
+      } else {
+        toast.error("Registration failed", {
+          description: err.message || "Please try again"
+        });
+      }
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   useEffect(() => {
     const fetchMerchant = async () => {
@@ -59,6 +127,7 @@ export default function MerchantDetailPage() {
           authority: merchantAccount.authority,
           loyaltyProgram: merchantAccount.loyaltyProgram,
           name: merchantAccount.name,
+          category: merchantAccount.category || "Other",
           description: merchantAccount.description || "",
           avatarUrl: merchantAccount.avatarUrl || "",
           rewardRate: merchantAccount.rewardRate.toNumber(),
@@ -173,7 +242,7 @@ export default function MerchantDetailPage() {
           </div>
           <div className="flex-1">
             <span className="text-accent text-xs uppercase tracking-widest mb-2 block">
-              {merchant.isActive ? "Active Merchant" : "Inactive"}
+              {merchant.category}
             </span>
             <div className="flex items-center gap-3 mb-4">
               <h1 className="text-4xl font-medium tracking-tight">{merchant.name}</h1>
@@ -380,20 +449,68 @@ export default function MerchantDetailPage() {
 
           {/* Sidebar */}
           <aside className="flex flex-col gap-8">
-            {/* CTA Widget with QR Code */}
-            <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
-              <h3 className="text-xl font-bold mb-6">Start Earning Here</h3>
-              <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`solcity://merchant/${merchant.publicKey.toString()}`)}`}
-                  alt="Merchant QR Code"
-                  className="w-full h-full"
-                />
+            {/* CTA Widget with QR Code or Register Button */}
+            {publicKey && merchantAccount && merchantAccount.publicKey.toString() === merchant.publicKey.toString() ? (
+              // Show QR code for the merchant owner
+              <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
+                <h3 className="text-xl font-bold mb-6">Your Merchant QR Code</h3>
+                <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
+                    alt="Merchant QR Code"
+                    className="w-full h-full"
+                  />
+                </div>
+                <p className="text-sm opacity-80">
+                  Customers scan this code to register and earn rewards at your business.
+                </p>
               </div>
-              <p className="text-sm opacity-80">
-                Scan this code at checkout to register your wallet and start earning rewards instantly.
-              </p>
-            </div>
+            ) : (
+              // Show register/earn CTA for customers
+              <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
+                <h3 className="text-xl font-bold mb-6">Start Earning Here</h3>
+                <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
+                    alt="Merchant QR Code"
+                    className="w-full h-full"
+                  />
+                </div>
+                {publicKey ? (
+                  customerAccount ? (
+                    <div className="bg-black/20 border border-black/30 rounded-lg p-4 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="font-semibold">You're Registered!</span>
+                      </div>
+                      <p className="text-sm opacity-80">
+                        Start earning rewards on your next purchase
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleRegisterCustomer}
+                      disabled={isRegistering}
+                      className="bg-black text-accent px-6 py-3 rounded-lg font-semibold hover:bg-black/90 transition-colors w-full mb-4 disabled:opacity-50"
+                    >
+                      {isRegistering ? "Registering..." : "Register to Earn Rewards"}
+                    </button>
+                  )
+                ) : (
+                  <>
+                    <p className="text-sm opacity-80 mb-4">
+                      Connect your wallet to register and start earning rewards at this merchant.
+                    </p>
+                  </>
+                )}
+                <p className="text-sm opacity-80">
+                  Scan this code at checkout to earn rewards instantly.
+                </p>
+              </div>
+            )}
 
             {/* On-Chain Verification Widget */}
             <div className="bg-panel border border-border p-6 rounded-lg">

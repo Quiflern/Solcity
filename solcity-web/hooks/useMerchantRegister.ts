@@ -57,6 +57,7 @@ export function useMerchantRegister() {
   const registerMerchant = async (
     businessName: string,
     avatarUrl: string,
+    category: string,
     description: string,
     rewardRate: number
   ) => {
@@ -79,7 +80,7 @@ export function useMerchantRegister() {
       const rewardRateBN = new BN(rewardRate);
 
       const tx = await program.methods
-        .registerMerchant(businessName, avatarUrl, description || null, rewardRateBN)
+        .registerMerchant(businessName, avatarUrl, category, description || null, rewardRateBN)
         .accounts({
           merchantAuthority: publicKey,
           loyaltyProgram: loyaltyProgram,
@@ -110,6 +111,7 @@ export function useMerchantRegister() {
     programName: string,
     businessName: string,
     avatarUrl: string,
+    category: string,
     description: string,
     rewardRate: number,
     interestRate?: number
@@ -138,7 +140,7 @@ export function useMerchantRegister() {
     }
 
     // Then register the merchant
-    const merchantResult = await registerMerchant(businessName, avatarUrl, description, rewardRate);
+    const merchantResult = await registerMerchant(businessName, avatarUrl, category, description, rewardRate);
 
     return {
       ...initResult,

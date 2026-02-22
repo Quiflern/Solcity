@@ -6,6 +6,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useRedemptionOffers, type RedemptionType } from "@/hooks/useRedemptionOffers";
 import { useMerchantRedemptionOffers } from "@/hooks/useMerchantRedemptionOffers";
+import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 import { toast } from "sonner";
 import { BN } from "@coral-xyz/anchor";
@@ -29,6 +30,7 @@ export default function MerchantOffersPage() {
     deleteRedemptionOffer,
     isLoading: mutationLoading
   } = useRedemptionOffers();
+  const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
 
   // Get merchant PDA to fetch offers
   const merchantPubkey = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
@@ -307,380 +309,418 @@ export default function MerchantOffersPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-bg-primary">
         <div className="max-w-[1400px] mx-auto px-8 py-12">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h1 className="text-[2rem] font-bold mb-2">Redemption Offers</h1>
-              <p className="text-text-secondary">
-                Create and manage rewards that customers can redeem with their tokens
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              disabled={isLoading}
-              className="bg-accent text-black px-6 py-3 rounded font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
-            >
-              + Create Offer
-            </button>
-          </div>
-
-          {/* Loading State */}
-          {offersLoading && (
-            <div className="text-center py-16">
-              <div className="inline-block w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-text-secondary">Loading offers...</p>
-            </div>
-          )}
-
-          {/* Offers Grid */}
-          {!offersLoading && fetchedOffers.length === 0 ? (
-            <div className="bg-panel border border-border rounded-xl p-16 text-center">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
-                <Gift className="w-10 h-10 text-accent" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">No Offers Yet</h3>
-              <p className="text-text-secondary mb-8">
-                Create your first redemption offer to let customers redeem their tokens
-              </p>
-              <button
-                type="button"
-                onClick={openCreateModal}
-                className="bg-accent text-black px-8 py-3 rounded font-semibold hover:bg-accent/90 transition-colors"
-              >
-                Create First Offer
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-6">
-              {fetchedOffers.map((offer) => (
-                <div
-                  key={offer.publicKey.toString()}
-                  className="bg-panel border border-border rounded-xl p-6 hover:border-border-hover transition-colors"
+          {/* Show merchant not found message */}
+          {!merchantLoading && !isRegistered && publicKey && (
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-panel border border-border rounded-xl p-12 text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
+                  <svg
+                    className="w-10 h-10 text-accent"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold mb-3">No Merchant Account Found</h2>
+                <p className="text-text-secondary mb-8 max-w-md mx-auto">
+                  You need to register as a merchant before you can create redemption offers. Register your business to get started with your loyalty program.
+                </p>
+                <a
+                  href="/merchant/register"
+                  className="inline-block bg-accent text-black px-8 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
                 >
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`px-3 py-1 rounded text-xs font-semibold border ${getOfferTypeColor(offer.offerType)}`}>
-                      {getOfferTypeLabel(offer.offerType)}
-                    </span>
-                    {getStatusBadge(offer)}
-                  </div>
-
-                  {/* Icon */}
-                  <div className="mb-4">
-                    {offer.icon ? (
-                      <IconRenderer icon={offer.icon} className="w-12 h-12 text-accent" />
-                    ) : (
-                      <Gift className="w-12 h-12 text-accent" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <h3 className="text-lg font-semibold mb-2">{offer.name}</h3>
-                  <p className="text-sm text-text-secondary mb-6 line-clamp-2">
-                    {offer.description}
-                  </p>
-
-                  {/* Cost */}
-                  <div className="flex items-baseline gap-2 mb-6 pb-6 border-b border-border">
-                    <span className="text-2xl font-bold text-accent">{offer.cost.toString()}</span>
-                    <span className="text-sm text-text-secondary">SLCY</span>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="space-y-3 mb-6">
-                    {offer.quantityLimit && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">Claimed</span>
-                        <span className="font-medium">
-                          {offer.quantityClaimed.toString()} / {offer.quantityLimit.toString()}
-                        </span>
-                      </div>
-                    )}
-                    {offer.expiration && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">Expires</span>
-                        <span className="font-medium">
-                          {new Date(offer.expiration.toNumber() * 1000).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(offer)}
-                      disabled={isLoading}
-                      className="flex-1 px-4 py-2 rounded border border-border hover:border-accent hover:bg-accent/5 text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(offer.name)}
-                      disabled={isLoading}
-                      className={`flex-1 px-4 py-2 rounded border text-sm font-medium transition-colors disabled:opacity-50 ${offer.isActive
-                        ? "border-orange-500/20 text-orange-400 hover:bg-orange-500/10"
-                        : "border-accent/20 text-accent hover:bg-accent/10"
-                        }`}
-                    >
-                      {offer.isActive ? "Pause" : "Activate"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(offer.name)}
-                      disabled={isLoading}
-                      className="px-4 py-2 rounded border border-red-500/20 text-red-400 hover:bg-red-500/10 text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Create/Edit Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-8">
-            <div className="bg-panel border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-8">
-                <h2 className="text-2xl font-bold mb-6">
-                  {editingOffer ? "Edit Offer" : "Create New Offer"}
-                </h2>
-
-                <div className="space-y-6">
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Offer Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g., 50% Off Any Beverage"
-                      disabled={!!editingOffer}
-                      className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent disabled:opacity-50"
-                    />
-                    {editingOffer && (
-                      <p className="text-xs text-text-secondary mt-1">Name cannot be changed after creation</p>
-                    )}
-                  </div>
-
-                  {/* Icon and Cost - Side by Side */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <IconPicker
-                        label="Offer Icon"
-                        value={formData.icon}
-                        onChange={(iconName) => setFormData({ ...formData, icon: iconName })}
-                        placeholder="Select an icon"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Cost (SLCY Tokens)</label>
-                      <input
-                        type="number"
-                        value={formData.cost}
-                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        placeholder="250"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Description</label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Describe what customers get with this offer"
-                      rows={3}
-                      className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent resize-none"
-                    />
-                  </div>
-
-                  {/* Offer Type */}
-                  <Select
-                    label="Offer Type"
-                    value={formData.offerType}
-                    onChange={(e) => setFormData({ ...formData, offerType: e.target.value as OfferType })}
-                    options={[
-                      { value: "discount", label: "Discount %" },
-                      { value: "product", label: "Free Product" },
-                      { value: "cashback", label: "SOL Cashback" },
-                      { value: "exclusive", label: "Exclusive Access" },
-                      { value: "custom", label: "Custom" },
-                    ]}
-                  />
-
-                  {/* Type-specific fields */}
-                  {formData.offerType === "discount" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Discount Percentage</label>
-                      <input
-                        type="number"
-                        value={formData.discountPercentage}
-                        onChange={(e) => setFormData({ ...formData, discountPercentage: e.target.value })}
-                        placeholder="50"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    </div>
-                  )}
-
-                  {formData.offerType === "product" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Product ID</label>
-                      <input
-                        type="text"
-                        value={formData.productId}
-                        onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                        placeholder="PROD-001"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    </div>
-                  )}
-
-                  {formData.offerType === "cashback" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Cashback Amount (Lamports)</label>
-                      <input
-                        type="number"
-                        value={formData.cashbackAmount}
-                        onChange={(e) => setFormData({ ...formData, cashbackAmount: e.target.value })}
-                        placeholder="1000000"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                      <p className="text-xs text-text-secondary mt-1">1 SOL = 1,000,000,000 lamports</p>
-                    </div>
-                  )}
-
-                  {formData.offerType === "exclusive" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Access Type</label>
-                      <input
-                        type="text"
-                        value={formData.accessType}
-                        onChange={(e) => setFormData({ ...formData, accessType: e.target.value })}
-                        placeholder="VIP Lounge Access"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    </div>
-                  )}
-
-                  {formData.offerType === "custom" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Custom Type Name</label>
-                      <input
-                        type="text"
-                        value={formData.customTypeName}
-                        onChange={(e) => setFormData({ ...formData, customTypeName: e.target.value })}
-                        placeholder="e.g., VIP Access, Gift Card"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    </div>
-                  )}
-
-                  {/* Quantity Limit */}
-                  <div>
-                    <Toggle
-                      label="Set Quantity Limit"
-                      checked={formData.hasQuantityLimit}
-                      onChange={(e) => setFormData({ ...formData, hasQuantityLimit: e.target.checked })}
-                      className="mb-3"
-                    />
-                    {formData.hasQuantityLimit && (
-                      <input
-                        type="number"
-                        value={formData.quantityLimit}
-                        onChange={(e) => setFormData({ ...formData, quantityLimit: e.target.value })}
-                        placeholder="100"
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    )}
-                  </div>
-
-                  {/* Expiration */}
-                  <div>
-                    <Toggle
-                      label="Set Expiration Date"
-                      checked={formData.hasExpiration}
-                      onChange={(e) => setFormData({ ...formData, hasExpiration: e.target.checked })}
-                      className="mb-3"
-                    />
-                    {formData.hasExpiration && (
-                      <input
-                        type="date"
-                        value={formData.expiration}
-                        onChange={(e) => setFormData({ ...formData, expiration: e.target.value })}
-                        className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-4 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    disabled={isLoading}
-                    className="flex-1 px-6 py-3 rounded border border-border hover:bg-white/5 font-medium transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    className="flex-1 px-6 py-3 rounded bg-accent text-black font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
-                  >
-                    {isLoading ? "Processing..." : editingOffer ? "Update Offer" : "Create Offer"}
-                  </button>
-                </div>
+                  Register as Merchant
+                </a>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Delete Confirmation Modal */}
-        <Modal
-          isOpen={showDeleteModal}
-          onClose={() => {
-            setShowDeleteModal(false);
-            setDeletingOfferName(null);
-          }}
-          title="Delete Redemption Offer"
-        >
-          <div className="space-y-4">
-            <p className="text-text-secondary">
-              Are you sure you want to delete this offer? This action cannot be undone and will permanently remove the offer from the blockchain.
-            </p>
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="primary"
-                className="flex-1 bg-red-500 hover:bg-red-600"
-                onClick={confirmDelete}
-                isLoading={isLoading}
-              >
-                Delete Offer
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
+          {/* Show content only if merchant is registered */}
+          {(merchantLoading || isRegistered) && (
+            <>
+              {/* Header */}
+              <div className="flex justify-between items-center mb-12">
+                <div>
+                  <h1 className="text-[2rem] font-bold mb-2">Redemption Offers</h1>
+                  <p className="text-text-secondary">
+                    Create and manage rewards that customers can redeem with their tokens
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openCreateModal}
+                  disabled={isLoading}
+                  className="bg-accent text-black px-6 py-3 rounded font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+                >
+                  + Create Offer
+                </button>
+              </div>
+
+              {/* Loading State */}
+              {offersLoading && (
+                <div className="text-center py-16">
+                  <div className="inline-block w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-text-secondary">Loading offers...</p>
+                </div>
+              )}
+
+              {/* Offers Grid */}
+              {!offersLoading && fetchedOffers.length === 0 ? (
+                <div className="bg-panel border border-border rounded-xl p-16 text-center">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
+                    <Gift className="w-10 h-10 text-accent" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">No Offers Yet</h3>
+                  <p className="text-text-secondary mb-8">
+                    Create your first redemption offer to let customers redeem their tokens
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openCreateModal}
+                    className="bg-accent text-black px-8 py-3 rounded font-semibold hover:bg-accent/90 transition-colors"
+                  >
+                    Create First Offer
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-6">
+                  {fetchedOffers.map((offer) => (
+                    <div
+                      key={offer.publicKey.toString()}
+                      className="bg-panel border border-border rounded-xl p-6 hover:border-border-hover transition-colors"
+                    >
+                      {/* Header */}
+                      <div className="flex justify-between items-start mb-4">
+                        <span className={`px-3 py-1 rounded text-xs font-semibold border ${getOfferTypeColor(offer.offerType)}`}>
+                          {getOfferTypeLabel(offer.offerType)}
+                        </span>
+                        {getStatusBadge(offer)}
+                      </div>
+
+                      {/* Icon */}
+                      <div className="mb-4">
+                        {offer.icon ? (
+                          <IconRenderer icon={offer.icon} className="w-12 h-12 text-accent" />
+                        ) : (
+                          <Gift className="w-12 h-12 text-accent" />
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <h3 className="text-lg font-semibold mb-2">{offer.name}</h3>
+                      <p className="text-sm text-text-secondary mb-6 line-clamp-2">
+                        {offer.description}
+                      </p>
+
+                      {/* Cost */}
+                      <div className="flex items-baseline gap-2 mb-6 pb-6 border-b border-border">
+                        <span className="text-2xl font-bold text-accent">{offer.cost.toString()}</span>
+                        <span className="text-sm text-text-secondary">SLCY</span>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="space-y-3 mb-6">
+                        {offer.quantityLimit && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-text-secondary">Claimed</span>
+                            <span className="font-medium">
+                              {offer.quantityClaimed.toString()} / {offer.quantityLimit.toString()}
+                            </span>
+                          </div>
+                        )}
+                        {offer.expiration && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-text-secondary">Expires</span>
+                            <span className="font-medium">
+                              {new Date(offer.expiration.toNumber() * 1000).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(offer)}
+                          disabled={isLoading}
+                          className="flex-1 px-4 py-2 rounded border border-border hover:border-accent hover:bg-accent/5 text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggle(offer.name)}
+                          disabled={isLoading}
+                          className={`flex-1 px-4 py-2 rounded border text-sm font-medium transition-colors disabled:opacity-50 ${offer.isActive
+                            ? "border-orange-500/20 text-orange-400 hover:bg-orange-500/10"
+                            : "border-accent/20 text-accent hover:bg-accent/10"
+                            }`}
+                        >
+                          {offer.isActive ? "Pause" : "Activate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(offer.name)}
+                          disabled={isLoading}
+                          className="px-4 py-2 rounded border border-red-500/20 text-red-400 hover:bg-red-500/10 text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Create/Edit Modal */}
+              {showModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-8">
+                  <div className="bg-panel border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div className="p-8">
+                      <h2 className="text-2xl font-bold mb-6">
+                        {editingOffer ? "Edit Offer" : "Create New Offer"}
+                      </h2>
+
+                      <div className="space-y-6">
+                        {/* Name */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Offer Name</label>
+                          <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g., 50% Off Any Beverage"
+                            disabled={!!editingOffer}
+                            className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent disabled:opacity-50"
+                          />
+                          {editingOffer && (
+                            <p className="text-xs text-text-secondary mt-1">Name cannot be changed after creation</p>
+                          )}
+                        </div>
+
+                        {/* Icon and Cost - Side by Side */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <IconPicker
+                              label="Offer Icon"
+                              value={formData.icon}
+                              onChange={(iconName) => setFormData({ ...formData, icon: iconName })}
+                              placeholder="Select an icon"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Cost (SLCY Tokens)</label>
+                            <input
+                              type="number"
+                              value={formData.cost}
+                              onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                              placeholder="250"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Description</label>
+                          <textarea
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Describe what customers get with this offer"
+                            rows={3}
+                            className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent resize-none"
+                          />
+                        </div>
+
+                        {/* Offer Type */}
+                        <Select
+                          label="Offer Type"
+                          value={formData.offerType}
+                          onChange={(e) => setFormData({ ...formData, offerType: e.target.value as OfferType })}
+                          options={[
+                            { value: "discount", label: "Discount %" },
+                            { value: "product", label: "Free Product" },
+                            { value: "cashback", label: "SOL Cashback" },
+                            { value: "exclusive", label: "Exclusive Access" },
+                            { value: "custom", label: "Custom" },
+                          ]}
+                        />
+
+                        {/* Type-specific fields */}
+                        {formData.offerType === "discount" && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Discount Percentage</label>
+                            <input
+                              type="number"
+                              value={formData.discountPercentage}
+                              onChange={(e) => setFormData({ ...formData, discountPercentage: e.target.value })}
+                              placeholder="50"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          </div>
+                        )}
+
+                        {formData.offerType === "product" && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Product ID</label>
+                            <input
+                              type="text"
+                              value={formData.productId}
+                              onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                              placeholder="PROD-001"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          </div>
+                        )}
+
+                        {formData.offerType === "cashback" && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Cashback Amount (Lamports)</label>
+                            <input
+                              type="number"
+                              value={formData.cashbackAmount}
+                              onChange={(e) => setFormData({ ...formData, cashbackAmount: e.target.value })}
+                              placeholder="1000000"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                            <p className="text-xs text-text-secondary mt-1">1 SOL = 1,000,000,000 lamports</p>
+                          </div>
+                        )}
+
+                        {formData.offerType === "exclusive" && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Access Type</label>
+                            <input
+                              type="text"
+                              value={formData.accessType}
+                              onChange={(e) => setFormData({ ...formData, accessType: e.target.value })}
+                              placeholder="VIP Lounge Access"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          </div>
+                        )}
+
+                        {formData.offerType === "custom" && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Custom Type Name</label>
+                            <input
+                              type="text"
+                              value={formData.customTypeName}
+                              onChange={(e) => setFormData({ ...formData, customTypeName: e.target.value })}
+                              placeholder="e.g., VIP Access, Gift Card"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          </div>
+                        )}
+
+                        {/* Quantity Limit */}
+                        <div>
+                          <Toggle
+                            label="Set Quantity Limit"
+                            checked={formData.hasQuantityLimit}
+                            onChange={(e) => setFormData({ ...formData, hasQuantityLimit: e.target.checked })}
+                            className="mb-3"
+                          />
+                          {formData.hasQuantityLimit && (
+                            <input
+                              type="number"
+                              value={formData.quantityLimit}
+                              onChange={(e) => setFormData({ ...formData, quantityLimit: e.target.value })}
+                              placeholder="100"
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          )}
+                        </div>
+
+                        {/* Expiration */}
+                        <div>
+                          <Toggle
+                            label="Set Expiration Date"
+                            checked={formData.hasExpiration}
+                            onChange={(e) => setFormData({ ...formData, hasExpiration: e.target.checked })}
+                            className="mb-3"
+                          />
+                          {formData.hasExpiration && (
+                            <input
+                              type="date"
+                              value={formData.expiration}
+                              onChange={(e) => setFormData({ ...formData, expiration: e.target.value })}
+                              className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-4 mt-8">
+                        <button
+                          type="button"
+                          onClick={() => setShowModal(false)}
+                          disabled={isLoading}
+                          className="flex-1 px-6 py-3 rounded border border-border hover:bg-white/5 font-medium transition-colors disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSubmit}
+                          disabled={isLoading}
+                          className="flex-1 px-6 py-3 rounded bg-accent text-black font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+                        >
+                          {isLoading ? "Processing..." : editingOffer ? "Update Offer" : "Create Offer"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Confirmation Modal */}
+              <Modal
+                isOpen={showDeleteModal}
+                onClose={() => {
                   setShowDeleteModal(false);
                   setDeletingOfferName(null);
                 }}
+                title="Delete Redemption Offer"
               >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </Modal>
+                <div className="space-y-4">
+                  <p className="text-text-secondary">
+                    Are you sure you want to delete this offer? This action cannot be undone and will permanently remove the offer from the blockchain.
+                  </p>
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="primary"
+                      className="flex-1 bg-red-500 hover:bg-red-600"
+                      onClick={confirmDelete}
+                      isLoading={isLoading}
+                    >
+                      Delete Offer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowDeleteModal(false);
+                        setDeletingOfferName(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
+            </>
+          )}
+        </div>
       </div>
     </ProtectedRoute>
   );

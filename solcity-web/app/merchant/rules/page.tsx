@@ -31,7 +31,7 @@ export default function MerchantRulesPage() {
   const { publicKey } = useWallet();
   const queryClient = useQueryClient();
   const { createRewardRule, updateRewardRule, toggleRewardRule, deleteRewardRule, isLoading } = useRewardRules();
-  const { merchantAccount, isLoading: merchantLoading } = useMerchantAccount();
+  const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
 
   // Get merchant PDA to fetch rules
   const merchantPubkey = merchantAccount && publicKey
@@ -311,343 +311,380 @@ export default function MerchantRulesPage() {
         )}
 
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-semibold">Reward Rules</h1>
-              <p className="text-text-secondary text-sm mt-1">
-                Configure how your customers earn SLCY tokens.
-              </p>
-            </div>
-            {!merchantAccount && !merchantLoading && (
-              <div className="text-sm text-text-secondary">
-                Register as merchant to create rules
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-[1fr_450px] gap-10">
-            <div className="flex flex-col gap-4">
-              {rulesLoading ? (
-                <Card className="py-12 px-6 text-center cursor-default">
-                  <div className="text-text-secondary">
-                    <div className="w-16 h-16 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-sm">Loading rules...</p>
-                  </div>
-                </Card>
-              ) : fetchedRules.length === 0 ? (
-                <Card className="py-12 px-6 text-center cursor-default">
-                  <div className="text-text-secondary">
-                    <svg
-                      className="w-16 h-16 mx-auto mb-4 opacity-40"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                    <h3 className="text-lg font-medium mb-2">No rules created yet</h3>
-                    <p className="text-sm">
-                      Create your first reward rule using the builder on the right
-                    </p>
-                  </div>
-                </Card>
-              ) : (
-                fetchedRules.map((rule) => (
-                  <Card
-                    key={rule.publicKey.toString()}
-                    className="py-5 px-6 flex items-center justify-between cursor-default"
-                  >
-                    <div className="flex items-center gap-6">
-                      <div className="w-10 h-10 bg-[#1a1a1a] rounded-lg flex items-center justify-center text-accent">
-                        {getRuleIcon(Object.keys(rule.ruleType)[0])}
-                      </div>
-                      <div>
-                        <h4 className="text-base font-semibold mb-1">{rule.name}</h4>
-                        <p className="text-xs text-text-secondary">
-                          {(rule.multiplier / 100).toFixed(1)}x multiplier • Min ${(rule.minPurchase / 100).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <span className="block text-sm font-medium">
-                          {rule.startTime === 0 ? "Active Now" : formatDate(rule.startTime)}
-                        </span>
-                        <span className="text-[0.7rem] text-text-secondary">
-                          {rule.endTime === 0 ? "No Expiry" : `Until ${formatDate(rule.endTime)}`}
-                        </span>
-                      </div>
-                      <Toggle
-                        checked={rule.isActive}
-                        onChange={() => handleToggleRule(rule.ruleId, rule.isActive)}
-                      />
-                      <Button variant="outline" size="sm" onClick={() => handleEditRule(rule)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-400"
-                        onClick={() => handleDeleteRule(rule.ruleId)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-
-            <aside>
-              <Card className="p-8 sticky top-[92px] cursor-default">
-                <h3 className="text-[0.75rem] uppercase text-text-secondary mb-6 tracking-wider flex items-center gap-2">
+          {/* Show merchant not found message */}
+          {!merchantLoading && !isRegistered && publicKey && (
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-panel border border-border rounded-xl p-12 text-center">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
                   <svg
-                    width="14"
-                    height="14"
-                    fill="var(--accent)"
+                    className="w-10 h-10 text-accent"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
-                  Rule Builder
-                </h3>
-
-                <div className="mb-5">
-                  <Input
-                    label="Rule Name"
-                    type="text"
-                    placeholder="e.g., Happy Hour Bonus"
-                    value={ruleName}
-                    onChange={(e) => setRuleName(e.target.value)}
-                    maxLength={32}
-                  />
                 </div>
-
-                <div className="mb-5">
-                  <Dropdown
-                    label="Rule Type"
-                    options={ruleTypeOptions}
-                    value={ruleType}
-                    onChange={setRuleType}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="mb-5">
-                    <Dropdown
-                      label="Multiplier"
-                      options={multiplierOptions}
-                      value={multiplier}
-                      onChange={setMultiplier}
-                    />
-                  </div>
-                  <div className="mb-5">
-                    <Input
-                      label="Min. Purchase ($)"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={minPurchase}
-                      onChange={(e) => setMinPurchase(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-5">
-                  <div className="mb-5">
-                    <Input
-                      label="Start Date (Opt.)"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="mb-5">
-                    <Input
-                      label="End Date (Opt.)"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-black border border-dashed border-border rounded-lg p-5 mt-6">
-                  <h5 className="text-[0.7rem] uppercase text-text-secondary mb-4">
-                    Preview (Sample $100 Purchase)
-                  </h5>
-
-                  <div className="flex justify-between text-xs text-text mb-2.5">
-                    <span>Base Rate (1.0x)</span>
-                    <span>100.00 SLCY</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-text mb-2.5">
-                    <span>
-                      {ruleTypeOptions.find((opt) => opt.value === ruleType)?.label} (
-                      {(parseInt(multiplier) / 100).toFixed(1)}x)
-                    </span>
-                    <span>+{((parseInt(multiplier) / 100 - 1) * 100).toFixed(2)} SLCY</span>
-                  </div>
-
-                  <div className="flex justify-between text-base font-bold mt-3 pt-3 border-t border-border">
-                    <span>Total Reward</span>
-                    <span className="text-accent">
-                      {((parseInt(multiplier) / 100) * 100).toFixed(2)} SLCY
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="w-full mt-4"
-                  onClick={handleSaveRule}
-                  isLoading={isLoading}
-                  disabled={!publicKey || !merchantAccount}
+                <h2 className="text-2xl font-bold mb-3">No Merchant Account Found</h2>
+                <p className="text-text-secondary mb-8 max-w-md mx-auto">
+                  You need to register as a merchant before you can create reward rules. Register your business to get started with your loyalty program.
+                </p>
+                <a
+                  href="/merchant/register"
+                  className="inline-block bg-accent text-black px-8 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
                 >
-                  {!publicKey ? "Connect Wallet" : !merchantAccount ? "Register First" : "Create Rule"}
-                </Button>
+                  Register as Merchant
+                </a>
+              </div>
+            </div>
+          )}
 
-                {fetchedRules.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="md"
-                    className="w-full mt-2.5"
-                    onClick={resetForm}
-                  >
-                    Reset Form
-                  </Button>
+          {/* Show content only if merchant is registered */}
+          {(merchantLoading || isRegistered) && (
+            <>
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h1 className="text-2xl font-semibold">Reward Rules</h1>
+                  <p className="text-text-secondary text-sm mt-1">
+                    Configure how your customers earn SLCY tokens.
+                  </p>
+                </div>
+                {!merchantAccount && !merchantLoading && (
+                  <div className="text-sm text-text-secondary">
+                    Register as merchant to create rules
+                  </div>
                 )}
-              </Card>
-            </aside>
-          </div>
-        </div>
-
-        {/* Edit Modal */}
-        {showEditModal && editingRule && (
-          <Modal
-            isOpen={showEditModal}
-            onClose={() => {
-              setShowEditModal(false);
-              setEditingRule(null);
-              resetForm();
-            }}
-            title="Edit Reward Rule"
-          >
-            <div className="space-y-4">
-              <Input
-                label="Rule Name"
-                type="text"
-                value={ruleName}
-                onChange={(e) => setRuleName(e.target.value)}
-                maxLength={32}
-              />
-
-              <Dropdown
-                label="Rule Type"
-                options={ruleTypeOptions}
-                value={ruleType}
-                onChange={setRuleType}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <Dropdown
-                  label="Multiplier"
-                  options={multiplierOptions}
-                  value={multiplier}
-                  onChange={setMultiplier}
-                />
-                <Input
-                  label="Min. Purchase ($)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={minPurchase}
-                  onChange={(e) => setMinPurchase(e.target.value)}
-                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Start Date"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-                <Input
-                  label="End Date"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
+              <div className="grid grid-cols-[1fr_450px] gap-10">
+                <div className="flex flex-col gap-4">
+                  {rulesLoading ? (
+                    <Card className="py-12 px-6 text-center cursor-default">
+                      <div className="text-text-secondary">
+                        <div className="w-16 h-16 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-sm">Loading rules...</p>
+                      </div>
+                    </Card>
+                  ) : fetchedRules.length === 0 ? (
+                    <Card className="py-12 px-6 text-center cursor-default">
+                      <div className="text-text-secondary">
+                        <svg
+                          className="w-16 h-16 mx-auto mb-4 opacity-40"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                          />
+                        </svg>
+                        <h3 className="text-lg font-medium mb-2">No rules created yet</h3>
+                        <p className="text-sm">
+                          Create your first reward rule using the builder on the right
+                        </p>
+                      </div>
+                    </Card>
+                  ) : (
+                    fetchedRules.map((rule) => (
+                      <Card
+                        key={rule.publicKey.toString()}
+                        className="py-5 px-6 flex items-center justify-between cursor-default"
+                      >
+                        <div className="flex items-center gap-6">
+                          <div className="w-10 h-10 bg-[#1a1a1a] rounded-lg flex items-center justify-center text-accent">
+                            {getRuleIcon(Object.keys(rule.ruleType)[0])}
+                          </div>
+                          <div>
+                            <h4 className="text-base font-semibold mb-1">{rule.name}</h4>
+                            <p className="text-xs text-text-secondary">
+                              {(rule.multiplier / 100).toFixed(1)}x multiplier • Min ${(rule.minPurchase / 100).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <span className="block text-sm font-medium">
+                              {rule.startTime === 0 ? "Active Now" : formatDate(rule.startTime)}
+                            </span>
+                            <span className="text-[0.7rem] text-text-secondary">
+                              {rule.endTime === 0 ? "No Expiry" : `Until ${formatDate(rule.endTime)}`}
+                            </span>
+                          </div>
+                          <Toggle
+                            checked={rule.isActive}
+                            onChange={() => handleToggleRule(rule.ruleId, rule.isActive)}
+                          />
+                          <Button variant="outline" size="sm" onClick={() => handleEditRule(rule)}>
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-400"
+                            onClick={() => handleDeleteRule(rule.ruleId)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                <aside>
+                  <Card className="p-8 sticky top-[92px] cursor-default">
+                    <h3 className="text-[0.75rem] uppercase text-text-secondary mb-6 tracking-wider flex items-center gap-2">
+                      <svg
+                        width="14"
+                        height="14"
+                        fill="var(--accent)"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                      </svg>
+                      Rule Builder
+                    </h3>
+
+                    <div className="mb-5">
+                      <Input
+                        label="Rule Name"
+                        type="text"
+                        placeholder="e.g., Happy Hour Bonus"
+                        value={ruleName}
+                        onChange={(e) => setRuleName(e.target.value)}
+                        maxLength={32}
+                      />
+                    </div>
+
+                    <div className="mb-5">
+                      <Dropdown
+                        label="Rule Type"
+                        options={ruleTypeOptions}
+                        value={ruleType}
+                        onChange={setRuleType}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="mb-5">
+                        <Dropdown
+                          label="Multiplier"
+                          options={multiplierOptions}
+                          value={multiplier}
+                          onChange={setMultiplier}
+                        />
+                      </div>
+                      <div className="mb-5">
+                        <Input
+                          label="Min. Purchase ($)"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={minPurchase}
+                          onChange={(e) => setMinPurchase(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className="mb-5">
+                        <Input
+                          label="Start Date (Opt.)"
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="mb-5">
+                        <Input
+                          label="End Date (Opt.)"
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-black border border-dashed border-border rounded-lg p-5 mt-6">
+                      <h5 className="text-[0.7rem] uppercase text-text-secondary mb-4">
+                        Preview (Sample $100 Purchase)
+                      </h5>
+
+                      <div className="flex justify-between text-xs text-text mb-2.5">
+                        <span>Base Rate (1.0x)</span>
+                        <span>100.00 SLCY</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-text mb-2.5">
+                        <span>
+                          {ruleTypeOptions.find((opt) => opt.value === ruleType)?.label} (
+                          {(parseInt(multiplier) / 100).toFixed(1)}x)
+                        </span>
+                        <span>+{((parseInt(multiplier) / 100 - 1) * 100).toFixed(2)} SLCY</span>
+                      </div>
+
+                      <div className="flex justify-between text-base font-bold mt-3 pt-3 border-t border-border">
+                        <span>Total Reward</span>
+                        <span className="text-accent">
+                          {((parseInt(multiplier) / 100) * 100).toFixed(2)} SLCY
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="primary"
+                      size="md"
+                      className="w-full mt-4"
+                      onClick={handleSaveRule}
+                      isLoading={isLoading}
+                      disabled={!publicKey || !merchantAccount}
+                    >
+                      {!publicKey ? "Connect Wallet" : !merchantAccount ? "Register First" : "Create Rule"}
+                    </Button>
+
+                    {fetchedRules.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="md"
+                        className="w-full mt-2.5"
+                        onClick={resetForm}
+                      >
+                        Reset Form
+                      </Button>
+                    )}
+                  </Card>
+                </aside>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="primary"
-                  className="flex-1"
-                  onClick={handleUpdateRule}
-                  isLoading={isLoading}
-                >
-                  Update Rule
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
+              {/* Edit Modal */}
+              {showEditModal && editingRule && (
+                <Modal
+                  isOpen={showEditModal}
+                  onClose={() => {
                     setShowEditModal(false);
                     setEditingRule(null);
                     resetForm();
                   }}
+                  title="Edit Reward Rule"
                 >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </Modal>
-        )}
+                  <div className="space-y-4">
+                    <Input
+                      label="Rule Name"
+                      type="text"
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      maxLength={32}
+                    />
 
-        {/* Delete Confirmation Modal */}
-        <Modal
-          isOpen={showDeleteModal}
-          onClose={() => {
-            setShowDeleteModal(false);
-            setDeletingRuleId(null);
-          }}
-          title="Delete Reward Rule"
-        >
-          <div className="space-y-4">
-            <p className="text-text-secondary">
-              Are you sure you want to delete this rule? This action cannot be undone and will permanently remove the rule from the blockchain.
-            </p>
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="primary"
-                className="flex-1 bg-red-500 hover:bg-red-600"
-                onClick={confirmDeleteRule}
-                isLoading={isLoading}
-              >
-                Delete Rule
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
+                    <Dropdown
+                      label="Rule Type"
+                      options={ruleTypeOptions}
+                      value={ruleType}
+                      onChange={setRuleType}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Dropdown
+                        label="Multiplier"
+                        options={multiplierOptions}
+                        value={multiplier}
+                        onChange={setMultiplier}
+                      />
+                      <Input
+                        label="Min. Purchase ($)"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={minPurchase}
+                        onChange={(e) => setMinPurchase(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="Start Date"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                      <Input
+                        label="End Date"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <Button
+                        variant="primary"
+                        className="flex-1"
+                        onClick={handleUpdateRule}
+                        isLoading={isLoading}
+                      >
+                        Update Rule
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setShowEditModal(false);
+                          setEditingRule(null);
+                          resetForm();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </Modal>
+              )}
+
+              {/* Delete Confirmation Modal */}
+              <Modal
+                isOpen={showDeleteModal}
+                onClose={() => {
                   setShowDeleteModal(false);
                   setDeletingRuleId(null);
                 }}
+                title="Delete Reward Rule"
               >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </Modal>
-
+                <div className="space-y-4">
+                  <p className="text-text-secondary">
+                    Are you sure you want to delete this rule? This action cannot be undone and will permanently remove the rule from the blockchain.
+                  </p>
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="primary"
+                      className="flex-1 bg-red-500 hover:bg-red-600"
+                      onClick={confirmDeleteRule}
+                      isLoading={isLoading}
+                    >
+                      Delete Rule
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowDeleteModal(false);
+                        setDeletingRuleId(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
+            </>
+          )}
+        </div>
       </div>
     </ProtectedRoute>
   );

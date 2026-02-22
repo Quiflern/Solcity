@@ -23,6 +23,7 @@ pub fn handler(
     new_reward_rate: Option<u64>,
     description: Option<String>,
     avatar_url: Option<String>,
+    category: Option<String>,
     is_active: Option<bool>,
 ) -> Result<()> {
     let merchant = &mut ctx.accounts.merchant;
@@ -43,6 +44,13 @@ pub fn handler(
         require!(url.len() <= 128, SolcityError::NameTooLong);
         merchant.avatar_url = url;
         msg!("Avatar URL updated");
+    }
+
+    if let Some(cat) = category {
+        require!(!cat.is_empty(), SolcityError::NameEmpty);
+        require!(cat.len() <= 32, SolcityError::NameTooLong);
+        merchant.category = cat;
+        msg!("Category updated");
     }
 
     if let Some(active) = is_active {

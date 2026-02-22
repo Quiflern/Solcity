@@ -21,6 +21,10 @@ pub struct Merchant {
     #[max_len(128)]
     pub avatar_url: String,
 
+    /// Business category (32 bytes)
+    #[max_len(32)]
+    pub category: String,
+
     /// Tokens per dollar spent (e.g., 10 = 10 tokens per $1)
     pub reward_rate: u64,
 

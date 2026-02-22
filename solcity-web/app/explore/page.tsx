@@ -9,6 +9,12 @@ export default function ExploreMerchantsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { merchants, isLoading, error } = useAllMerchants();
 
+  // Get unique categories from merchants
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set(merchants.map(m => m.category));
+    return Array.from(uniqueCategories).sort();
+  }, [merchants]);
+
   // Generate avatar URL from code or custom URL
   const getAvatarUrl = (avatarCode: string, businessName: string) => {
     if (!avatarCode) {
@@ -23,6 +29,11 @@ export default function ExploreMerchantsPage() {
   // Filter merchants based on active filter and search query
   const filteredMerchants = useMemo(() => {
     let filtered = merchants.filter(m => m.isActive);
+
+    // Apply category filter
+    if (activeFilter !== "all") {
+      filtered = filtered.filter(m => m.category === activeFilter);
+    }
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -86,6 +97,22 @@ export default function ExploreMerchantsPage() {
           >
             All Merchants ({merchants.filter(m => m.isActive).length})
           </button>
+          {categories.map((category) => {
+            const count = merchants.filter(m => m.isActive && m.category === category).length;
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setActiveFilter(category)}
+                className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === category
+                  ? "text-accent border-accent"
+                  : "text-text-secondary border-transparent hover:text-text"
+                  }`}
+              >
+                {category} ({count})
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -126,10 +153,15 @@ export default function ExploreMerchantsPage() {
                   alt={merchant.name}
                   className="w-12 h-12 rounded-lg object-cover border border-border"
                 />
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">{merchant.name}</h3>
-                  <span className="text-[0.7rem] uppercase tracking-wider text-text-secondary bg-white/5 px-2 py-0.5 rounded">
-                    Verified Merchant
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-semibold">{merchant.name}</h3>
+                    <span className="bg-accent text-black text-[9px] font-extrabold px-1.5 py-0.5 rounded-sm tracking-wider">
+                      VERIFIED
+                    </span>
+                  </div>
+                  <span className="text-[0.7rem] uppercase tracking-wider text-text-secondary">
+                    {merchant.category}
                   </span>
                 </div>
               </div>

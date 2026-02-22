@@ -19,7 +19,7 @@ export default function MerchantRegisterPage() {
   const [businessName, setBusinessName] = useState("");
   const [description, setDescription] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [category, setCategory] = useState("food");
+  const [category, setCategory] = useState("Food & Beverage");
   const [email, setEmail] = useState("");
   const [rewardRate, setRewardRate] = useState(1.0);
   const [interestRate, setInterestRate] = useState(500);
@@ -83,6 +83,7 @@ export default function MerchantRegisterPage() {
         programName,
         businessName,
         avatarUrl || displayAvatarUrl, // Use provided URL or generated one
+        category,
         description,
         rewardRateBps,
         interestRate
@@ -346,11 +347,14 @@ export default function MerchantRegisterPage() {
                       <Dropdown
                         label="Category"
                         options={[
-                          { value: "food", label: "Food & Beverage" },
-                          { value: "retail", label: "Retail" },
-                          { value: "service", label: "Service" },
-                          { value: "entertainment", label: "Entertainment" },
-                          { value: "health", label: "Health & Fitness" },
+                          { value: "Food & Beverage", label: "Food & Beverage" },
+                          { value: "Retail", label: "Retail" },
+                          { value: "Services", label: "Services" },
+                          { value: "Entertainment", label: "Entertainment" },
+                          { value: "Health & Fitness", label: "Health & Fitness" },
+                          { value: "Travel", label: "Travel" },
+                          { value: "Technology", label: "Technology" },
+                          { value: "Other", label: "Other" },
                         ]}
                         value={category}
                         onChange={setCategory}
