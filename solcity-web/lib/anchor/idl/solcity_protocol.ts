@@ -14,6 +14,260 @@ export type SolcityProtocol = {
   },
   "instructions": [
     {
+      "name": "createRedemptionOffer",
+      "docs": [
+        "Create a new redemption offer"
+      ],
+      "discriminator": [
+        223,
+        213,
+        30,
+        63,
+        33,
+        2,
+        55,
+        110
+      ],
+      "accounts": [
+        {
+          "name": "merchantAuthority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "loyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyaltyProgram",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "loyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemptionOffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "icon",
+          "type": "string"
+        },
+        {
+          "name": "cost",
+          "type": "u64"
+        },
+        {
+          "name": "offerType",
+          "type": {
+            "defined": {
+              "name": "redemptionType"
+            }
+          }
+        },
+        {
+          "name": "quantityLimit",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "expiration",
+          "type": {
+            "option": "i64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "deleteRedemptionOffer",
+      "docs": [
+        "Delete a redemption offer"
+      ],
+      "discriminator": [
+        167,
+        67,
+        62,
+        130,
+        161,
+        93,
+        6,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "merchantAuthority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemptionOffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "redemptionOffer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "deleteRewardRule",
       "docs": [
         "Delete a reward rule"
@@ -533,24 +787,49 @@ export type SolcityProtocol = {
           "writable": true
         },
         {
+          "name": "redemptionOffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "redemptionOffer"
+              }
+            ]
+          }
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "redemptionType",
-          "type": {
-            "defined": {
-              "name": "redemptionType"
-            }
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "registerCustomer",
@@ -993,6 +1272,96 @@ export type SolcityProtocol = {
       ]
     },
     {
+      "name": "toggleRedemptionOffer",
+      "docs": [
+        "Toggle redemption offer active status"
+      ],
+      "discriminator": [
+        9,
+        77,
+        124,
+        55,
+        128,
+        82,
+        112,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "merchantAuthority",
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemptionOffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "redemptionOffer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "toggleRewardRule",
       "docs": [
         "Toggle reward rule active status (pause/unpause)"
@@ -1191,6 +1560,142 @@ export type SolcityProtocol = {
           "name": "isActive",
           "type": {
             "option": "bool"
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateRedemptionOffer",
+      "docs": [
+        "Update an existing redemption offer"
+      ],
+      "discriminator": [
+        196,
+        111,
+        172,
+        50,
+        66,
+        99,
+        84,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "merchantAuthority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemptionOffer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "redemptionOffer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "icon",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "cost",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "offerType",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "redemptionType"
+              }
+            }
+          }
+        },
+        {
+          "name": "quantityLimit",
+          "type": {
+            "option": {
+              "option": "u64"
+            }
+          }
+        },
+        {
+          "name": "expiration",
+          "type": {
+            "option": {
+              "option": "i64"
+            }
           }
         }
       ]
@@ -1397,6 +1902,19 @@ export type SolcityProtocol = {
       ]
     },
     {
+      "name": "redemptionOffer",
+      "discriminator": [
+        170,
+        229,
+        178,
+        15,
+        184,
+        107,
+        140,
+        41
+      ]
+    },
+    {
       "name": "rewardRule",
       "discriminator": [
         22,
@@ -1490,6 +2008,11 @@ export type SolcityProtocol = {
       "code": 6012,
       "name": "invalidTreasury",
       "msg": "Invalid platform treasury account"
+    },
+    {
+      "code": 6013,
+      "name": "offerNotAvailable",
+      "msg": "Redemption offer is not available (expired, sold out, or inactive)"
     }
   ],
   "types": [
@@ -1786,6 +2309,10 @@ export type SolcityProtocol = {
             "type": "pubkey"
           },
           {
+            "name": "offerName",
+            "type": "string"
+          },
+          {
             "name": "amount",
             "type": "u64"
           },
@@ -1800,6 +2327,74 @@ export type SolcityProtocol = {
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "redemptionOffer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "loyaltyProgram",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "icon",
+            "type": "string"
+          },
+          {
+            "name": "cost",
+            "type": "u64"
+          },
+          {
+            "name": "offerType",
+            "type": {
+              "defined": {
+                "name": "redemptionType"
+              }
+            }
+          },
+          {
+            "name": "quantityLimit",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "quantityClaimed",
+            "type": "u64"
+          },
+          {
+            "name": "expiration",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -1841,6 +2436,15 @@ export type SolcityProtocol = {
             "fields": [
               {
                 "name": "accessType",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "name": "custom",
+            "fields": [
+              {
+                "name": "typeName",
                 "type": "string"
               }
             ]

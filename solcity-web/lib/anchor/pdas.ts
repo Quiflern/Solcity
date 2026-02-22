@@ -69,3 +69,17 @@ export function getRewardRulePDA(
     PROGRAM_ID
   );
 }
+
+/**
+ * Derive the Redemption Offer PDA
+ * Seeds: ["redemption_offer", merchant, name]
+ */
+export function getRedemptionOfferPDA(
+  merchant: PublicKey,
+  name: string
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("redemption_offer"), merchant.toBuffer(), Buffer.from(name)],
+    PROGRAM_ID
+  );
+}

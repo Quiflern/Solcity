@@ -81,6 +81,13 @@ export default function MerchantNavbar() {
               Rules
             </Link>
             <Link
+              href="/merchant/offers"
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/offers") ? "text-accent" : "text-text-secondary hover:text-accent"
+                }`}
+            >
+              Offers
+            </Link>
+            <Link
               href="/merchant/analytics"
               className={`text-sm font-medium transition-colors ${isActive("/merchant/analytics") ? "text-accent" : "text-text-secondary hover:text-accent"
                 }`}

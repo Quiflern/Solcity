@@ -22,6 +22,8 @@ pub struct RedemptionOffer {
     pub name: String,
     #[max_len(256)]
     pub description: String,
+    #[max_len(32)]
+    pub icon: String,
     pub cost: u64,
     pub offer_type: RedemptionType,
     pub quantity_limit: Option<u64>,

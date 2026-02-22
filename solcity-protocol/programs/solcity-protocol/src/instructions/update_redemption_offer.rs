@@ -32,6 +32,7 @@ pub struct UpdateRedemptionOffer<'info> {
 pub fn handler(
     ctx: Context<UpdateRedemptionOffer>,
     description: Option<String>,
+    icon: Option<String>,
     cost: Option<u64>,
     offer_type: Option<RedemptionType>,
     quantity_limit: Option<Option<u64>>,
@@ -42,6 +43,11 @@ pub fn handler(
     if let Some(desc) = description {
         require!(desc.len() <= 256, SolcityError::NameTooLong);
         offer.description = desc;
+    }
+
+    if let Some(ic) = icon {
+        require!(ic.len() <= 32, SolcityError::NameTooLong);
+        offer.icon = ic;
     }
 
     if let Some(c) = cost {

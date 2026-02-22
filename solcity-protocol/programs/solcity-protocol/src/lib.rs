@@ -134,6 +134,7 @@ pub mod solcity_protocol {
         ctx: Context<CreateRedemptionOffer>,
         name: String,
         description: String,
+        icon: String,
         cost: u64,
         offer_type: RedemptionType,
         quantity_limit: Option<u64>,
@@ -143,6 +144,7 @@ pub mod solcity_protocol {
             ctx,
             name,
             description,
+            icon,
             cost,
             offer_type,
             quantity_limit,
@@ -154,6 +156,7 @@ pub mod solcity_protocol {
     pub fn update_redemption_offer(
         ctx: Context<UpdateRedemptionOffer>,
         description: Option<String>,
+        icon: Option<String>,
         cost: Option<u64>,
         offer_type: Option<RedemptionType>,
         quantity_limit: Option<Option<u64>>,
@@ -162,6 +165,7 @@ pub mod solcity_protocol {
         instructions::update_redemption_offer::handler(
             ctx,
             description,
+            icon,
             cost,
             offer_type,
             quantity_limit,

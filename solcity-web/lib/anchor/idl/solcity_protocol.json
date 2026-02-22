@@ -8,6 +8,260 @@
   },
   "instructions": [
     {
+      "name": "create_redemption_offer",
+      "docs": [
+        "Create a new redemption offer"
+      ],
+      "discriminator": [
+        223,
+        213,
+        30,
+        63,
+        33,
+        2,
+        55,
+        110
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyalty_program",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "LoyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemption_offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "icon",
+          "type": "string"
+        },
+        {
+          "name": "cost",
+          "type": "u64"
+        },
+        {
+          "name": "offer_type",
+          "type": {
+            "defined": {
+              "name": "RedemptionType"
+            }
+          }
+        },
+        {
+          "name": "quantity_limit",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "expiration",
+          "type": {
+            "option": "i64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete_redemption_offer",
+      "docs": [
+        "Delete a redemption offer"
+      ],
+      "discriminator": [
+        167,
+        67,
+        62,
+        130,
+        161,
+        93,
+        6,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemption_offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "RedemptionOffer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "delete_reward_rule",
       "docs": [
         "Delete a reward rule"
@@ -527,24 +781,49 @@
           "writable": true
         },
         {
+          "name": "redemption_offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "RedemptionOffer"
+              }
+            ]
+          }
+        },
+        {
           "name": "token_program",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        },
-        {
-          "name": "redemption_type",
-          "type": {
-            "defined": {
-              "name": "RedemptionType"
-            }
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "register_customer",
@@ -987,6 +1266,96 @@
       ]
     },
     {
+      "name": "toggle_redemption_offer",
+      "docs": [
+        "Toggle redemption offer active status"
+      ],
+      "discriminator": [
+        9,
+        77,
+        124,
+        55,
+        128,
+        82,
+        112,
+        39
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemption_offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "RedemptionOffer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "toggle_reward_rule",
       "docs": [
         "Toggle reward rule active status (pause/unpause)"
@@ -1185,6 +1554,142 @@
           "name": "is_active",
           "type": {
             "option": "bool"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_redemption_offer",
+      "docs": [
+        "Update an existing redemption offer"
+      ],
+      "discriminator": [
+        196,
+        111,
+        172,
+        50,
+        66,
+        99,
+        84,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "redemption_offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer.name",
+                "account": "RedemptionOffer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "description",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "icon",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "cost",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "offer_type",
+          "type": {
+            "option": {
+              "defined": {
+                "name": "RedemptionType"
+              }
+            }
+          }
+        },
+        {
+          "name": "quantity_limit",
+          "type": {
+            "option": {
+              "option": "u64"
+            }
+          }
+        },
+        {
+          "name": "expiration",
+          "type": {
+            "option": {
+              "option": "i64"
+            }
           }
         }
       ]
@@ -1391,6 +1896,19 @@
       ]
     },
     {
+      "name": "RedemptionOffer",
+      "discriminator": [
+        170,
+        229,
+        178,
+        15,
+        184,
+        107,
+        140,
+        41
+      ]
+    },
+    {
       "name": "RewardRule",
       "discriminator": [
         22,
@@ -1484,6 +2002,11 @@
       "code": 6012,
       "name": "InvalidTreasury",
       "msg": "Invalid platform treasury account"
+    },
+    {
+      "code": 6013,
+      "name": "OfferNotAvailable",
+      "msg": "Redemption offer is not available (expired, sold out, or inactive)"
     }
   ],
   "types": [
@@ -1780,6 +2303,10 @@
             "type": "pubkey"
           },
           {
+            "name": "offer_name",
+            "type": "string"
+          },
+          {
             "name": "amount",
             "type": "u64"
           },
@@ -1794,6 +2321,74 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RedemptionOffer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "loyalty_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "icon",
+            "type": "string"
+          },
+          {
+            "name": "cost",
+            "type": "u64"
+          },
+          {
+            "name": "offer_type",
+            "type": {
+              "defined": {
+                "name": "RedemptionType"
+              }
+            }
+          },
+          {
+            "name": "quantity_limit",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "quantity_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "expiration",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -1835,6 +2430,15 @@
             "fields": [
               {
                 "name": "access_type",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "name": "Custom",
+            "fields": [
+              {
+                "name": "type_name",
                 "type": "string"
               }
             ]

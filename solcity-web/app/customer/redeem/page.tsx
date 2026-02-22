@@ -1,7 +1,11 @@
 "use client";
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAllRedemptionOffers } from "@/hooks/useAllRedemptionOffers";
+import { useSolcityProgram } from "@/hooks/useSolcityProgram";
+import { Percent, Package, Coins, Ticket, Gift } from "lucide-react";
+import { IconRenderer } from "@/contexts/IconPickerContext";
 
 export default function RedeemPage() {
   const [activeTab, setActiveTab] = useState<"marketplace" | "history">(
@@ -9,10 +13,38 @@ export default function RedeemPage() {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalView, setModalView] = useState<"confirm" | "success">("confirm");
-  const [selectedReward, setSelectedReward] = useState({ name: "", cost: 0 });
+  const [selectedReward, setSelectedReward] = useState({ name: "", cost: 0, publicKey: "" });
+  const [merchantNames, setMerchantNames] = useState<Record<string, string>>({});
 
-  const openRedeemModal = (name: string, cost: number) => {
-    setSelectedReward({ name, cost });
+  // Fetch real offers from blockchain
+  const { data: blockchainOffers = [], isLoading: offersLoading } = useAllRedemptionOffers();
+  const { program } = useSolcityProgram();
+
+  // Fetch merchant names for blockchain offers
+  useEffect(() => {
+    const fetchMerchantNames = async () => {
+      if (!program || blockchainOffers.length === 0) return;
+
+      const names: Record<string, string> = {};
+
+      for (const offer of blockchainOffers) {
+        try {
+          const merchantAccount = await program.account.merchant.fetch(offer.merchant);
+          names[offer.merchant.toString()] = merchantAccount.name;
+        } catch (err) {
+          console.error("Error fetching merchant:", err);
+          names[offer.merchant.toString()] = "Unknown Merchant";
+        }
+      }
+
+      setMerchantNames(names);
+    };
+
+    fetchMerchantNames();
+  }, [program, blockchainOffers]);
+
+  const openRedeemModal = (name: string, cost: number, publicKey: string = "") => {
+    setSelectedReward({ name, cost, publicKey });
     setModalView("confirm");
     setModalOpen(true);
   };
@@ -22,65 +54,126 @@ export default function RedeemPage() {
   };
 
   const confirmRedeem = () => {
+    // TODO: Integrate with blockchain redeem function
     setModalView("success");
   };
 
-  const rewards = [
+  // Mock rewards (fallback/demo data)
+  const mockRewards = [
     {
       id: "reward-1",
       type: "discount",
-      icon: "☕",
+      icon: <Percent className="w-8 h-8" />,
       merchant: "Solana Coffee",
       name: "50% Off Any Beverage",
       description:
         "Valid for one large handcrafted drink. Available at all locations.",
       cost: 250,
       available: true,
+      isMock: true,
     },
     {
       id: "reward-2",
       type: "product",
-      icon: "🧢",
+      icon: <Package className="w-8 h-8" />,
       merchant: "Solana Store",
       name: "Limited Edition Hat",
       description:
         "Exclusive 'WAGMI' trucker hat from the Fall '24 collection.",
       cost: 1200,
       available: true,
+      isMock: true,
     },
     {
       id: "reward-3",
       type: "cashback",
-      icon: "◎",
+      icon: <Coins className="w-8 h-8" />,
       merchant: "Network Bridge",
       name: "Convert 1.0 SOL",
       description:
         "Direct swap of your reward tokens for SOL sent to your wallet.",
       cost: 15000,
       available: false,
+      isMock: true,
     },
     {
       id: "reward-4",
       type: "exclusive",
-      icon: "🎟️",
+      icon: <Ticket className="w-8 h-8" />,
       merchant: "Breakpoint '25",
       name: "VIP Pass Entry",
       description:
         "Pre-sale priority access code for the annual developer conference.",
       cost: 5000,
       available: true,
+      isMock: true,
     },
     {
       id: "reward-5",
       type: "discount",
-      icon: "🍔",
+      icon: <Percent className="w-8 h-8" />,
       merchant: "Block Burger",
       name: "$10 Dining Credit",
       description: "Applied to any dine-in or take-out order over $20.",
       cost: 800,
       available: true,
+      isMock: true,
     },
   ];
+
+  const getOfferIcon = (offerType: any) => {
+    if ("discount" in offerType) return <Percent className="w-8 h-8" />;
+    if ("freeProduct" in offerType) return <Package className="w-8 h-8" />;
+    if ("cashback" in offerType) return <Coins className="w-8 h-8" />;
+    if ("exclusiveAccess" in offerType) return <Ticket className="w-8 h-8" />;
+    return <Gift className="w-8 h-8" />;
+  };
+
+  // Convert blockchain offers to display format
+  const blockchainRewardsFormatted = blockchainOffers
+    .filter((offer) => offer.isActive) // Only show active offers
+    .map((offer) => {
+      let type = "custom";
+
+      if ("discount" in offer.offerType) {
+        type = "discount";
+      } else if ("freeProduct" in offer.offerType) {
+        type = "product";
+      } else if ("cashback" in offer.offerType) {
+        type = "cashback";
+      } else if ("exclusiveAccess" in offer.offerType) {
+        type = "exclusive";
+      }
+
+      // Check if offer is available
+      const now = Date.now() / 1000;
+      const isExpired = offer.expiration && offer.expiration.toNumber() < now;
+      const isSoldOut = offer.quantityLimit && offer.quantityClaimed >= offer.quantityLimit;
+      const available = !isExpired && !isSoldOut;
+
+      // Use stored icon or fallback to type-based icon
+      const iconElement = offer.icon ? (
+        <IconRenderer icon={offer.icon} className="w-8 h-8" />
+      ) : (
+        getOfferIcon(offer.offerType)
+      );
+
+      return {
+        id: offer.publicKey.toString(),
+        type,
+        icon: iconElement,
+        merchant: merchantNames[offer.merchant.toString()] || "Loading...",
+        name: offer.name,
+        description: offer.description,
+        cost: offer.cost.toNumber(),
+        available,
+        isMock: false,
+        publicKey: offer.publicKey.toString(),
+      };
+    });
+
+  // Combine blockchain and mock rewards
+  const allRewards = [...blockchainRewardsFormatted, ...mockRewards];
 
   const history = [
     {
@@ -159,62 +252,80 @@ export default function RedeemPage() {
         {/* Content */}
         <div className="max-w-[1400px] mx-auto px-8 py-10">
           {activeTab === "marketplace" && (
-            <div className="grid grid-cols-4 gap-8">
-              {rewards.map((reward) => (
-                <div
-                  key={reward.id}
-                  className="bg-panel border border-border rounded-xl p-6 flex flex-col transition-all duration-200 hover:border-[#333]"
-                >
-                  <span
-                    className={`text-[0.65rem] uppercase font-bold px-2 py-1 rounded w-fit mb-4 ${reward.type === "discount"
-                      ? "bg-[rgba(208,255,20,0.1)] text-accent"
-                      : reward.type === "product"
-                        ? "bg-[rgba(0,150,255,0.1)] text-[#0096ff]"
-                        : reward.type === "cashback"
-                          ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                          : "bg-[rgba(163,53,255,0.1)] text-[#a335ff]"
-                      }`}
-                  >
-                    {reward.type === "discount"
-                      ? "Discount %"
-                      : reward.type === "product"
-                        ? "Free Product"
-                        : reward.type === "cashback"
-                          ? "SOL Cashback"
-                          : "Exclusive Access"}
-                  </span>
-                  <div className="text-[2rem] mb-4">{reward.icon}</div>
-                  <div className="text-[0.75rem] text-text-secondary uppercase tracking-wider mb-3">
-                    {reward.merchant}
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{reward.name}</h3>
-                  <p className="text-sm text-text-secondary leading-relaxed mb-6 grow">
-                    {reward.description}
-                  </p>
-                  <div className="flex items-baseline gap-1 mb-5">
-                    <span className="text-xl font-bold">{reward.cost}</span>
-                    <span className="text-xs text-text-secondary">SLCY</span>
-                  </div>
-                  {reward.available ? (
-                    <button
-                      type="button"
-                      onClick={() => openRedeemModal(reward.name, reward.cost)}
-                      className="w-full py-3.5 rounded-md border border-accent bg-transparent text-accent font-semibold text-sm transition-all duration-200 hover:bg-accent hover:text-bg"
-                    >
-                      Redeem
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full py-3.5 rounded-md border border-border bg-[#1a1a1a] text-[#444] font-semibold text-sm cursor-not-allowed"
-                    >
-                      Not Enough SLCY
-                    </button>
-                  )}
+            <>
+              {offersLoading && (
+                <div className="text-center py-16">
+                  <div className="inline-block w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-text-secondary">Loading offers...</p>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {!offersLoading && (
+                <div className="grid grid-cols-4 gap-8">
+                  {allRewards.map((reward) => (
+                    <div
+                      key={reward.id}
+                      className="bg-panel border border-border rounded-xl p-6 flex flex-col transition-all duration-200 hover:border-[#333] relative"
+                    >
+                      {reward.isMock && (
+                        <div className="absolute top-3 right-3">
+                          <span className="text-[0.6rem] uppercase font-bold px-2 py-1 rounded bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                            Demo
+                          </span>
+                        </div>
+                      )}
+                      <span
+                        className={`text-[0.65rem] uppercase font-bold px-2 py-1 rounded w-fit mb-4 ${reward.type === "discount"
+                          ? "bg-[rgba(208,255,20,0.1)] text-accent"
+                          : reward.type === "product"
+                            ? "bg-[rgba(0,150,255,0.1)] text-[#0096ff]"
+                            : reward.type === "cashback"
+                              ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
+                              : "bg-[rgba(163,53,255,0.1)] text-[#a335ff]"
+                          }`}
+                      >
+                        {reward.type === "discount"
+                          ? "Discount %"
+                          : reward.type === "product"
+                            ? "Free Product"
+                            : reward.type === "cashback"
+                              ? "SOL Cashback"
+                              : "Exclusive Access"}
+                      </span>
+                      <div className="text-[2rem] mb-4">{reward.icon}</div>
+                      <div className="text-[0.75rem] text-text-secondary uppercase tracking-wider mb-3">
+                        {reward.merchant}
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">{reward.name}</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed mb-6 grow">
+                        {reward.description}
+                      </p>
+                      <div className="flex items-baseline gap-1 mb-5">
+                        <span className="text-xl font-bold">{reward.cost}</span>
+                        <span className="text-xs text-text-secondary">SLCY</span>
+                      </div>
+                      {reward.available ? (
+                        <button
+                          type="button"
+                          onClick={() => openRedeemModal(reward.name, reward.cost, reward.publicKey || "")}
+                          className="w-full py-3.5 rounded-md border border-accent bg-transparent text-accent font-semibold text-sm transition-all duration-200 hover:bg-accent hover:text-bg"
+                        >
+                          Redeem
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-3.5 rounded-md border border-border bg-[#1a1a1a] text-[#444] font-semibold text-sm cursor-not-allowed"
+                        >
+                          Not Available
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {activeTab === "history" && (

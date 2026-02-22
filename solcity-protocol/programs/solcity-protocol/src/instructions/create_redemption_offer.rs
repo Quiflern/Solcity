@@ -45,6 +45,7 @@ pub fn handler(
     ctx: Context<CreateRedemptionOffer>,
     name: String,
     description: String,
+    icon: String,
     cost: u64,
     offer_type: RedemptionType,
     quantity_limit: Option<u64>,
@@ -53,6 +54,7 @@ pub fn handler(
     require!(!name.is_empty(), SolcityError::NameEmpty);
     require!(name.len() <= 64, SolcityError::NameTooLong);
     require!(description.len() <= 256, SolcityError::NameTooLong);
+    require!(icon.len() <= 32, SolcityError::NameTooLong);
     require!(cost > 0, SolcityError::InvalidRewardAmount);
 
     let offer = &mut ctx.accounts.redemption_offer;
@@ -62,6 +64,7 @@ pub fn handler(
     offer.loyalty_program = ctx.accounts.loyalty_program.key();
     offer.name = name.clone();
     offer.description = description;
+    offer.icon = icon;
     offer.cost = cost;
     offer.offer_type = offer_type;
     offer.quantity_limit = quantity_limit;
