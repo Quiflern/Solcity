@@ -1,5 +1,6 @@
 #![allow(ambiguous_glob_reexports)]
 
+pub mod close_merchant;
 pub mod create_redemption_offer;
 pub mod delete_redemption_offer;
 pub mod delete_reward_rule;
@@ -15,6 +16,7 @@ pub mod update_merchant;
 pub mod update_redemption_offer;
 pub mod update_reward_rule;
 
+pub use close_merchant::*;
 pub use create_redemption_offer::*;
 pub use delete_redemption_offer::*;
 pub use delete_reward_rule::*;

@@ -72,6 +72,16 @@ export function useIssueRewards() {
       const [customer] = getCustomerPDA(customerWallet, loyaltyProgram);
       const [mint] = getMintPDA(loyaltyProgram);
 
+      // Check if customer is registered
+      const customerAccount = await connection.getAccountInfo(customer);
+      if (!customerAccount) {
+        throw new Error("Customer not registered. They must register themselves first by visiting the merchant's page.");
+      }
+
+      // Fetch loyalty program to get treasury
+      const loyaltyProgramAccount = await program.account.loyaltyProgram.fetch(loyaltyProgram);
+      const platformTreasury = loyaltyProgramAccount.treasury;
+
       // Get customer's token account
       const customerTokenAccount = getAssociatedTokenAddressSync(
         mint,
@@ -80,11 +90,9 @@ export function useIssueRewards() {
         TOKEN_2022_PROGRAM_ID
       );
 
-      // Register customer if they don't exist
-      await registerCustomer(customerWallet);
-
-      // Convert purchase amount to lamports (assuming USD cents)
-      const purchaseAmountBN = new BN(purchaseAmount * 100);
+      // Pass purchase amount as-is (in dollars)
+      // The Rust code will handle the conversion
+      const purchaseAmountBN = new BN(purchaseAmount);
 
       const tx = await program.methods
         .issueRewards(purchaseAmountBN)
@@ -95,6 +103,7 @@ export function useIssueRewards() {
           loyaltyProgram: loyaltyProgram,
           mint: mint,
           customerTokenAccount: customerTokenAccount,
+          platformTreasury: platformTreasury,
         } as any)
         .rpc();
 

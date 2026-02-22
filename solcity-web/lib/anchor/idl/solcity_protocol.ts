@@ -14,6 +14,97 @@ export type SolcityProtocol = {
   },
   "instructions": [
     {
+      "name": "closeMerchant",
+      "docs": [
+        "Close merchant account and refund rent"
+      ],
+      "discriminator": [
+        138,
+        96,
+        102,
+        11,
+        220,
+        136,
+        154,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "merchantAuthority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loyaltyProgram",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  121,
+                  97,
+                  108,
+                  116,
+                  121,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loyalty_program.authority",
+                "account": "loyaltyProgram"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "createRedemptionOffer",
       "docs": [
         "Create a new redemption offer"
@@ -2256,7 +2347,7 @@ export type SolcityProtocol = {
           {
             "name": "avatarUrl",
             "docs": [
-              "Avatar URL (128 bytes)"
+              "Avatar URL (256 bytes)"
             ],
             "type": "string"
           },

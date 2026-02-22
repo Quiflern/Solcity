@@ -1,0 +1,421 @@
+"use client";
+
+import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useMerchantAccount } from "@/hooks/useMerchantAccount";
+import { useMerchantUpdate } from "@/hooks/useMerchantUpdate";
+import { useMerchantClose } from "@/hooks/useMerchantClose";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Dropdown from "@/components/ui/Dropdown";
+import Toggle from "@/components/ui/Toggle";
+import Modal from "@/components/ui/Modal";
+import { toast } from "sonner";
+import { AlertTriangle, Save, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+export default function MerchantProfilePage() {
+  const router = useRouter();
+  const { publicKey } = useWallet();
+  const { merchantAccount, isLoading, refetch } = useMerchantAccount();
+  const { updateMerchant, isUpdating } = useMerchantUpdate();
+  const { closeMerchant, isClosing } = useMerchantClose();
+
+  const [businessName, setBusinessName] = useState("");
+  const [description, setDescription] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [category, setCategory] = useState("");
+  const [rewardRate, setRewardRate] = useState(1.0);
+  const [isActive, setIsActive] = useState(true);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+
+  // Initialize form when merchant account loads
+  useState(() => {
+    if (merchantAccount) {
+      setBusinessName(merchantAccount.name);
+      setDescription(merchantAccount.description || "");
+      setAvatarUrl(merchantAccount.avatarUrl || "");
+      setCategory(merchantAccount.category || "Other");
+      setRewardRate(merchantAccount.rewardRate / 100);
+      setIsActive(merchantAccount.isActive);
+    }
+  });
+
+  const getAvatarUrl = (avatarCode: string, businessName: string) => {
+    if (!avatarCode) {
+      return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(businessName)}&backgroundColor=d0ff14`;
+    }
+    if (avatarCode.startsWith('http://') || avatarCode.startsWith('https://')) {
+      return avatarCode;
+    }
+    return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(avatarCode)}&backgroundColor=d0ff14`;
+  };
+
+  const displayAvatarUrl = avatarUrl
+    ? getAvatarUrl(avatarUrl, businessName)
+    : getAvatarUrl(businessName || "Business", businessName);
+
+  const handleSave = async () => {
+    if (!merchantAccount) return;
+
+    // Validation
+    if (description && description.length > 256) {
+      toast.error("Description too long", {
+        description: "Description must be 256 characters or less"
+      });
+      return;
+    }
+
+    if (avatarUrl && avatarUrl.length > 256) {
+      toast.error("Avatar URL too long", {
+        description: "Avatar URL must be 256 characters or less"
+      });
+      return;
+    }
+
+    if (category && category.length > 32) {
+      toast.error("Category too long", {
+        description: "Category must be 32 characters or less"
+      });
+      return;
+    }
+
+    const loadingToast = toast.loading("Updating merchant profile...");
+
+    try {
+      const updates: any = {};
+
+      // Only include changed fields
+      if (description !== (merchantAccount.description || "")) {
+        updates.description = description;
+      }
+      if (avatarUrl !== (merchantAccount.avatarUrl || "")) {
+        updates.avatarUrl = avatarUrl;
+      }
+      if (category !== (merchantAccount.category || "Other")) {
+        updates.category = category;
+      }
+      if (rewardRate !== merchantAccount.rewardRate / 100) {
+        updates.rewardRate = Math.floor(rewardRate * 100);
+      }
+      if (isActive !== merchantAccount.isActive) {
+        updates.isActive = isActive;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        toast.dismiss(loadingToast);
+        toast.info("No changes to save");
+        return;
+      }
+
+      await updateMerchant(updates);
+
+      toast.dismiss(loadingToast);
+      toast.success("Profile updated successfully!");
+
+      // Refetch merchant account
+      setTimeout(() => refetch(), 1000);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error("Failed to update profile", {
+        description: err.message || "Please try again"
+      });
+    }
+  };
+
+  const handleCloseAccount = async () => {
+    const loadingToast = toast.loading("Closing merchant account...");
+
+    try {
+      await closeMerchant();
+
+      toast.dismiss(loadingToast);
+      toast.success("Account closed successfully!", {
+        description: "Your merchant account has been closed and rent refunded"
+      });
+
+      setShowCloseModal(false);
+
+      // Redirect to register page after a short delay
+      setTimeout(() => {
+        router.push("/merchant/register");
+      }, 2000);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error("Failed to close account", {
+        description: err.message || "Please try again"
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-text-secondary">Loading profile...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!merchantAccount) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-accent" />
+            </div>
+            <h2 className="text-2xl mb-2">No Merchant Account Found</h2>
+            <p className="text-text-secondary mb-6">
+              You need to register as a merchant before you can access this page.
+            </p>
+            <Link
+              href="/merchant/register"
+              className="inline-block bg-accent text-black px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
+            >
+              Register as Merchant
+            </Link>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-bg">
+        <div className="max-w-[1000px] mx-auto px-8 py-12">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-medium mb-2">Merchant Profile</h1>
+            <p className="text-text-secondary">
+              Update your business information and manage your account
+            </p>
+          </div>
+
+          {/* Profile Form */}
+          <div className="bg-panel border border-border rounded-xl p-8 mb-6">
+            {/* Avatar Preview */}
+            <div className="flex items-center gap-6 mb-8 pb-8 border-b border-border">
+              <div className="w-24 h-24 bg-black border border-border rounded-xl overflow-hidden">
+                <img
+                  src={displayAvatarUrl}
+                  alt={businessName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== getAvatarUrl(businessName, businessName)) {
+                      target.src = getAvatarUrl(businessName, businessName);
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold mb-1">{merchantAccount.name}</h2>
+                <p className="text-sm text-text-secondary">
+                  Registered on {new Date(merchantAccount.createdAt * 1000).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2">
+                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                  Business Name (Cannot be changed)
+                </label>
+                <input
+                  type="text"
+                  value={businessName}
+                  disabled
+                  className="w-full bg-black border border-border text-text-secondary px-4 py-3 rounded-lg text-sm cursor-not-allowed opacity-60"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                  Avatar Code or URL
+                </label>
+                <input
+                  type="text"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                  placeholder="e.g., robot-blue or https://example.com/logo.png"
+                  maxLength={256}
+                />
+                {avatarUrl && (
+                  <p className="text-xs text-text-secondary mt-2">
+                    {avatarUrl.length}/256 characters
+                  </p>
+                )}
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                  Business Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent resize-none"
+                  placeholder="Tell customers about your business..."
+                  rows={4}
+                  maxLength={256}
+                />
+                <p className="text-xs text-text-secondary mt-2">
+                  {description.length}/256 characters
+                </p>
+              </div>
+
+              <div>
+                <Dropdown
+                  label="Category"
+                  options={[
+                    { value: "Food & Beverage", label: "Food & Beverage" },
+                    { value: "Retail", label: "Retail" },
+                    { value: "Services", label: "Services" },
+                    { value: "Entertainment", label: "Entertainment" },
+                    { value: "Health & Fitness", label: "Health & Fitness" },
+                    { value: "Travel", label: "Travel" },
+                    { value: "Technology", label: "Technology" },
+                    { value: "Other", label: "Other" },
+                  ]}
+                  value={category}
+                  onChange={setCategory}
+                  placeholder="Select category"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                  Reward Rate
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={rewardRate}
+                    onChange={(e) => setRewardRate(parseFloat(e.target.value) || 0)}
+                    min="0.1"
+                    max="10"
+                    step="0.1"
+                    className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                  />
+                  <span className="text-text-secondary text-sm">SLCY / $</span>
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <Toggle
+                  label="Account Active"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  description="When inactive, customers cannot earn or redeem rewards"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isUpdating}
+              className="flex-1 bg-accent text-black px-6 py-4 rounded-lg font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Save className="w-5 h-5" />
+              {isUpdating ? "Saving..." : "Save Changes"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCloseModal(true)}
+              className="bg-red-500/10 border border-red-500/30 text-red-500 px-6 py-4 rounded-lg font-semibold hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-5 h-5" />
+              Close Account
+            </button>
+          </div>
+
+          {/* Account Info */}
+          <div className="bg-panel border border-border rounded-xl p-6 mt-6">
+            <h3 className="text-sm font-semibold uppercase text-text-secondary mb-4">
+              Account Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-text-secondary mb-1">Authority</p>
+                <p className="font-mono text-xs break-all">{merchantAccount.authority.toString()}</p>
+              </div>
+              <div>
+                <p className="text-text-secondary mb-1">Loyalty Program</p>
+                <p className="font-mono text-xs break-all">{merchantAccount.loyaltyProgram.toString()}</p>
+              </div>
+              <div>
+                <p className="text-text-secondary mb-1">Total Issued</p>
+                <p className="text-accent">{(merchantAccount.totalIssued / 1e9).toFixed(2)} SLCY</p>
+              </div>
+              <div>
+                <p className="text-text-secondary mb-1">Total Redeemed</p>
+                <p className="text-accent">{(merchantAccount.totalRedeemed / 1e9).toFixed(2)} SLCY</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Close Account Modal */}
+      <Modal
+        isOpen={showCloseModal}
+        onClose={() => setShowCloseModal(false)}
+        title="Close Merchant Account"
+      >
+        <div className="space-y-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-red-500 font-semibold mb-1">Warning: This action cannot be undone</p>
+                <p className="text-sm text-text-secondary">
+                  Closing your merchant account will permanently delete all your data and you will not be able to recover it.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm text-text-secondary">
+            <p>Before closing your account, please note:</p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>All reward rules and redemption offers will be deleted</li>
+              <li>Customers will no longer be able to earn or redeem rewards</li>
+              <li>Your account rent (~0.04 SOL) will be refunded</li>
+              <li>This action is permanent and cannot be reversed</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowCloseModal(false)}
+              className="flex-1 bg-panel border border-border text-text px-4 py-3 rounded-lg font-semibold hover:border-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCloseAccount}
+              disabled={isClosing}
+              className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isClosing ? "Closing Account..." : "Close Account"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </ProtectedRoute>
+  );
+}

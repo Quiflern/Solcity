@@ -7,6 +7,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
+import { useMerchantTransactions } from "@/hooks/useMerchantTransactions";
 import { useIssueRewards } from "@/hooks/useIssueRewards";
 import { toast } from "sonner";
 import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
@@ -26,6 +27,7 @@ export default function MerchantDashboard() {
   // Get merchant PDA for fetching rules
   const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
   const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPDA);
+  const { transactions, isLoading: transactionsLoading } = useMerchantTransactions(merchantPDA);
 
   // Get active rules count
   const activeRulesCount = rules.filter(rule => rule.isActive).length;
@@ -38,21 +40,31 @@ export default function MerchantDashboard() {
   const multiplier = 1.0;
   const estimatedIssuance = baseReward * multiplier;
 
-  // Chart data - mock data for now, will be replaced with real transaction history
-  const chartData = [
-    { week: "Week 1", issued: 3500 },
-    { week: "Week 2", issued: 4800 },
-    { week: "Week 3", issued: 4200 },
-    { week: "Week 4", issued: 6500 },
-    { week: "Week 5", issued: 5200 },
-    { week: "Week 6", issued: 7800 },
-    { week: "Week 7", issued: 9200 },
-    { week: "Week 8", issued: 8500 },
-    { week: "Week 9", issued: 7000 },
-    { week: "Week 10", issued: 9500 },
-    { week: "Week 11", issued: 8200 },
-    { week: "Week 12", issued: 8800 },
-  ];
+  // Aggregate transactions by week for chart
+  const getWeeklyData = () => {
+    if (transactions.length === 0) {
+      return [
+        { week: "No data", issued: 0 },
+      ];
+    }
+
+    const weeklyTotals: { [key: string]: number } = {};
+    const now = Date.now() / 1000;
+    const oneWeek = 7 * 24 * 60 * 60;
+
+    transactions.forEach((tx) => {
+      const weeksAgo = Math.floor((now - tx.timestamp) / oneWeek);
+      const weekLabel = weeksAgo === 0 ? "This week" : `${weeksAgo}w ago`;
+      weeklyTotals[weekLabel] = (weeklyTotals[weekLabel] || 0) + tx.amount;
+    });
+
+    return Object.entries(weeklyTotals)
+      .map(([week, issued]) => ({ week, issued }))
+      .reverse()
+      .slice(-12); // Last 12 weeks
+  };
+
+  const chartData = getWeeklyData();
 
   const handleIssueRewards = async () => {
     if (!customerWallet || !purchaseAmount) {
@@ -64,12 +76,28 @@ export default function MerchantDashboard() {
 
     try {
       // Validate wallet address
-      const customerPubkey = new PublicKey(customerWallet);
+      let customerPubkey: PublicKey;
+      try {
+        customerPubkey = new PublicKey(customerWallet);
+      } catch (e) {
+        toast.error("Invalid Wallet Address", {
+          description: "Please enter a valid Solana wallet address (base58 format)",
+        });
+        return;
+      }
+
       const amount = parseFloat(purchaseAmount);
 
       if (amount <= 0) {
         toast.error("Invalid Amount", {
           description: "Purchase amount must be greater than 0",
+        });
+        return;
+      }
+
+      if (isNaN(amount)) {
+        toast.error("Invalid Amount", {
+          description: "Please enter a valid number",
         });
         return;
       }
@@ -104,6 +132,12 @@ export default function MerchantDashboard() {
       } else if (err.message?.includes("Invalid public key")) {
         errorTitle = "Invalid Wallet Address";
         errorDescription = "Please enter a valid Solana wallet address";
+      } else if (err.message?.includes("Customer not registered")) {
+        errorTitle = "Customer Not Registered";
+        errorDescription = "This customer hasn't registered yet. They need to visit your merchant page and click 'Register to Earn Rewards' first.";
+      } else if (err.message?.includes("AccountNotInitialized") || err.message?.includes("Account does not exist")) {
+        errorTitle = "Customer Not Found";
+        errorDescription = "This customer hasn't registered in the loyalty program yet.";
       } else if (err.message) {
         errorDescription = err.message;
       }
@@ -190,7 +224,7 @@ export default function MerchantDashboard() {
                       Tokens Issued
                     </h4>
                     <p className="text-2xl font-semibold">
-                      {merchantAccount.totalIssued ? Number(merchantAccount.totalIssued).toLocaleString() : "0"}
+                      {merchantAccount.totalIssued ? Number(merchantAccount.totalIssued).toLocaleString() : "0"} SLCY
                     </p>
                   </div>
                   <div className="bg-panel border border-border p-6 rounded-xl">
@@ -198,7 +232,7 @@ export default function MerchantDashboard() {
                       Tokens Redeemed
                     </h4>
                     <p className="text-2xl font-semibold">
-                      {merchantAccount.totalRedeemed ? Number(merchantAccount.totalRedeemed).toLocaleString() : "0"}
+                      {merchantAccount.totalRedeemed ? Number(merchantAccount.totalRedeemed).toLocaleString() : "0"} SLCY
                     </p>
                   </div>
                   <div className="bg-panel border border-border p-6 rounded-xl">
@@ -261,14 +295,49 @@ export default function MerchantDashboard() {
                 {/* Recent Issuance Feed */}
                 <div>
                   <h3 className="text-lg mb-6">Recent Issuance Feed</h3>
-                  <div className="bg-panel border border-border rounded-xl p-8 text-center">
-                    <p className="text-text-secondary text-sm">
-                      Transaction history coming soon
-                    </p>
-                    <p className="text-text-secondary text-xs mt-2">
-                      Issue rewards to see them appear here
-                    </p>
-                  </div>
+                  {transactionsLoading ? (
+                    <div className="bg-panel border border-border rounded-xl p-8 text-center">
+                      <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-text-secondary text-sm">Loading transactions...</p>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="bg-panel border border-border rounded-xl p-8 text-center">
+                      <p className="text-text-secondary text-sm">No transactions yet</p>
+                      <p className="text-text-secondary text-xs mt-2">
+                        Issue rewards to see them appear here
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-panel border border-border rounded-xl divide-y divide-border">
+                      {transactions.slice(0, 10).map((tx) => (
+                        <div key={tx.signature} className="p-4 hover:bg-white/5 transition-colors">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+                                <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold">Issued {tx.amount.toLocaleString()} SLCY</p>
+                                <p className="text-xs text-text-secondary">
+                                  {new Date(tx.timestamp * 1000).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                            <a
+                              href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-accent hover:underline"
+                            >
+                              View TX
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </main>
 
@@ -372,6 +441,20 @@ export default function MerchantDashboard() {
                   >
                     {issuingRewards ? "Processing..." : "Confirm & Issue Reward"}
                   </button>
+
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-xs text-blue-400 font-semibold mb-1">Customer Must Register First</p>
+                        <p className="text-xs text-text-secondary">
+                          Customers need to register themselves by visiting your merchant page and clicking "Register to Earn Rewards". You cannot register customers on their behalf for security reasons.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   <p className="text-[0.7rem] text-text-secondary text-center mt-4">
                     Transactions are finalized on Solana.

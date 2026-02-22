@@ -41,7 +41,7 @@ pub fn handler(
     }
 
     if let Some(url) = avatar_url {
-        require!(url.len() <= 128, SolcityError::NameTooLong);
+        require!(url.len() <= 256, SolcityError::NameTooLong);
         merchant.avatar_url = url;
         msg!("Avatar URL updated");
     }

@@ -94,6 +94,13 @@ export default function MerchantNavbar() {
             >
               Analytics
             </Link>
+            <Link
+              href="/merchant/profile"
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/profile") ? "text-accent" : "text-text-secondary hover:text-accent"
+                }`}
+            >
+              Profile
+            </Link>
           </div>
 
           {/* Wallet Connection */}

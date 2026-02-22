@@ -185,4 +185,9 @@ pub mod solcity_protocol {
     pub fn delete_redemption_offer(ctx: Context<DeleteRedemptionOffer>) -> Result<()> {
         instructions::delete_redemption_offer::handler(ctx)
     }
+
+    /// Close merchant account and refund rent
+    pub fn close_merchant(ctx: Context<CloseMerchant>) -> Result<()> {
+        instructions::close_merchant::handler(ctx)
+    }
 }
