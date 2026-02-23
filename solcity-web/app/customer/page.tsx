@@ -404,13 +404,6 @@ export default function CustomerDashboard() {
                       <span className="text-sm">Find Merchants</span>
                       <span className="text-accent text-xs">→</span>
                     </Link>
-                    <Link
-                      href="/customer/settings"
-                      className="p-3 border border-border rounded-lg flex justify-between items-center hover:border-accent transition-colors"
-                    >
-                      <span className="text-sm">Settings</span>
-                      <span className="text-accent text-xs">→</span>
-                    </Link>
                   </div>
                 </div>
               </aside>
