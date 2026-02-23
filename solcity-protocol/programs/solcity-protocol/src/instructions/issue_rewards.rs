@@ -83,11 +83,15 @@ pub fn handler(
     let loyalty_program = &mut ctx.accounts.loyalty_program;
     let clock = Clock::get()?;
 
-    // Calculate base reward: purchase_amount * reward_rate / 100
+    // Calculate base reward: (purchase_amount / 100) * reward_rate
+    // purchase_amount is in cents, reward_rate is tokens per dollar
+    // So we divide purchase_amount by 100 to get dollars, then multiply by reward_rate
     let base_reward = purchase_amount
         .checked_mul(merchant.reward_rate)
         .ok_or(SolcityError::Overflow)?
         .checked_div(PERCENTAGE_DIVISOR)
+        .ok_or(SolcityError::Overflow)?
+        .checked_div(100) // Divide by 100 again because purchase_amount is in cents
         .ok_or(SolcityError::Overflow)?;
 
     // Apply tier multiplier
@@ -102,38 +106,66 @@ pub fn handler(
     let mut rule_applied = false;
     let mut rule_multiplier = 100u64; // Default 1.0x
     
+    msg!("Checking reward_rule account: {}", ctx.accounts.reward_rule.key);
+    msg!("System program ID: {}", System::id());
+    
     // Check if reward_rule account is provided (not the default system program)
     if *ctx.accounts.reward_rule.key != System::id() {
+        msg!("Reward rule account provided, attempting to deserialize...");
+        
         // Try to deserialize the reward rule account
         let rule_data = ctx.accounts.reward_rule.try_borrow_data()?;
+        msg!("Rule data length: {}", rule_data.len());
+        
         if rule_data.len() > 8 { // Check if account has data beyond discriminator
             // Manually deserialize using AnchorDeserialize
             let mut data_slice: &[u8] = &rule_data[8..]; // Skip 8-byte discriminator
-            if let Ok(rule) = RewardRule::deserialize(&mut data_slice) {
-                // Check if rule is active and valid
-                if rule.is_currently_active(clock.unix_timestamp) {
-                    // Check minimum purchase requirement
-                    if purchase_amount >= rule.min_purchase {
-                        final_reward = final_reward
-                            .checked_mul(rule.multiplier)
-                            .ok_or(SolcityError::Overflow)?
-                            .checked_div(PERCENTAGE_DIVISOR)
-                            .ok_or(SolcityError::Overflow)?;
+            match RewardRule::deserialize(&mut data_slice) {
+                Ok(rule) => {
+                    msg!("Successfully deserialized rule: {}", rule.name);
+                    msg!("Rule multiplier: {}", rule.multiplier);
+                    msg!("Rule is_active: {}", rule.is_active);
+                    msg!("Rule min_purchase: {}", rule.min_purchase);
+                    msg!("Current time: {}", clock.unix_timestamp);
+                    msg!("Rule start_time: {}", rule.start_time);
+                    msg!("Rule end_time: {}", rule.end_time);
+                    
+                    // Check if rule is active and valid
+                    if rule.is_currently_active(clock.unix_timestamp) {
+                        msg!("Rule is currently active");
                         
-                        rule_applied = true;
-                        rule_multiplier = rule.multiplier;
-                        msg!("Applied rule '{}' with {}x multiplier", rule.name, rule.multiplier as f64 / 100.0);
+                        // Check minimum purchase requirement
+                        if purchase_amount >= rule.min_purchase {
+                            msg!("Purchase amount {} meets minimum {}", purchase_amount, rule.min_purchase);
+                            
+                            final_reward = final_reward
+                                .checked_mul(rule.multiplier)
+                                .ok_or(SolcityError::Overflow)?
+                                .checked_div(PERCENTAGE_DIVISOR)
+                                .ok_or(SolcityError::Overflow)?;
+                            
+                            rule_applied = true;
+                            rule_multiplier = rule.multiplier;
+                            msg!("Applied rule '{}' with {}x multiplier", rule.name, rule.multiplier as f64 / 100.0);
+                        } else {
+                            msg!("Rule not applied: purchase amount ${} below minimum ${}", 
+                                purchase_amount as f64 / 100.0, 
+                                rule.min_purchase as f64 / 100.0
+                            );
+                        }
                     } else {
-                        msg!("Rule not applied: purchase amount ${} below minimum ${}", 
-                            purchase_amount as f64 / 100.0, 
-                            rule.min_purchase as f64 / 100.0
-                        );
+                        msg!("Rule not applied: rule is not currently active");
                     }
-                } else {
-                    msg!("Rule not applied: rule is not currently active");
+                },
+                Err(e) => {
+                    msg!("Failed to deserialize rule: {:?}", e);
                 }
             }
+        } else {
+            msg!("Rule data too short: {} bytes", rule_data.len());
         }
+    } else {
+        msg!("No reward rule provided (System program)");
     }
 
     require!(final_reward > 0, SolcityError::InvalidRewardAmount);

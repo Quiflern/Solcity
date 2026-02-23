@@ -52,11 +52,27 @@ export function useIssueRewards() {
         TOKEN_2022_PROGRAM_ID
       );
 
-      // Pass purchase amount as-is (in dollars) - ensure it's an integer
-      const purchaseAmountBN = new BN(Math.floor(purchaseAmount));
+      // Convert purchase amount from dollars to cents for the program
+      // The program expects amounts in cents (e.g., 1000 = $10.00)
+      const purchaseAmountCents = Math.floor(purchaseAmount * 100);
+      const purchaseAmountBN = new BN(purchaseAmountCents);
+
+      console.log("=== Issue Rewards Debug ===");
+      console.log("Purchase amount (dollars):", purchaseAmount);
+      console.log("Purchase amount (cents):", purchaseAmountCents);
+      console.log("Rule ID:", ruleId);
 
       // Build accounts object
       // When no rule is selected, pass SystemProgram as the reward_rule account
+      let rewardRuleAccount;
+      if (ruleId !== undefined && ruleId !== null) {
+        rewardRuleAccount = getRewardRulePDA(merchant, ruleId)[0];
+        console.log("Using reward rule PDA:", rewardRuleAccount.toString());
+      } else {
+        rewardRuleAccount = SystemProgram.programId;
+        console.log("No rule selected, using SystemProgram:", rewardRuleAccount.toString());
+      }
+
       const accounts: any = {
         merchantAuthority: publicKey,
         merchant: merchant,
@@ -65,18 +81,20 @@ export function useIssueRewards() {
         mint: mint,
         customerTokenAccount: customerTokenAccount,
         platformTreasury: platformTreasury,
-        rewardRule: ruleId !== undefined && ruleId !== null
-          ? getRewardRulePDA(merchant, ruleId)[0]
-          : SystemProgram.programId, // Pass SystemProgram when no rule
+        rewardRule: rewardRuleAccount,
       };
 
       // Build the method call
       const ruleIdParam = ruleId !== undefined && ruleId !== null ? new BN(ruleId) : null;
+      console.log("Rule ID param:", ruleIdParam ? ruleIdParam.toString() : "null");
+
       const methodBuilder = program.methods
         .issueRewards(purchaseAmountBN, ruleIdParam)
         .accountsPartial(accounts);
 
+      console.log("Sending transaction...");
       const tx = await methodBuilder.rpc();
+      console.log("Transaction signature:", tx);
 
       const latestBlockhash = await connection.getLatestBlockhash();
       await connection.confirmTransaction({
