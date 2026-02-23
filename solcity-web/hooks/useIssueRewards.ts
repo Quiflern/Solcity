@@ -113,10 +113,53 @@ export function useIssueRewards() {
       // Invalidate and refetch merchant data
       queryClient.invalidateQueries({ queryKey: ["merchant", publicKey?.toString()] });
 
-      // Invalidate transactions to show the new one
+      // Invalidate transactions and events to show the new one
       const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
       if (merchantPDA) {
         queryClient.invalidateQueries({ queryKey: ["merchantTransactions", merchantPDA.toString()] });
+        // Invalidate issuance events for instant update
+        queryClient.invalidateQueries({ queryKey: ["merchantIssuanceEvents", merchantPDA.toString()] });
+      }
+    },
+    onMutate: async ({ customerWallet, purchaseAmount, ruleId }) => {
+      // Optimistically update the UI before the transaction completes
+      const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
+      if (!merchantPDA) return;
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["merchantIssuanceEvents", merchantPDA.toString()] });
+
+      // Snapshot the previous value
+      const previousEvents = queryClient.getQueryData(["merchantIssuanceEvents", merchantPDA.toString()]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(["merchantIssuanceEvents", merchantPDA.toString()], (old: any) => {
+        if (!old) return old;
+
+        // Add a temporary event at the top
+        const tempEvent = {
+          signature: "pending",
+          timestamp: Date.now() / 1000,
+          customerWallet: customerWallet.toString(),
+          amount: Math.floor(purchaseAmount * 1.0), // Approximate, will be updated
+          purchaseAmount: purchaseAmount,
+          tierMultiplier: 1.0,
+          ruleMultiplier: 1.0,
+          ruleApplied: !!ruleId,
+          customerTier: "Bronze",
+        };
+
+        return [tempEvent, ...old];
+      });
+
+      // Return context with the previous value
+      return { previousEvents };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, roll back to the previous value
+      const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
+      if (merchantPDA && context?.previousEvents) {
+        queryClient.setQueryData(["merchantIssuanceEvents", merchantPDA.toString()], context.previousEvents);
       }
     },
   });

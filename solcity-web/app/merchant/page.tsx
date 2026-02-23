@@ -7,7 +7,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
-import { useMerchantTransactions } from "@/hooks/useMerchantTransactions";
+import { useMerchantIssuanceEvents } from "@/hooks/useMerchantIssuanceEvents";
 import { useIssueRewards } from "@/hooks/useIssueRewards";
 import { toast } from "sonner";
 import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
@@ -31,7 +31,7 @@ export default function MerchantDashboard() {
   // Get merchant PDA for fetching rules
   const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
   const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPDA);
-  const { transactions, isLoading: transactionsLoading, hasMore, loadMore, isLoadingMore } = useMerchantTransactions(merchantPDA);
+  const { data: issuanceEvents = [], isLoading: eventsLoading } = useMerchantIssuanceEvents(merchantPDA);
 
   // Get active rules count
   const activeRulesCount = rules.filter(rule => rule.isActive).length;
@@ -59,7 +59,7 @@ export default function MerchantDashboard() {
 
   // Aggregate transactions by week for chart
   const getWeeklyData = () => {
-    if (transactions.length === 0) {
+    if (issuanceEvents.length === 0) {
       return [
         { week: "No data", issued: 0 },
       ];
@@ -69,10 +69,10 @@ export default function MerchantDashboard() {
     const now = Date.now() / 1000;
     const oneWeek = 7 * 24 * 60 * 60;
 
-    transactions.forEach((tx) => {
-      const weeksAgo = Math.floor((now - tx.timestamp) / oneWeek);
+    issuanceEvents.forEach((event) => {
+      const weeksAgo = Math.floor((now - event.timestamp) / oneWeek);
       const weekLabel = weeksAgo === 0 ? "This week" : `${weeksAgo}w ago`;
-      weeklyTotals[weekLabel] = (weeklyTotals[weekLabel] || 0) + tx.amount;
+      weeklyTotals[weekLabel] = (weeklyTotals[weekLabel] || 0) + event.amount;
     });
 
     return Object.entries(weeklyTotals)
@@ -301,13 +301,22 @@ export default function MerchantDashboard() {
 
                 {/* Recent Issuance Feed */}
                 <div>
-                  <h3 className="text-lg mb-6">Recent Issuance Feed</h3>
-                  {transactionsLoading ? (
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg">Recent Issuance Feed</h3>
+                    <Link
+                      href="/merchant/analytics"
+                      className="text-sm text-accent hover:underline flex items-center gap-1"
+                    >
+                      Go to Analytics
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                  {eventsLoading ? (
                     <div className="bg-panel border border-border rounded-xl p-8 text-center">
                       <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-3" />
                       <p className="text-text-secondary text-sm">Loading transactions...</p>
                     </div>
-                  ) : transactions.length === 0 ? (
+                  ) : issuanceEvents.length === 0 ? (
                     <div className="bg-panel border border-border rounded-xl p-8 text-center">
                       <p className="text-text-secondary text-sm">No transactions yet</p>
                       <p className="text-text-secondary text-xs mt-2">
@@ -317,8 +326,8 @@ export default function MerchantDashboard() {
                   ) : (
                     <div className="bg-panel border border-border rounded-xl">
                       <div className="divide-y divide-border">
-                        {transactions.map((tx) => (
-                          <div key={tx.signature} className="p-4 hover:bg-white/5 transition-colors">
+                        {issuanceEvents.slice(0, 10).map((event) => (
+                          <div key={event.signature} className="p-4 hover:bg-white/5 transition-colors">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3 flex-1">
                                 <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center shrink-0">
@@ -328,24 +337,38 @@ export default function MerchantDashboard() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm font-semibold">Issued {tx.amount.toLocaleString()} SLCY</p>
+                                    <p className="text-sm font-semibold">Issued {event.amount.toLocaleString()} SLCY</p>
                                     <span className="text-xs text-text-secondary">•</span>
                                     <p className="text-xs text-text-secondary">
-                                      {new Date(tx.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      {new Date(event.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                   </div>
                                   <p className="text-xs text-text-secondary font-mono truncate">
-                                    To: {tx.customerWallet !== "Unknown"
-                                      ? `${tx.customerWallet.slice(0, 4)}...${tx.customerWallet.slice(-4)}`
+                                    To: {event.customerWallet !== "Unknown"
+                                      ? `${event.customerWallet.slice(0, 4)}...${event.customerWallet.slice(-4)}`
                                       : "Unknown"}
                                   </p>
-                                  <p className="text-xs text-text-secondary mt-1">
-                                    {new Date(tx.timestamp * 1000).toLocaleDateString()}
-                                  </p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs text-text-secondary">
+                                      ${event.purchaseAmount.toFixed(2)} purchase
+                                    </p>
+                                    <span className="text-xs text-text-secondary">•</span>
+                                    <p className="text-xs text-text-secondary">
+                                      {event.customerTier} tier
+                                    </p>
+                                    {event.ruleApplied && (
+                                      <>
+                                        <span className="text-xs text-text-secondary">•</span>
+                                        <p className="text-xs text-accent">
+                                          {event.ruleMultiplier}x rule
+                                        </p>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               <a
-                                href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
+                                href={`https://explorer.solana.com/tx/${event.signature}?cluster=custom&customUrl=http://localhost:8899`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-accent hover:underline shrink-0 ml-4 flex items-center gap-1"
@@ -357,25 +380,6 @@ export default function MerchantDashboard() {
                           </div>
                         ))}
                       </div>
-                      {hasMore && (
-                        <div className="p-4 border-t border-border">
-                          <button
-                            type="button"
-                            onClick={() => loadMore()}
-                            disabled={isLoadingMore}
-                            className="w-full bg-transparent border border-border text-text px-4 py-3 rounded-lg text-sm hover:border-accent hover:bg-accent/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isLoadingMore ? (
-                              <span className="flex items-center justify-center gap-2">
-                                <div className="w-4 h-4 border-2 border-border border-t-accent rounded-full animate-spin" />
-                                Loading more...
-                              </span>
-                            ) : (
-                              "Load More Transactions"
-                            )}
-                          </button>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
