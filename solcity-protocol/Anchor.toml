@@ -8,11 +8,14 @@ skip-lint = false
 [programs.localnet]
 solcity_protocol = "67XD1wBu5Ja1H5e4Zg4vsjZDoAcB8KwTZqawodZZwqv9"
 
+[programs.devnet]
+solcity_protocol = "67XD1wBu5Ja1H5e4Zg4vsjZDoAcB8KwTZqawodZZwqv9"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
