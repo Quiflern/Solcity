@@ -1,6 +1,8 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "./useSolcityProgram";
 import { useMerchantAccount } from "./useMerchantAccount";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
+import { BN } from "@coral-xyz/anchor";
 import { useState } from "react";
 
 export function useMerchantUpdate() {
@@ -23,9 +25,15 @@ export function useMerchantUpdate() {
 
     setIsUpdating(true);
     try {
+      const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+      const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+
+      // Convert rewardRate to BN if provided
+      const rewardRateBN = updates.rewardRate !== undefined ? new BN(updates.rewardRate) : null;
+
       const tx = await program.methods
         .updateMerchant(
-          updates.rewardRate !== undefined ? updates.rewardRate : null,
+          rewardRateBN,
           updates.description !== undefined ? updates.description : null,
           updates.avatarUrl !== undefined ? updates.avatarUrl : null,
           updates.category !== undefined ? updates.category : null,
@@ -33,6 +41,8 @@ export function useMerchantUpdate() {
         )
         .accounts({
           merchantAuthority: publicKey,
+          merchant: merchant,
+          loyaltyProgram: loyaltyProgram,
         } as any)
         .rpc();
 

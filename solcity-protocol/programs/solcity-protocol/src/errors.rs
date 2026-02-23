@@ -43,4 +43,7 @@ pub enum SolcityError {
 
     #[msg("Redemption offer is not available (expired, sold out, or inactive)")]
     OfferNotAvailable,
+
+    #[msg("Merchant has active reward rules. Delete all rules before closing account.")]
+    MerchantHasActiveRules,
 }

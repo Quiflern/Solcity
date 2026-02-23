@@ -1,5 +1,5 @@
 use crate::{
-    Customer, LoyaltyProgram, Merchant, SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
+    Customer, LoyaltyProgram, Merchant, RewardRule, SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
@@ -7,6 +7,7 @@ use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
 
 #[derive(Accounts)]
+#[instruction(purchase_amount: u64, rule_id: Option<u64>)]
 pub struct IssueRewards<'info> {
     #[account(mut)]
     pub merchant_authority: Signer<'info>,
@@ -55,6 +56,10 @@ pub struct IssueRewards<'info> {
     )]
     pub customer_token_account: InterfaceAccount<'info, TokenAccount>,
 
+    /// Optional reward rule to apply
+    /// CHECK: Optional account, validated in handler if provided
+    pub reward_rule: AccountInfo<'info>,
+
     /// CHECK: Platform treasury account to receive fees
     #[account(
         mut,
@@ -69,6 +74,7 @@ pub struct IssueRewards<'info> {
 pub fn handler(
     ctx: Context<IssueRewards>,
     purchase_amount: u64, // Amount in cents (e.g., 1000 = $10.00)
+    _rule_id: Option<u64>,
 ) -> Result<()> {
     require!(purchase_amount > 0, SolcityError::InvalidRewardAmount);
 
@@ -86,11 +92,49 @@ pub fn handler(
 
     // Apply tier multiplier
     let tier_multiplier = customer.get_tier_multiplier();
-    let final_reward = base_reward
+    let mut final_reward = base_reward
         .checked_mul(tier_multiplier)
         .ok_or(SolcityError::Overflow)?
         .checked_div(PERCENTAGE_DIVISOR)
         .ok_or(SolcityError::Overflow)?;
+
+    // Apply reward rule if provided
+    let mut rule_applied = false;
+    let mut rule_multiplier = 100u64; // Default 1.0x
+    
+    // Check if reward_rule account is provided (not the default system program)
+    if *ctx.accounts.reward_rule.key != System::id() {
+        // Try to deserialize the reward rule account
+        let rule_data = ctx.accounts.reward_rule.try_borrow_data()?;
+        if rule_data.len() > 8 { // Check if account has data beyond discriminator
+            // Manually deserialize using AnchorDeserialize
+            let mut data_slice: &[u8] = &rule_data[8..]; // Skip 8-byte discriminator
+            if let Ok(rule) = RewardRule::deserialize(&mut data_slice) {
+                // Check if rule is active and valid
+                if rule.is_currently_active(clock.unix_timestamp) {
+                    // Check minimum purchase requirement
+                    if purchase_amount >= rule.min_purchase {
+                        final_reward = final_reward
+                            .checked_mul(rule.multiplier)
+                            .ok_or(SolcityError::Overflow)?
+                            .checked_div(PERCENTAGE_DIVISOR)
+                            .ok_or(SolcityError::Overflow)?;
+                        
+                        rule_applied = true;
+                        rule_multiplier = rule.multiplier;
+                        msg!("Applied rule '{}' with {}x multiplier", rule.name, rule.multiplier as f64 / 100.0);
+                    } else {
+                        msg!("Rule not applied: purchase amount ${} below minimum ${}", 
+                            purchase_amount as f64 / 100.0, 
+                            rule.min_purchase as f64 / 100.0
+                        );
+                    }
+                } else {
+                    msg!("Rule not applied: rule is not currently active");
+                }
+            }
+        }
+    }
 
     require!(final_reward > 0, SolcityError::InvalidRewardAmount);
 
@@ -170,11 +214,13 @@ pub fn handler(
     }
 
     msg!(
-        "Issued {} tokens (purchase: ${}, tier: {:?}, multiplier: {}x, fee: {} lamports)",
+        "Issued {} tokens (purchase: ${}, tier: {:?}, tier_mult: {}x, rule_mult: {}x, rule_applied: {}, fee: {} lamports)",
         final_reward,
         purchase_amount as f64 / 100.0,
         customer.tier,
         tier_multiplier as f64 / 100.0,
+        rule_multiplier as f64 / 100.0,
+        rule_applied,
         platform_fee
     );
 

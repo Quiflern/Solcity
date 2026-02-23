@@ -1,6 +1,6 @@
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { SolcityProtocol } from "./idl/solcity_protocol";
+import { SolcityProtocol } from "./types/solcity_protocol";
 import IDL_JSON from "./idl/solcity_protocol.json";
 
 export const PROGRAM_ID = new PublicKey("67XD1wBu5Ja1H5e4Zg4vsjZDoAcB8KwTZqawodZZwqv9");

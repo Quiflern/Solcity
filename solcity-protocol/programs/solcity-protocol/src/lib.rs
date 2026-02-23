@@ -44,8 +44,8 @@ pub mod solcity_protocol {
     }
 
     /// Issue reward tokens to a customer for a purchase
-    pub fn issue_rewards(ctx: Context<IssueRewards>, purchase_amount: u64) -> Result<()> {
-        instructions::issue_rewards::handler(ctx, purchase_amount)
+    pub fn issue_rewards(ctx: Context<IssueRewards>, purchase_amount: u64, rule_id: Option<u64>) -> Result<()> {
+        instructions::issue_rewards::handler(ctx, purchase_amount, rule_id)
     }
 
     /// Redeem reward tokens for benefits

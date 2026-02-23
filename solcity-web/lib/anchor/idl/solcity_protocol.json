@@ -714,6 +714,12 @@
           "writable": true
         },
         {
+          "name": "reward_rule",
+          "docs": [
+            "Optional reward rule to apply"
+          ]
+        },
+        {
           "name": "platform_treasury",
           "writable": true
         },
@@ -730,6 +736,12 @@
         {
           "name": "purchase_amount",
           "type": "u64"
+        },
+        {
+          "name": "rule_id",
+          "type": {
+            "option": "u64"
+          }
         }
       ]
     },
@@ -2108,6 +2120,11 @@
       "code": 6013,
       "name": "OfferNotAvailable",
       "msg": "Redemption offer is not available (expired, sold out, or inactive)"
+    },
+    {
+      "code": 6014,
+      "name": "MerchantHasActiveRules",
+      "msg": "Merchant has active reward rules. Delete all rules before closing account."
     }
   ],
   "types": [

@@ -720,6 +720,12 @@ export type SolcityProtocol = {
           "writable": true
         },
         {
+          "name": "rewardRule",
+          "docs": [
+            "Optional reward rule to apply"
+          ]
+        },
+        {
           "name": "platformTreasury",
           "writable": true
         },
@@ -736,6 +742,12 @@ export type SolcityProtocol = {
         {
           "name": "purchaseAmount",
           "type": "u64"
+        },
+        {
+          "name": "ruleId",
+          "type": {
+            "option": "u64"
+          }
         }
       ]
     },
@@ -2114,6 +2126,11 @@ export type SolcityProtocol = {
       "code": 6013,
       "name": "offerNotAvailable",
       "msg": "Redemption offer is not available (expired, sold out, or inactive)"
+    },
+    {
+      "code": 6014,
+      "name": "merchantHasActiveRules",
+      "msg": "Merchant has active reward rules. Delete all rules before closing account."
     }
   ],
   "types": [

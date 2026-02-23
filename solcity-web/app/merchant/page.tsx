@@ -13,6 +13,9 @@ import { toast } from "sonner";
 import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
 import { useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { ChevronRight, Info } from "lucide-react";
+import Dropdown from "@/components/ui/Dropdown";
+import Modal from "@/components/ui/Modal";
 
 export default function MerchantDashboard() {
   const { publicKey } = useWallet();
@@ -20,25 +23,39 @@ export default function MerchantDashboard() {
   const { issueRewards, isLoading: issuingRewards } = useIssueRewards();
   const queryClient = useQueryClient();
 
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [customerWallet, setCustomerWallet] = useState("");
   const [purchaseAmount, setPurchaseAmount] = useState("");
+  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   // Get merchant PDA for fetching rules
   const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
   const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPDA);
-  const { transactions, isLoading: transactionsLoading } = useMerchantTransactions(merchantPDA);
+  const { transactions, isLoading: transactionsLoading, hasMore, loadMore, isLoadingMore } = useMerchantTransactions(merchantPDA);
 
   // Get active rules count
   const activeRulesCount = rules.filter(rule => rule.isActive).length;
+
+  // Get selected rule details
+  const selectedRule = selectedRuleId !== null ? rules.find(r => r.ruleId === selectedRuleId) : null;
 
   // Calculate base reward (merchant's reward rate)
   const rewardRate = merchantAccount ? Number(merchantAccount.rewardRate) / 100 : 1.0;
   const baseReward = purchaseAmount ? parseFloat(purchaseAmount) * rewardRate : 0;
 
-  // For now, we'll use a simple 1.0x multiplier (tier multipliers are applied on-chain)
-  const multiplier = 1.0;
-  const estimatedIssuance = baseReward * multiplier;
+  // Calculate estimated issuance with rule multiplier
+  let estimatedIssuance = baseReward;
+  let ruleMultiplier = 1.0;
+
+  if (selectedRule && purchaseAmount) {
+    const purchaseAmountNum = parseFloat(purchaseAmount);
+    const minPurchaseDollars = selectedRule.minPurchase / 100; // Convert cents to dollars
+    // Check if purchase meets minimum requirement
+    if (purchaseAmountNum >= minPurchaseDollars) {
+      ruleMultiplier = selectedRule.multiplier / 100; // Convert from basis points
+      estimatedIssuance = baseReward * ruleMultiplier;
+    }
+  }
 
   // Aggregate transactions by week for chart
   const getWeeklyData = () => {
@@ -104,22 +121,18 @@ export default function MerchantDashboard() {
 
       toast.loading("Issuing rewards...", { id: "issue-rewards" });
 
-      await issueRewards(customerPubkey, amount);
+      await issueRewards(customerPubkey, amount, selectedRuleId ?? undefined);
 
       toast.success("Rewards Issued!", {
         id: "issue-rewards",
         description: `Successfully issued ${estimatedIssuance.toFixed(2)} SLCY tokens`,
       });
 
-      // Invalidate merchant account query to refresh stats
-      queryClient.invalidateQueries({ queryKey: ["merchant", publicKey?.toString()] });
-
       // Clear form
       setCustomerWallet("");
       setPurchaseAmount("");
+      setSelectedRuleId(null);
     } catch (err: any) {
-      console.error("Issue rewards error:", err);
-
       let errorTitle = "Failed to Issue Rewards";
       let errorDescription = "An unexpected error occurred";
 
@@ -145,6 +158,7 @@ export default function MerchantDashboard() {
       toast.error(errorTitle, {
         id: "issue-rewards",
         description: errorDescription,
+        duration: 5000, // Auto-dismiss after 5 seconds
       });
     }
   };
@@ -152,24 +166,6 @@ export default function MerchantDashboard() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-        {/* QR Scanner Overlay */}
-        {showQRScanner && (
-          <div className="fixed inset-0 bg-black/90 z-1000 flex items-center justify-center flex-col">
-            <div className="w-[300px] h-[300px] border-2 border-accent rounded-[20px] relative overflow-hidden bg-panel">
-              <div className="w-full h-[2px] bg-accent absolute top-0 shadow-[0_0_15px_var(--accent)] animate-scan" />
-            </div>
-            <p className="mt-8 font-semibold">Scan Customer Wallet QR</p>
-            <button
-              type="button"
-              onClick={() => setShowQRScanner(false)}
-              className="mt-4 bg-transparent border border-border text-text px-5 py-2 rounded cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-
         {/* Dashboard Layout */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-10">
           {merchantLoading ? (
@@ -308,34 +304,67 @@ export default function MerchantDashboard() {
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-panel border border-border rounded-xl divide-y divide-border">
-                      {transactions.slice(0, 10).map((tx) => (
-                        <div key={tx.signature} className="p-4 hover:bg-white/5 transition-colors">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-                                <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                    <div className="bg-panel border border-border rounded-xl">
+                      <div className="divide-y divide-border">
+                        {transactions.map((tx) => (
+                          <div key={tx.signature} className="p-4 hover:bg-white/5 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center shrink-0">
+                                  <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-sm font-semibold">Issued {tx.amount.toLocaleString()} SLCY</p>
+                                    <span className="text-xs text-text-secondary">•</span>
+                                    <p className="text-xs text-text-secondary">
+                                      {new Date(tx.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs text-text-secondary font-mono truncate">
+                                    To: {tx.customerWallet !== "Unknown"
+                                      ? `${tx.customerWallet.slice(0, 4)}...${tx.customerWallet.slice(-4)}`
+                                      : "Unknown"}
+                                  </p>
+                                  <p className="text-xs text-text-secondary mt-1">
+                                    {new Date(tx.timestamp * 1000).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-semibold">Issued {tx.amount.toLocaleString()} SLCY</p>
-                                <p className="text-xs text-text-secondary">
-                                  {new Date(tx.timestamp * 1000).toLocaleString()}
-                                </p>
-                              </div>
+                              <a
+                                href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-accent hover:underline shrink-0 ml-4 flex items-center gap-1"
+                              >
+                                View TX
+                                <ChevronRight className="w-3 h-3" />
+                              </a>
                             </div>
-                            <a
-                              href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-accent hover:underline"
-                            >
-                              View TX
-                            </a>
                           </div>
+                        ))}
+                      </div>
+                      {hasMore && (
+                        <div className="p-4 border-t border-border">
+                          <button
+                            type="button"
+                            onClick={() => loadMore()}
+                            disabled={isLoadingMore}
+                            className="w-full bg-transparent border border-border text-text px-4 py-3 rounded-lg text-sm hover:border-accent hover:bg-accent/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isLoadingMore ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <div className="w-4 h-4 border-2 border-border border-t-accent rounded-full animate-spin" />
+                                Loading more...
+                              </span>
+                            ) : (
+                              "Load More Transactions"
+                            )}
+                          </button>
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
@@ -347,16 +376,14 @@ export default function MerchantDashboard() {
                 <div className="bg-panel border border-border p-8 rounded-xl">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold">Issue Rewards</h3>
-                    <svg
-                      width="20"
-                      height="20"
-                      fill="var(--accent)"
-                      viewBox="0 0 24 24"
-                      role="img"
+                    <button
+                      type="button"
+                      onClick={() => setShowInfoModal(true)}
+                      className="text-accent hover:text-accent/80 transition-colors"
                       aria-label="Info"
                     >
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
+                      <Info className="w-5 h-5" />
+                    </button>
                   </div>
 
                   <div className="mb-6">
@@ -366,35 +393,14 @@ export default function MerchantDashboard() {
                     >
                       Customer Wallet
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="customer-wallet"
-                        type="text"
-                        value={customerWallet}
-                        onChange={(e) => setCustomerWallet(e.target.value)}
-                        className="flex-1 bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
-                        placeholder="Paste address or .sol domain"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowQRScanner(true)}
-                        className="bg-border border-none text-text w-[46px] rounded-lg cursor-pointer flex items-center justify-center"
-                      >
-                        <svg
-                          width="20"
-                          height="20"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                          role="img"
-                          aria-label="Scan QR"
-                        >
-                          <path d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-                          <path d="M7 12h10M12 7v10" />
-                        </svg>
-                      </button>
-                    </div>
+                    <input
+                      id="customer-wallet"
+                      type="text"
+                      value={customerWallet}
+                      onChange={(e) => setCustomerWallet(e.target.value)}
+                      className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent"
+                      placeholder="Paste wallet address"
+                    />
                   </div>
 
                   <div className="mb-6">
@@ -416,11 +422,40 @@ export default function MerchantDashboard() {
                     />
                   </div>
 
+                  <div className="mb-6">
+                    <Dropdown
+                      label="Apply Reward Rule (Optional)"
+                      value={selectedRuleId?.toString() ?? ""}
+                      onChange={(value) => setSelectedRuleId(value ? parseInt(value) : null)}
+                      placeholder="No rule (base rate only)"
+                      options={[
+                        { value: "", label: "No rule (base rate only)" },
+                        ...rules
+                          .filter(rule => rule.isActive)
+                          .map((rule) => ({
+                            value: rule.ruleId.toString(),
+                            label: `${rule.name} (${rule.multiplier / 100}x multiplier${rule.minPurchase > 0 ? `, min $${(rule.minPurchase / 100).toFixed(2)}` : ""})`
+                          }))
+                      ]}
+                    />
+                    {selectedRule && purchaseAmount && parseFloat(purchaseAmount) < (selectedRule.minPurchase / 100) && (
+                      <p className="text-xs text-yellow-500 mt-2">
+                        Purchase amount must be at least ${(selectedRule.minPurchase / 100).toFixed(2)} to apply this rule
+                      </p>
+                    )}
+                  </div>
+
                   <div className="bg-black border border-dashed border-border rounded-lg p-5 mb-6">
                     <div className="flex justify-between text-sm text-text-secondary mb-2">
                       <span>Base Reward ({rewardRate.toFixed(2)} SLCY/$)</span>
                       <span>{baseReward.toFixed(2)} SLCY</span>
                     </div>
+                    {selectedRule && purchaseAmount && parseFloat(purchaseAmount) >= (selectedRule.minPurchase / 100) && (
+                      <div className="flex justify-between text-sm text-accent mb-2">
+                        <span>{selectedRule.name}</span>
+                        <span>{ruleMultiplier.toFixed(2)}x</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm text-text-secondary mb-2">
                       <span>Customer Tier Multiplier</span>
                       <span>Applied on-chain</span>
@@ -444,7 +479,7 @@ export default function MerchantDashboard() {
 
                   <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                       <div>
@@ -497,22 +532,54 @@ export default function MerchantDashboard() {
             </div>
           ) : null}
         </div>
-
-        <style jsx>{`
-        @keyframes scan {
-          0% {
-            top: 0;
-          }
-          100% {
-            top: 100%;
-          }
-        }
-        .animate-scan {
-          animation: scan 2s linear infinite;
-        }
-      `}</style>
-
       </div>
+
+      {/* Info Modal */}
+      <Modal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title="How Reward Issuance Works"
+        size="md"
+      >
+        <div className="space-y-4 text-sm text-text-secondary">
+          <div>
+            <h4 className="text-text font-semibold mb-2">Base Reward Calculation</h4>
+            <p>
+              Rewards are calculated by multiplying the purchase amount by your merchant reward rate.
+              For example, with a 2.00 SLCY/$ rate, a $20 purchase earns 40 SLCY tokens.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-text font-semibold mb-2">Reward Rules (Optional)</h4>
+            <p>
+              You can apply bonus multipliers through reward rules. A 3x multiplier on 40 SLCY becomes 120 SLCY.
+              Rules can have minimum purchase requirements.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-text font-semibold mb-2">Customer Tier Multipliers</h4>
+            <p>
+              Customer loyalty tiers are automatically applied on-chain:
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-1 ml-2">
+              <li>Bronze: 1.0x (default)</li>
+              <li>Silver: 1.25x (earned 1,000+ SLCY)</li>
+              <li>Gold: 1.5x (earned 5,000+ SLCY)</li>
+              <li>Platinum: 2.0x (earned 10,000+ SLCY)</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-text font-semibold mb-2">Customer Registration</h4>
+            <p>
+              Customers must register themselves by visiting your merchant page. You cannot register customers
+              on their behalf for security reasons.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </ProtectedRoute>
   );
 }

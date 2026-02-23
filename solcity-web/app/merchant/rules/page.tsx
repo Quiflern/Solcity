@@ -112,7 +112,11 @@ export default function MerchantRulesPage() {
       const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
       const startTime = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0;
       const endTime = endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0;
-      const ruleId = Date.now();
+
+      // Generate next available ruleId (0, 1, 2, 3, etc.)
+      const existingIds = fetchedRules.map(r => r.ruleId);
+      const nextId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 0;
+      const ruleId = nextId;
 
       const result = await createRewardRule({
         ruleId,

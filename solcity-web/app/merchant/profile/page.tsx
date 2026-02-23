@@ -5,12 +5,14 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { useMerchantUpdate } from "@/hooks/useMerchantUpdate";
 import { useMerchantClose } from "@/hooks/useMerchantClose";
+import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
+import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";
 import Toggle from "@/components/ui/Toggle";
 import Modal from "@/components/ui/Modal";
 import { toast } from "sonner";
-import { AlertTriangle, Save, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronRight, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +22,12 @@ export default function MerchantProfilePage() {
   const { merchantAccount, isLoading, refetch } = useMerchantAccount();
   const { updateMerchant, isUpdating } = useMerchantUpdate();
   const { closeMerchant, isClosing } = useMerchantClose();
+
+  // Fetch reward rules to check if any exist
+  const merchantPDA = publicKey && merchantAccount
+    ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
+    : null;
+  const { data: rules = [] } = useMerchantRewardRules(merchantPDA);
 
   const [businessName, setBusinessName] = useState("");
   const [description, setDescription] = useState("");
@@ -375,9 +383,29 @@ export default function MerchantProfilePage() {
         title="Close Merchant Account"
       >
         <div className="space-y-4">
+          {rules.length > 0 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-yellow-500 font-semibold mb-1">You have {rules.length} active reward rule{rules.length > 1 ? 's' : ''}</p>
+                  <p className="text-sm text-text-secondary mb-3">
+                    Please delete all reward rules before closing your account to reclaim the rent.
+                  </p>
+                  <Link
+                    href="/merchant/rules"
+                    className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
+                  >
+                    Go to Rules Page <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-red-500 font-semibold mb-1">Warning: This action cannot be undone</p>
                 <p className="text-sm text-text-secondary">
@@ -390,9 +418,9 @@ export default function MerchantProfilePage() {
           <div className="space-y-2 text-sm text-text-secondary">
             <p>Before closing your account, please note:</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>All reward rules and redemption offers will be deleted</li>
+              <li>Delete all reward rules first to reclaim rent</li>
               <li>Customers will no longer be able to earn or redeem rewards</li>
-              <li>Your account rent (~0.04 SOL) will be refunded</li>
+              <li>Your merchant account rent (~0.04 SOL) will be refunded</li>
               <li>This action is permanent and cannot be reversed</li>
             </ul>
           </div>
@@ -408,10 +436,10 @@ export default function MerchantProfilePage() {
             <button
               type="button"
               onClick={handleCloseAccount}
-              disabled={isClosing}
+              disabled={isClosing || rules.length > 0}
               className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isClosing ? "Closing Account..." : "Close Account"}
+              {isClosing ? "Closing Account..." : rules.length > 0 ? "Delete Rules First" : "Close Account"}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "./useSolcityProgram";
 import { useMerchantAccount } from "./useMerchantAccount";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 import { useState } from "react";
 
 export function useMerchantClose() {
@@ -17,10 +18,15 @@ export function useMerchantClose() {
 
     setIsClosing(true);
     try {
+      const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+      const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
+
       const tx = await program.methods
         .closeMerchant()
         .accounts({
           merchantAuthority: publicKey,
+          merchant: merchant,
+          loyaltyProgram: loyaltyProgram,
         } as any)
         .rpc();
 

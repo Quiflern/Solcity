@@ -39,7 +39,7 @@ pub fn handler(ctx: Context<CloseMerchant>) -> Result<()> {
         .saturating_sub(1);
 
     msg!(
-        "Merchant '{}' closed. Rent refunded to authority.",
+        "Merchant '{}' closed. Rent refunded to authority. Note: Reward rules must be deleted separately.",
         merchant.name
     );
 

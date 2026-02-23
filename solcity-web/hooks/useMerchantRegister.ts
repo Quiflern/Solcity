@@ -35,8 +35,6 @@ export function useMerchantRegister() {
         })
         .rpc();
 
-      console.log("Initialize program tx:", tx);
-
       // Wait for confirmation
       const latestBlockhash = await connection.getLatestBlockhash();
       await connection.confirmTransaction({
@@ -46,7 +44,6 @@ export function useMerchantRegister() {
 
       return { signature: tx, loyaltyProgram, mint };
     } catch (err: any) {
-      console.error("Error initializing program:", err);
       setError(err.message || "Failed to initialize program");
       throw err;
     } finally {
@@ -88,8 +85,6 @@ export function useMerchantRegister() {
         } as any)
         .rpc();
 
-      console.log("Register merchant tx:", tx);
-
       // Wait for confirmation
       const latestBlockhash = await connection.getLatestBlockhash();
       await connection.confirmTransaction({
@@ -99,7 +94,6 @@ export function useMerchantRegister() {
 
       return { signature: tx, merchant, loyaltyProgram };
     } catch (err: any) {
-      console.error("Error registering merchant:", err);
       setError(err.message || "Failed to register merchant");
       throw err;
     } finally {
@@ -116,7 +110,7 @@ export function useMerchantRegister() {
     rewardRate: number,
     interestRate?: number
   ) => {
-    if (!publicKey) {
+    if (!publicKey || !program) {
       throw new Error("Wallet not connected");
     }
 
@@ -125,18 +119,30 @@ export function useMerchantRegister() {
     // Check if program already exists
     let initResult;
     try {
-      const accountInfo = await connection.getAccountInfo(loyaltyProgram);
-      if (accountInfo) {
-        console.log("Loyalty program already exists, skipping initialization");
+      // Try to fetch the loyalty program account
+      const loyaltyProgramAccount = await program.account.loyaltyProgram.fetchNullable(loyaltyProgram);
+
+      if (loyaltyProgramAccount) {
         const [mint] = getMintPDA(loyaltyProgram);
         initResult = { signature: "", loyaltyProgram, mint };
       } else {
-        // Initialize the program
+        // Account doesn't exist, initialize the program
         initResult = await initializeProgram(programName, interestRate);
       }
-    } catch (err) {
-      console.log("Error checking program, attempting to initialize:", err);
-      initResult = await initializeProgram(programName, interestRate);
+    } catch (err: any) {
+      // If fetch fails for any reason, try to initialize
+      // This will fail gracefully if it already exists
+      try {
+        initResult = await initializeProgram(programName, interestRate);
+      } catch (initErr: any) {
+        // If initialization fails because it already exists, that's okay
+        if (initErr.message?.includes("already in use") || initErr.message?.includes("custom program error: 0x0")) {
+          const [mint] = getMintPDA(loyaltyProgram);
+          initResult = { signature: "", loyaltyProgram, mint };
+        } else {
+          throw initErr;
+        }
+      }
     }
 
     // Then register the merchant

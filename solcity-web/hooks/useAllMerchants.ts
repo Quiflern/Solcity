@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
-import { SolcityProtocol } from "@/lib/anchor/idl/solcity_protocol";
+import { SolcityProtocol } from "@/lib/anchor/types/solcity_protocol";
 import IDL_JSON from "@/lib/anchor/idl/solcity_protocol.json";
 
 export interface MerchantData {
