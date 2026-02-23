@@ -928,11 +928,56 @@ export type SolcityProtocol = {
           }
         },
         {
+          "name": "voucher",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customerAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemptionOffer"
+              },
+              {
+                "kind": "arg",
+                "path": "voucherSeed"
+              }
+            ]
+          }
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "voucherSeed",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "registerCustomer",
@@ -2028,6 +2073,19 @@ export type SolcityProtocol = {
       ]
     },
     {
+      "name": "redemptionVoucher",
+      "discriminator": [
+        176,
+        213,
+        178,
+        105,
+        46,
+        53,
+        242,
+        23
+      ]
+    },
+    {
       "name": "rewardRule",
       "discriminator": [
         22,
@@ -2450,6 +2508,14 @@ export type SolcityProtocol = {
             }
           },
           {
+            "name": "redemptionCode",
+            "type": "string"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
             "name": "timestamp",
             "type": "i64"
           }
@@ -2573,6 +2639,68 @@ export type SolcityProtocol = {
                 "type": "string"
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "redemptionVoucher",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "redemptionOffer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchantName",
+            "type": "string"
+          },
+          {
+            "name": "offerName",
+            "type": "string"
+          },
+          {
+            "name": "offerDescription",
+            "type": "string"
+          },
+          {
+            "name": "cost",
+            "type": "u64"
+          },
+          {
+            "name": "redemptionCode",
+            "type": "string"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "expiresAt",
+            "type": "i64"
+          },
+          {
+            "name": "isUsed",
+            "type": "bool"
+          },
+          {
+            "name": "usedAt",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

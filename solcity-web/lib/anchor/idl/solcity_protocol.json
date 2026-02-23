@@ -922,11 +922,56 @@
           }
         },
         {
+          "name": "voucher",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  117,
+                  99,
+                  104,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer"
+              },
+              {
+                "kind": "arg",
+                "path": "voucher_seed"
+              }
+            ]
+          }
+        },
+        {
           "name": "token_program",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "voucher_seed",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "register_customer",
@@ -2022,6 +2067,19 @@
       ]
     },
     {
+      "name": "RedemptionVoucher",
+      "discriminator": [
+        176,
+        213,
+        178,
+        105,
+        46,
+        53,
+        242,
+        23
+      ]
+    },
+    {
       "name": "RewardRule",
       "discriminator": [
         22,
@@ -2444,6 +2502,14 @@
             }
           },
           {
+            "name": "redemption_code",
+            "type": "string"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
             "name": "timestamp",
             "type": "i64"
           }
@@ -2567,6 +2633,68 @@
                 "type": "string"
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "RedemptionVoucher",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "redemption_offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant_name",
+            "type": "string"
+          },
+          {
+            "name": "offer_name",
+            "type": "string"
+          },
+          {
+            "name": "offer_description",
+            "type": "string"
+          },
+          {
+            "name": "cost",
+            "type": "u64"
+          },
+          {
+            "name": "redemption_code",
+            "type": "string"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "is_used",
+            "type": "bool"
+          },
+          {
+            "name": "used_at",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }

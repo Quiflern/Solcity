@@ -1,9 +1,10 @@
-use crate::{Customer, LoyaltyProgram, Merchant, RedemptionOffer, RedemptionType, SolcityError};
+use crate::{Customer, LoyaltyProgram, Merchant, RedemptionOffer, RedemptionType, RedemptionVoucher, SolcityError};
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
 
 #[derive(Accounts)]
+#[instruction(voucher_seed: u64)]
 pub struct RedeemRewards<'info> {
     #[account(mut)]
     pub customer_authority: Signer<'info>,
@@ -63,16 +64,34 @@ pub struct RedeemRewards<'info> {
     )]
     pub redemption_offer: Account<'info, RedemptionOffer>,
 
+    #[account(
+        init,
+        payer = customer_authority,
+        space = RedemptionVoucher::SPACE,
+        seeds = [
+            RedemptionVoucher::SEED_PREFIX,
+            customer_authority.key().as_ref(),
+            merchant.key().as_ref(),
+            redemption_offer.key().as_ref(),
+            voucher_seed.to_le_bytes().as_ref()
+        ],
+        bump
+    )]
+    pub voucher: Account<'info, RedemptionVoucher>,
+
     pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<RedeemRewards>) -> Result<()> {
+pub fn handler(ctx: Context<RedeemRewards>, voucher_seed: u64) -> Result<()> {
     let clock = Clock::get()?;
     
     // Check if offer is available (borrow immutably first)
     let offer_cost = ctx.accounts.redemption_offer.cost;
     let offer_name = ctx.accounts.redemption_offer.name.clone();
+    let offer_description = ctx.accounts.redemption_offer.description.clone();
     let offer_type = ctx.accounts.redemption_offer.offer_type.clone();
+    let merchant_name = ctx.accounts.merchant.name.clone();
     
     require!(
         ctx.accounts.redemption_offer.is_available(clock.unix_timestamp),
@@ -96,6 +115,27 @@ pub fn handler(ctx: Context<RedeemRewards>) -> Result<()> {
         ),
         offer_cost,
     )?;
+
+    // Generate redemption code (SLCY-XXXX-XXXX format)
+    let code_part1 = (voucher_seed % 10000) as u16;
+    let code_part2 = ((voucher_seed / 10000) % 10000) as u16;
+    let redemption_code = format!("SLCY-{:04X}-{:04X}", code_part1, code_part2);
+
+    // Initialize voucher
+    let voucher = &mut ctx.accounts.voucher;
+    voucher.customer = ctx.accounts.customer_authority.key();
+    voucher.merchant = ctx.accounts.merchant.key();
+    voucher.redemption_offer = ctx.accounts.redemption_offer.key();
+    voucher.merchant_name = merchant_name;
+    voucher.offer_name = offer_name.clone();
+    voucher.offer_description = offer_description;
+    voucher.cost = offer_cost;
+    voucher.redemption_code = redemption_code.clone();
+    voucher.created_at = clock.unix_timestamp;
+    voucher.expires_at = clock.unix_timestamp + (30 * 24 * 60 * 60); // 30 days
+    voucher.is_used = false;
+    voucher.used_at = None;
+    voucher.bump = ctx.bumps.voucher;
 
     // Update state
     let customer = &mut ctx.accounts.customer;
@@ -132,10 +172,12 @@ pub fn handler(ctx: Context<RedeemRewards>) -> Result<()> {
         offer_name,
         amount: offer_cost,
         redemption_type: offer_type,
+        redemption_code,
+        voucher: voucher.key(),
         timestamp: clock.unix_timestamp,
     });
 
-    msg!("Redeemed {} tokens for offer", offer_cost);
+    msg!("Redeemed {} tokens for offer, voucher created", offer_cost);
 
     Ok(())
 }
@@ -147,5 +189,7 @@ pub struct RedemptionEvent {
     pub offer_name: String,
     pub amount: u64,
     pub redemption_type: RedemptionType,
+    pub redemption_code: String,
+    pub voucher: Pubkey,
     pub timestamp: i64,
 }

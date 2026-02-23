@@ -4,13 +4,21 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useCustomerAccount } from "@/hooks/useCustomerAccount";
 import { useAllMerchants } from "@/hooks/useAllMerchants";
+import { useCustomerVouchers, type Voucher } from "@/hooks/useCustomerVouchers";
 import { getTierInfo, calculateTierProgress } from "@/lib/tiers";
 import Link from "next/link";
+import { useState } from "react";
+import { Ticket } from "lucide-react";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
 
 export default function ProfilePage() {
   const { publicKey } = useWallet();
   const { customerAccount, isRegistered, isLoading } = useCustomerAccount();
   const { merchants } = useAllMerchants();
+  const { data: vouchers = [], isLoading: vouchersLoading } = useCustomerVouchers();
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
   const totalEarned = customerAccount?.totalEarned ? Number(customerAccount.totalEarned) : 0;
   const totalRedeemed = customerAccount?.totalRedeemed ? Number(customerAccount.totalRedeemed) : 0;
@@ -46,6 +54,20 @@ export default function ProfilePage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
+
+  const openVoucherModal = (voucher: Voucher) => {
+    setSelectedVoucher(voucher);
+    setVoucherModalOpen(true);
+  };
+
+  const closeVoucherModal = () => {
+    setVoucherModalOpen(false);
+    setSelectedVoucher(null);
+  };
+
+
+  // Get active vouchers (not used)
+  const activeVouchers = vouchers.filter(v => !v.isUsed).slice(0, 3);
 
   if (isLoading) {
     return (
@@ -197,6 +219,73 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* My Vouchers */}
+          <div className="bg-panel border border-border rounded-xl p-8 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <div className="text-xs uppercase tracking-widest text-text-secondary">
+                My Vouchers
+              </div>
+              <Link href="/customer/redeem?tab=history" className="text-xs text-accent hover:text-accent/80 transition-colors flex items-center gap-1">
+                View All
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+            {vouchersLoading ? (
+              <div className="text-center py-8">
+                <div className="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : activeVouchers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Ticket className="w-8 h-8 text-accent" />
+                </div>
+                <p className="text-text-secondary mb-2">No active vouchers</p>
+                <p className="text-text-secondary text-sm mb-4">
+                  Redeem rewards to get vouchers
+                </p>
+                <Link href="/customer/redeem" className="inline-block text-accent hover:text-accent/80 transition-colors text-sm font-medium">
+                  Browse Offers →
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                {activeVouchers.map((voucher) => (
+                  <button
+                    key={voucher.publicKey}
+                    type="button"
+                    onClick={() => openVoucherModal(voucher)}
+                    className="text-left p-4 bg-bg-primary rounded-lg border border-border hover:border-accent transition-all group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <Ticket className="w-5 h-5 text-accent" />
+                      </div>
+                      <span className="text-[0.65rem] uppercase font-bold px-2 py-1 rounded bg-accent/10 text-accent border border-accent/20">
+                        Active
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-sm mb-1 group-hover:text-accent transition-colors line-clamp-1">
+                      {voucher.offerName}
+                    </h3>
+                    <p className="text-xs text-text-secondary mb-2 line-clamp-1">
+                      {voucher.merchantName}
+                    </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-text-secondary">
+                        {voucher.cost} SLCY
+                      </span>
+                      <span className="text-text-secondary">
+                        Exp: {new Date(voucher.expiresAt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Linked Merchants */}
           <div className="bg-panel border border-border rounded-xl p-8 mb-8">
             <div className="flex justify-between items-center mb-6">
@@ -292,6 +381,164 @@ export default function ProfilePage() {
             </div>
           </section>
         </main>
+
+        {/* Voucher Modal */}
+        <Modal
+          isOpen={voucherModalOpen}
+          onClose={closeVoucherModal}
+          title=""
+          size="md"
+        >
+          {selectedVoucher && (
+            <div className="space-y-6">
+              {/* Voucher Card - Clean, no background effects */}
+              <div className="relative flex items-center justify-center py-4">
+                {/* Voucher Card - Sharp corners */}
+                <div
+                  className="relative w-full max-w-[280px] h-[420px] bg-[rgba(25,25,25,0.95)] rounded-sm p-5 flex flex-col justify-between overflow-hidden"
+                  style={{
+                    boxShadow: `
+                      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+                      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+                      0 15px 40px -10px rgba(0, 0, 0, 0.8)
+                    `,
+                  }}
+                >
+                  {/* Border gradient */}
+                  <div
+                    className="absolute inset-[-1px] rounded-sm pointer-events-none opacity-50"
+                    style={{
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.1), transparent 40%, #d0ff14)",
+                      padding: "1px",
+                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      WebkitMaskComposite: "xor",
+                      maskComposite: "exclude",
+                    }}
+                  />
+
+                  {/* Status badge */}
+                  {selectedVoucher.isUsed && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="text-[0.6rem] uppercase font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                        Used
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Header */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 bg-[#d0ff14] shadow-[0_0_8px_#d0ff14]" />
+                        <span className="font-bold tracking-tight text-sm">SOLCITY</span>
+                      </div>
+                      <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold mt-0.5">
+                        Proof of Redemption
+                      </span>
+                    </div>
+
+                    {/* Cost badge */}
+                    <div
+                      className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2.5 py-1.5 flex flex-col items-end"
+                      style={{
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <span className="text-[8px] text-gray-400 uppercase tracking-widest">Cost</span>
+                      <span
+                        className="font-bold font-mono text-[0.7rem] text-[#d0ff14]"
+                        style={{ textShadow: "0 0 8px rgba(208, 255, 20, 0.3)" }}
+                      >
+                        {selectedVoucher.cost} SLCY
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex flex-col gap-3 mt-2">
+                    <div>
+                      <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-1">
+                        Merchant
+                      </span>
+                      <h2 className="text-base font-medium text-white tracking-wide">{selectedVoucher.merchantName}</h2>
+                    </div>
+
+                    <div className="relative">
+                      {/* Accent bar */}
+                      <div className="absolute -left-5 w-0.5 h-full bg-[#d0ff14]" style={{ boxShadow: "0 0 10px #d0ff14" }} />
+                      <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
+                        Offer Details
+                      </span>
+                      <h1 className="text-xl font-bold text-white leading-tight">
+                        {selectedVoucher.offerName.split(" - ")[0] || selectedVoucher.offerName}
+                        <br />
+                        <span className="text-gray-400 text-base">
+                          {selectedVoucher.offerName.split(" - ")[1] || selectedVoucher.offerDescription.split(".")[0]}
+                        </span>
+                      </h1>
+                    </div>
+                  </div>
+
+                  {/* Perforation - Zigzag like a ticket */}
+                  <div className="relative w-full my-3">
+                    <svg width="100%" height="8" viewBox="0 0 280 8" preserveAspectRatio="none" className="opacity-40">
+                      <path d="M0,4 L7,0 L14,4 L21,0 L28,4 L35,0 L42,4 L49,0 L56,4 L63,0 L70,4 L77,0 L84,4 L91,0 L98,4 L105,0 L112,4 L119,0 L126,4 L133,0 L140,4 L147,0 L154,4 L161,0 L168,4 L175,0 L182,4 L189,0 L196,4 L203,0 L210,4 L217,0 L224,4 L231,0 L238,4 L245,0 L252,4 L259,0 L266,4 L273,0 L280,4"
+                        stroke="#666"
+                        strokeWidth="1"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Bottom section */}
+                  <div className="flex flex-row items-end justify-between gap-3">
+                    <div className="flex flex-col gap-2.5">
+                      <div>
+                        <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
+                          Redemption Code
+                        </span>
+                        <div className="font-mono text-sm text-[#d0ff14] font-bold tracking-widest">
+                          {selectedVoucher.redemptionCode}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
+                          Expires
+                        </span>
+                        <span className="text-[#eee] text-xs font-medium">
+                          {new Date(selectedVoucher.expiresAt * 1000).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="w-[70px] h-[70px] bg-white rounded p-1 shadow-lg flex items-center justify-center shrink-0">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(selectedVoucher.redemptionCode)}`}
+                        alt="QR Code"
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <Button
+                variant="primary"
+                onClick={closeVoucherModal}
+                className="w-full"
+              >
+                Close
+              </Button>
+            </div>
+          )}
+        </Modal>
       </div>
     </ProtectedRoute>
   );

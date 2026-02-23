@@ -4,47 +4,77 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useAllRedemptionOffers } from "@/hooks/useAllRedemptionOffers";
 import { useSolcityProgram } from "@/hooks/useSolcityProgram";
+import { useCustomerAccount } from "@/hooks/useCustomerAccount";
+import { useRedeemRewards } from "@/hooks/useRedeemRewards";
+import { useCustomerVouchers, type Voucher } from "@/hooks/useCustomerVouchers";
+import { useRouter } from "next/navigation";
+import { PublicKey } from "@solana/web3.js";
 import { Percent, Package, Coins, Ticket, Gift } from "lucide-react";
 import { IconRenderer } from "@/contexts/IconPickerContext";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
 
 export default function RedeemPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"marketplace" | "history">(
     "marketplace",
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [modalView, setModalView] = useState<"confirm" | "success">("confirm");
-  const [selectedReward, setSelectedReward] = useState({ name: "", cost: 0, publicKey: "" });
+  const [selectedReward, setSelectedReward] = useState({
+    name: "",
+    cost: 0,
+    publicKey: "",
+    merchantPubkey: ""
+  });
   const [merchantNames, setMerchantNames] = useState<Record<string, string>>({});
+  const [merchantAvatars, setMerchantAvatars] = useState<Record<string, string>>({});
+  const [redeemSignature, setRedeemSignature] = useState("");
+  const [voucherAddress, setVoucherAddress] = useState("");
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
-  // Fetch real offers from blockchain
+  // Fetch real data from blockchain
   const { data: blockchainOffers = [], isLoading: offersLoading } = useAllRedemptionOffers();
+  const { customerAccount, isLoading: customerLoading } = useCustomerAccount();
+  const { data: vouchers = [], isLoading: vouchersLoading } = useCustomerVouchers();
   const { program } = useSolcityProgram();
+  const redeemMutation = useRedeemRewards();
 
-  // Fetch merchant names for blockchain offers
+  // Calculate current balance
+  const currentBalance = customerAccount
+    ? Number(customerAccount.totalEarned) - Number(customerAccount.totalRedeemed)
+    : 0;
+
+  // Fetch merchant names and avatars for blockchain offers
   useEffect(() => {
-    const fetchMerchantNames = async () => {
+    const fetchMerchantData = async () => {
       if (!program || blockchainOffers.length === 0) return;
 
       const names: Record<string, string> = {};
+      const avatars: Record<string, string> = {};
 
       for (const offer of blockchainOffers) {
         try {
           const merchantAccount = await program.account.merchant.fetch(offer.merchant);
           names[offer.merchant.toString()] = merchantAccount.name;
+          avatars[offer.merchant.toString()] = merchantAccount.avatarUrl;
         } catch (err) {
           console.error("Error fetching merchant:", err);
           names[offer.merchant.toString()] = "Unknown Merchant";
+          avatars[offer.merchant.toString()] = "";
         }
       }
 
       setMerchantNames(names);
+      setMerchantAvatars(avatars);
     };
 
-    fetchMerchantNames();
+    fetchMerchantData();
   }, [program, blockchainOffers]);
 
-  const openRedeemModal = (name: string, cost: number, publicKey: string = "") => {
-    setSelectedReward({ name, cost, publicKey });
+  const openRedeemModal = (name: string, cost: number, publicKey: string = "", merchantPubkey: string = "") => {
+    setSelectedReward({ name, cost, publicKey, merchantPubkey });
     setModalView("confirm");
     setModalOpen(true);
   };
@@ -53,73 +83,39 @@ export default function RedeemPage() {
     setModalOpen(false);
   };
 
-  const confirmRedeem = () => {
-    // TODO: Integrate with blockchain redeem function
-    setModalView("success");
+  const openVoucherModal = (voucherAddress: string) => {
+    const voucher = vouchers.find((v) => v.publicKey === voucherAddress);
+    if (voucher) {
+      setSelectedVoucher(voucher);
+      setVoucherModalOpen(true);
+    }
   };
 
-  // Mock rewards (fallback/demo data)
-  const mockRewards = [
-    {
-      id: "reward-1",
-      type: "discount",
-      icon: <Percent className="w-8 h-8" />,
-      merchant: "Solana Coffee",
-      name: "50% Off Any Beverage",
-      description:
-        "Valid for one large handcrafted drink. Available at all locations.",
-      cost: 250,
-      available: true,
-      isMock: true,
-    },
-    {
-      id: "reward-2",
-      type: "product",
-      icon: <Package className="w-8 h-8" />,
-      merchant: "Solana Store",
-      name: "Limited Edition Hat",
-      description:
-        "Exclusive 'WAGMI' trucker hat from the Fall '24 collection.",
-      cost: 1200,
-      available: true,
-      isMock: true,
-    },
-    {
-      id: "reward-3",
-      type: "cashback",
-      icon: <Coins className="w-8 h-8" />,
-      merchant: "Network Bridge",
-      name: "Convert 1.0 SOL",
-      description:
-        "Direct swap of your reward tokens for SOL sent to your wallet.",
-      cost: 15000,
-      available: false,
-      isMock: true,
-    },
-    {
-      id: "reward-4",
-      type: "exclusive",
-      icon: <Ticket className="w-8 h-8" />,
-      merchant: "Breakpoint '25",
-      name: "VIP Pass Entry",
-      description:
-        "Pre-sale priority access code for the annual developer conference.",
-      cost: 5000,
-      available: true,
-      isMock: true,
-    },
-    {
-      id: "reward-5",
-      type: "discount",
-      icon: <Percent className="w-8 h-8" />,
-      merchant: "Block Burger",
-      name: "$10 Dining Credit",
-      description: "Applied to any dine-in or take-out order over $20.",
-      cost: 800,
-      available: true,
-      isMock: true,
-    },
-  ];
+  const closeVoucherModal = () => {
+    setVoucherModalOpen(false);
+    setSelectedVoucher(null);
+  };
+
+
+  const confirmRedeem = async () => {
+    if (!selectedReward.publicKey || !selectedReward.merchantPubkey) {
+      return;
+    }
+
+    try {
+      const result = await redeemMutation.mutateAsync({
+        merchantPubkey: new PublicKey(selectedReward.merchantPubkey),
+        offerPubkey: new PublicKey(selectedReward.publicKey),
+        offerName: selectedReward.name,
+      });
+
+      setRedeemSignature(result.signature);
+      setVoucherAddress(result.voucherPda);
+      setModalView("success");
+    } catch (error) {
+      console.error("Redemption failed:", error);
+    }
+  };
 
   const getOfferIcon = (offerType: any) => {
     if ("discount" in offerType) return <Percent className="w-8 h-8" />;
@@ -163,44 +159,36 @@ export default function RedeemPage() {
         type,
         icon: iconElement,
         merchant: merchantNames[offer.merchant.toString()] || "Loading...",
+        merchantAvatar: merchantAvatars[offer.merchant.toString()] || "",
         name: offer.name,
         description: offer.description,
         cost: offer.cost.toNumber(),
         available,
         isMock: false,
         publicKey: offer.publicKey.toString(),
+        merchantPubkey: offer.merchant.toString(),
       };
     });
 
-  // Combine blockchain and mock rewards
-  const allRewards = [...blockchainRewardsFormatted, ...mockRewards];
+  // Use only blockchain rewards
+  const allRewards = blockchainRewardsFormatted;
 
-  const history = [
-    {
-      id: "history-1",
-      reward: "Premium Espresso Bag",
-      merchant: "Solana Coffee",
-      amount: "-450 SLCY",
-      date: "Oct 24, 2024",
-      status: "completed",
-    },
-    {
-      id: "history-2",
-      reward: "Monthly Gym Pass",
-      merchant: "Elite Fitness",
-      amount: "-2,500 SLCY",
-      date: "Oct 18, 2024",
-      status: "completed",
-    },
-    {
-      id: "history-3",
-      reward: "Digital Sticker Pack",
-      merchant: "Solana Creative",
-      amount: "-100 SLCY",
-      date: "Oct 12, 2024",
-      status: "pending",
-    },
-  ];
+  // Format vouchers for history display
+  const history = vouchers
+    .sort((a, b) => b.createdAt - a.createdAt) // Most recent first
+    .map((voucher) => ({
+      id: voucher.publicKey,
+      reward: voucher.offerName,
+      merchant: voucher.merchantName,
+      amount: `-${voucher.cost.toLocaleString()} SLCY`,
+      date: new Date(voucher.createdAt * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      status: voucher.isUsed ? "used" : "active",
+      voucherAddress: voucher.publicKey,
+    }));
 
   return (
     <ProtectedRoute>
@@ -218,7 +206,14 @@ export default function RedeemPage() {
               Available Balance
             </span>
             <span className="text-[1.75rem] font-bold text-accent">
-              12,450.75 <span className="text-sm text-text-secondary">SLCY</span>
+              {customerLoading ? (
+                <span className="text-text-secondary">Loading...</span>
+              ) : (
+                <>
+                  {currentBalance.toLocaleString()}{" "}
+                  <span className="text-sm text-text-secondary">SLCY</span>
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -261,66 +256,87 @@ export default function RedeemPage() {
               )}
 
               {!offersLoading && (
-                <div className="grid grid-cols-4 gap-8">
+                <div className="grid grid-cols-3 gap-6">
                   {allRewards.map((reward) => (
                     <div
                       key={reward.id}
-                      className="bg-panel border border-border rounded-xl p-6 flex flex-col transition-all duration-200 hover:border-[#333] relative"
+                      className="bg-panel border border-border rounded-xl overflow-hidden transition-all duration-200 hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5"
                     >
-                      {reward.isMock && (
-                        <div className="absolute top-3 right-3">
-                          <span className="text-[0.6rem] uppercase font-bold px-2 py-1 rounded bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                            Demo
+                      {/* Header section with merchant */}
+                      <div className="p-6 pb-4 border-b border-border/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <span
+                            className={`text-[0.65rem] uppercase font-bold px-3 py-1.5 rounded-full ${reward.type === "discount"
+                              ? "bg-accent/10 text-accent"
+                              : reward.type === "product"
+                                ? "bg-blue-500/10 text-blue-400"
+                                : reward.type === "cashback"
+                                  ? "bg-green-500/10 text-green-400"
+                                  : "bg-purple-500/10 text-purple-400"
+                              }`}
+                          >
+                            {reward.type === "discount"
+                              ? "Discount"
+                              : reward.type === "product"
+                                ? "Free Item"
+                                : reward.type === "cashback"
+                                  ? "Cashback"
+                                  : "Exclusive"}
                           </span>
+                          <div className="text-xl font-bold text-accent">{reward.cost} <span className="text-xs text-text-secondary">SLCY</span></div>
                         </div>
-                      )}
-                      <span
-                        className={`text-[0.65rem] uppercase font-bold px-2 py-1 rounded w-fit mb-4 ${reward.type === "discount"
-                          ? "bg-[rgba(208,255,20,0.1)] text-accent"
-                          : reward.type === "product"
-                            ? "bg-[rgba(0,150,255,0.1)] text-[#0096ff]"
-                            : reward.type === "cashback"
-                              ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                              : "bg-[rgba(163,53,255,0.1)] text-[#a335ff]"
-                          }`}
-                      >
-                        {reward.type === "discount"
-                          ? "Discount %"
-                          : reward.type === "product"
-                            ? "Free Product"
-                            : reward.type === "cashback"
-                              ? "SOL Cashback"
-                              : "Exclusive Access"}
-                      </span>
-                      <div className="text-[2rem] mb-4">{reward.icon}</div>
-                      <div className="text-[0.75rem] text-text-secondary uppercase tracking-wider mb-3">
-                        {reward.merchant}
+
+                        <div className="flex items-center gap-3">
+                          {(reward as any).merchantAvatar && (
+                            <img
+                              src={(reward as any).merchantAvatar}
+                              alt={reward.merchant}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-border"
+                            />
+                          )}
+                          <div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wider mb-0.5">From</div>
+                            <div className="text-sm font-semibold">{reward.merchant}</div>
+                          </div>
+                        </div>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2">{reward.name}</h3>
-                      <p className="text-sm text-text-secondary leading-relaxed mb-6 grow">
-                        {reward.description}
-                      </p>
-                      <div className="flex items-baseline gap-1 mb-5">
-                        <span className="text-xl font-bold">{reward.cost}</span>
-                        <span className="text-xs text-text-secondary">SLCY</span>
+
+                      {/* Content section */}
+                      <div className="p-6">
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="text-4xl shrink-0">{reward.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-bold leading-tight mb-2">{reward.name}</h3>
+                            <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">
+                              {reward.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        {reward.available ? (
+                          <button
+                            type="button"
+                            onClick={() => openRedeemModal(
+                              reward.name,
+                              reward.cost,
+                              reward.publicKey || "",
+                              (reward as any).merchantPubkey || ""
+                            )}
+                            className="w-full py-3 rounded-lg bg-accent text-black font-semibold text-sm transition-all duration-200 hover:bg-accent/90 hover:shadow-lg hover:shadow-accent/20"
+                            disabled={reward.isMock}
+                          >
+                            {reward.isMock ? "Demo Only" : "Redeem Now"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full py-3 rounded-lg border border-border bg-bg-primary text-text-secondary font-semibold text-sm cursor-not-allowed opacity-50"
+                          >
+                            Not Available
+                          </button>
+                        )}
                       </div>
-                      {reward.available ? (
-                        <button
-                          type="button"
-                          onClick={() => openRedeemModal(reward.name, reward.cost, reward.publicKey || "")}
-                          className="w-full py-3.5 rounded-md border border-accent bg-transparent text-accent font-semibold text-sm transition-all duration-200 hover:bg-accent hover:text-bg"
-                        >
-                          Redeem
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full py-3.5 rounded-md border border-border bg-[#1a1a1a] text-[#444] font-semibold text-sm cursor-not-allowed"
-                        >
-                          Not Available
-                        </button>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -329,137 +345,348 @@ export default function RedeemPage() {
           )}
 
           {activeTab === "history" && (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
-                    Reward Item
-                  </th>
-                  <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
-                    Merchant
-                  </th>
-                  <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
-                    Amount
-                  </th>
-                  <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
-                    Date
-                  </th>
-                  <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((item) => (
-                  <tr key={item.id}>
-                    <td className="py-5 px-4 border-b border-border text-sm">
-                      {item.reward}
-                    </td>
-                    <td className="py-5 px-4 border-b border-border text-sm">
-                      {item.merchant}
-                    </td>
-                    <td className="py-5 px-4 border-b border-border text-sm">
-                      {item.amount}
-                    </td>
-                    <td className="py-5 px-4 border-b border-border text-sm">
-                      {item.date}
-                    </td>
-                    <td className="py-5 px-4 border-b border-border text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "completed"
-                          ? "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                          : "bg-[rgba(255,165,0,0.1)] text-[#ffa500]"
-                          }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              {vouchersLoading && (
+                <div className="text-center py-16">
+                  <div className="inline-block w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-text-secondary">Loading history...</p>
+                </div>
+              )}
+
+              {!vouchersLoading && history.length === 0 && (
+                <div className="text-center py-16">
+                  <p className="text-text-secondary">No redemption history yet</p>
+                  <p className="text-text-secondary text-sm mt-2">
+                    Start redeeming rewards to see your history here
+                  </p>
+                </div>
+              )}
+
+              {!vouchersLoading && history.length > 0 && (
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
+                        Reward Item
+                      </th>
+                      <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
+                        Merchant
+                      </th>
+                      <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
+                        Amount
+                      </th>
+                      <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
+                        Date
+                      </th>
+                      <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
+                        Status
+                      </th>
+                      <th className="text-left text-xs text-text-secondary uppercase p-4 border-b border-border">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((item) => (
+                      <tr key={item.id} className="hover:bg-bg-secondary/30 transition-colors">
+                        <td className="py-5 px-4 border-b border-border text-sm">
+                          {item.reward}
+                        </td>
+                        <td className="py-5 px-4 border-b border-border text-sm">
+                          {item.merchant}
+                        </td>
+                        <td className="py-5 px-4 border-b border-border text-sm">
+                          {item.amount}
+                        </td>
+                        <td className="py-5 px-4 border-b border-border text-sm">
+                          {item.date}
+                        </td>
+                        <td className="py-5 px-4 border-b border-border text-sm">
+                          <span
+                            className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "used"
+                              ? "bg-[rgba(128,128,128,0.1)] text-gray-400"
+                              : "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
+                              }`}
+                          >
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="py-5 px-4 border-b border-border text-sm">
+                          <button
+                            type="button"
+                            onClick={() => openVoucherModal(item.voucherAddress)}
+                            className="text-accent hover:underline text-sm font-medium"
+                          >
+                            View Voucher
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
           )}
         </div>
 
-        {/* Modal */}
-        {modalOpen && (
-          <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-1000">
-            <div className="bg-panel border border-border w-[440px] rounded-2xl p-10 relative">
-              {modalView === "confirm" && (
-                <div>
-                  <h3 className="text-xl font-bold mb-6 text-center">
-                    Confirm Redemption
-                  </h3>
-                  <div className="bg-bg rounded-lg p-6 mb-8 flex flex-col gap-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-text-secondary">Reward</span>
-                      <span className="font-medium">{selectedReward.name}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-text-secondary">Cost</span>
-                      <span className="font-medium text-accent">
-                        {selectedReward.cost} SLCY
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-text-secondary">Network Fee</span>
-                      <span className="font-medium">0.000005 SOL</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      className="flex-1 bg-transparent border border-border text-text-secondary cursor-pointer h-12 rounded"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={confirmRedeem}
-                      className="flex-2 bg-accent border-none text-bg font-bold cursor-pointer h-12 rounded"
-                    >
-                      Confirm & Pay
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {modalView === "success" && (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-[rgba(208,255,20,0.1)] rounded-full flex items-center justify-center mx-auto mb-6 text-accent text-[2rem]">
-                    ✓
-                  </div>
-                  <h3 className="mb-2 text-xl font-bold">
-                    Redemption Successful!
-                  </h3>
-                  <p className="text-text-secondary text-sm mb-8">
-                    Your reward code has been sent to your wallet and email.
-                  </p>
-                  <div className="bg-bg rounded-lg p-6 text-left mb-8">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-text-secondary">Signature</span>
-                      <span className="font-medium font-mono">4k8L...9zPr</span>
-                    </div>
-                  </div>
-                  <a
-                    href="https://explorer.solana.com"
-                    className="text-accent no-underline text-sm block mb-8"
-                  >
-                    View on Solana Explorer ↗
-                  </a>
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="w-full bg-accent border-none text-bg font-bold cursor-pointer h-12 rounded"
-                  >
-                    Done
-                  </button>
-                </div>
-              )}
+        {/* Confirm Modal */}
+        <Modal
+          isOpen={modalOpen && modalView === "confirm"}
+          onClose={closeModal}
+          title="Confirm Redemption"
+          size="md"
+        >
+          <div className="space-y-6">
+            <div className="bg-bg rounded-lg p-6 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Reward</span>
+                <span className="font-medium text-text">{selectedReward.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Cost</span>
+                <span className="font-medium text-accent">
+                  {selectedReward.cost} SLCY
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Network Fee</span>
+                <span className="font-medium text-text">0.000005 SOL</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={closeModal}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmRedeem}
+                isLoading={redeemMutation.isPending}
+                className="flex-1"
+              >
+                Confirm & Pay
+              </Button>
             </div>
           </div>
-        )}
+        </Modal>
+
+        {/* Success Modal */}
+        <Modal
+          isOpen={modalOpen && modalView === "success"}
+          onClose={closeModal}
+          title="Redemption Successful!"
+          size="md"
+        >
+          <div className="space-y-6">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center text-accent text-[2rem]">
+                ✓
+              </div>
+            </div>
+            <p className="text-text-secondary text-sm text-center">
+              Your voucher has been created and is ready to use.
+            </p>
+            <div className="bg-bg rounded-lg p-6 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Signature</span>
+                <span className="font-medium font-mono text-text">
+                  {redeemSignature.slice(0, 4)}...{redeemSignature.slice(-4)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Voucher</span>
+                <span className="font-medium font-mono text-text">
+                  {voucherAddress.slice(0, 4)}...{voucherAddress.slice(-4)}
+                </span>
+              </div>
+            </div>
+            <a
+              href={`https://explorer.solana.com/tx/${redeemSignature}?cluster=custom&customUrl=http://localhost:8899`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent text-sm block text-center hover:underline"
+            >
+              View on Solana Explorer ↗
+            </a>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/customer/voucher/${voucherAddress}`)}
+                className="flex-1"
+              >
+                View Voucher
+              </Button>
+              <Button
+                variant="primary"
+                onClick={closeModal}
+                className="flex-1"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Voucher Modal */}
+        <Modal
+          isOpen={voucherModalOpen}
+          onClose={closeVoucherModal}
+          title=""
+          size="md"
+        >
+          {selectedVoucher && (
+            <div className="space-y-6">
+              {/* Voucher Card - Clean, no background effects */}
+              <div className="relative flex items-center justify-center py-4">
+                {/* Voucher Card - Sharp corners */}
+                <div
+                  className="relative w-full max-w-[280px] h-[420px] bg-[rgba(25,25,25,0.95)] rounded-sm p-5 flex flex-col justify-between overflow-hidden"
+                  style={{
+                    boxShadow: `
+                      inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+                      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+                      0 15px 40px -10px rgba(0, 0, 0, 0.8)
+                    `,
+                  }}
+                >
+                  {/* Border gradient */}
+                  <div
+                    className="absolute inset-[-1px] rounded-sm pointer-events-none opacity-50"
+                    style={{
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.1), transparent 40%, #d0ff14)",
+                      padding: "1px",
+                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      WebkitMaskComposite: "xor",
+                      maskComposite: "exclude",
+                    }}
+                  />
+
+                  {/* Status badge */}
+                  {selectedVoucher.isUsed && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="text-[0.6rem] uppercase font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                        Used
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Header */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 bg-[#d0ff14] shadow-[0_0_8px_#d0ff14]" />
+                        <span className="font-bold tracking-tight text-sm">SOLCITY</span>
+                      </div>
+                      <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold mt-0.5">
+                        Proof of Redemption
+                      </span>
+                    </div>
+
+                    {/* Cost badge */}
+                    <div
+                      className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] rounded-lg px-2.5 py-1.5 flex flex-col items-end"
+                      style={{
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <span className="text-[8px] text-gray-400 uppercase tracking-widest">Cost</span>
+                      <span
+                        className="font-bold font-mono text-[0.7rem] text-[#d0ff14]"
+                        style={{ textShadow: "0 0 8px rgba(208, 255, 20, 0.3)" }}
+                      >
+                        {selectedVoucher.cost} SLCY
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex flex-col gap-3 mt-2">
+                    <div>
+                      <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-1">
+                        Merchant
+                      </span>
+                      <h2 className="text-base font-medium text-white tracking-wide">{selectedVoucher.merchantName}</h2>
+                    </div>
+
+                    <div className="relative">
+                      {/* Accent bar */}
+                      <div className="absolute -left-5 w-0.5 h-full bg-[#d0ff14]" style={{ boxShadow: "0 0 10px #d0ff14" }} />
+                      <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
+                        Offer Details
+                      </span>
+                      <h1 className="text-xl font-bold text-white leading-tight">
+                        {selectedVoucher.offerName.split(" - ")[0] || selectedVoucher.offerName}
+                        <br />
+                        <span className="text-gray-400 text-base">
+                          {selectedVoucher.offerName.split(" - ")[1] || selectedVoucher.offerDescription.split(".")[0]}
+                        </span>
+                      </h1>
+                    </div>
+                  </div>
+
+                  {/* Perforation - Zigzag like a ticket */}
+                  <div className="relative w-full my-3">
+                    <svg width="100%" height="8" viewBox="0 0 280 8" preserveAspectRatio="none" className="opacity-40">
+                      <path d="M0,4 L7,0 L14,4 L21,0 L28,4 L35,0 L42,4 L49,0 L56,4 L63,0 L70,4 L77,0 L84,4 L91,0 L98,4 L105,0 L112,4 L119,0 L126,4 L133,0 L140,4 L147,0 L154,4 L161,0 L168,4 L175,0 L182,4 L189,0 L196,4 L203,0 L210,4 L217,0 L224,4 L231,0 L238,4 L245,0 L252,4 L259,0 L266,4 L273,0 L280,4"
+                        stroke="#666"
+                        strokeWidth="1"
+                        fill="none"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Bottom section */}
+                  <div className="flex flex-row items-end justify-between gap-3">
+                    <div className="flex flex-col gap-2.5">
+                      <div>
+                        <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
+                          Redemption Code
+                        </span>
+                        <div className="font-mono text-sm text-[#d0ff14] font-bold tracking-widest">
+                          {selectedVoucher.redemptionCode}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
+                          Expires
+                        </span>
+                        <span className="text-[#eee] text-xs font-medium">
+                          {new Date(selectedVoucher.expiresAt * 1000).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="w-[70px] h-[70px] bg-white rounded p-1 shadow-lg flex items-center justify-center shrink-0">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(selectedVoucher.redemptionCode)}`}
+                        alt="QR Code"
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <Button
+                variant="primary"
+                onClick={closeVoucherModal}
+                className="w-full"
+              >
+                Close
+              </Button>
+            </div>
+          )}
+        </Modal>
 
       </div>
     </ProtectedRoute>

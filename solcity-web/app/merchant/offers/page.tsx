@@ -10,10 +10,10 @@ import { useMerchantAccount } from "@/hooks/useMerchantAccount";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 import { toast } from "sonner";
 import { BN } from "@coral-xyz/anchor";
-import { Gift } from "lucide-react";
+import { Gift, Percent, Package, Coins, Ticket } from "lucide-react";
 import { IconPicker } from "@/components/ui/IconPicker";
 import { IconRenderer } from "@/contexts/IconPickerContext";
-import Select from "@/components/ui/Select";
+import Dropdown from "@/components/ui/Dropdown";
 import Toggle from "@/components/ui/Toggle";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -541,16 +541,36 @@ export default function MerchantOffersPage() {
                         </div>
 
                         {/* Offer Type */}
-                        <Select
+                        <Dropdown
                           label="Offer Type"
                           value={formData.offerType}
-                          onChange={(e) => setFormData({ ...formData, offerType: e.target.value as OfferType })}
+                          onChange={(value) => setFormData({ ...formData, offerType: value as OfferType })}
                           options={[
-                            { value: "discount", label: "Discount %" },
-                            { value: "product", label: "Free Product" },
-                            { value: "cashback", label: "SOL Cashback" },
-                            { value: "exclusive", label: "Exclusive Access" },
-                            { value: "custom", label: "Custom" },
+                            {
+                              value: "discount",
+                              label: "Discount %",
+                              icon: <Percent className="w-4 h-4" />
+                            },
+                            {
+                              value: "product",
+                              label: "Free Product",
+                              icon: <Package className="w-4 h-4" />
+                            },
+                            {
+                              value: "cashback",
+                              label: "SOL Cashback",
+                              icon: <Coins className="w-4 h-4" />
+                            },
+                            {
+                              value: "exclusive",
+                              label: "Exclusive Access",
+                              icon: <Ticket className="w-4 h-4" />
+                            },
+                            {
+                              value: "custom",
+                              label: "Custom",
+                              icon: <Gift className="w-4 h-4" />
+                            },
                           ]}
                         />
 

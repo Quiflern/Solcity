@@ -49,8 +49,8 @@ pub mod solcity_protocol {
     }
 
     /// Redeem reward tokens for benefits
-    pub fn redeem_rewards(ctx: Context<RedeemRewards>) -> Result<()> {
-        instructions::redeem_rewards::handler(ctx)
+    pub fn redeem_rewards(ctx: Context<RedeemRewards>, voucher_seed: u64) -> Result<()> {
+        instructions::redeem_rewards::handler(ctx, voucher_seed)
     }
 
     /// Create a new reward rule for a merchant
