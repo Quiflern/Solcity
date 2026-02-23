@@ -109,33 +109,42 @@ export function useIssueRewards() {
         amount: purchaseAmount,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Wait a bit for the blockchain to index the transaction
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Remove the pending optimistic update before fetching real data
+      if (publicKey) {
+        queryClient.setQueryData(["merchantIssuanceEvents", publicKey.toString()], (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          // Remove pending transactions
+          return old.filter((event: any) => event.signature !== "pending");
+        });
+      }
+
       // Invalidate and refetch merchant data
       queryClient.invalidateQueries({ queryKey: ["merchant", publicKey?.toString()] });
 
       // Invalidate transactions and events to show the new one
-      const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
-      if (merchantPDA) {
-        queryClient.invalidateQueries({ queryKey: ["merchantTransactions", merchantPDA.toString()] });
-        // Invalidate issuance events for instant update
-        queryClient.invalidateQueries({ queryKey: ["merchantIssuanceEvents", merchantPDA.toString()] });
+      // Use merchantAuthority (wallet address) as the key, not merchantPDA
+      if (publicKey) {
+        queryClient.invalidateQueries({ queryKey: ["merchantTransactions", publicKey.toString()] });
+        // Invalidate issuance events for instant update - use wallet address
+        queryClient.invalidateQueries({ queryKey: ["merchantIssuanceEvents", publicKey.toString()] });
       }
     },
     onMutate: async ({ customerWallet, purchaseAmount, ruleId }) => {
       // Optimistically update the UI before the transaction completes
-      const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
-      if (!merchantPDA) return;
+      if (!publicKey) return;
 
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["merchantIssuanceEvents", merchantPDA.toString()] });
+      // Cancel any outgoing refetches - use wallet address as key
+      await queryClient.cancelQueries({ queryKey: ["merchantIssuanceEvents", publicKey.toString()] });
 
       // Snapshot the previous value
-      const previousEvents = queryClient.getQueryData(["merchantIssuanceEvents", merchantPDA.toString()]);
+      const previousEvents = queryClient.getQueryData(["merchantIssuanceEvents", publicKey.toString()]);
 
       // Optimistically update to the new value
-      queryClient.setQueryData(["merchantIssuanceEvents", merchantPDA.toString()], (old: any) => {
-        if (!old) return old;
-
+      queryClient.setQueryData(["merchantIssuanceEvents", publicKey.toString()], (old: any) => {
         // Add a temporary event at the top
         const tempEvent = {
           signature: "pending",
@@ -149,6 +158,11 @@ export function useIssueRewards() {
           customerTier: "Bronze",
         };
 
+        // If no old data, return array with just the temp event
+        if (!old || !Array.isArray(old)) {
+          return [tempEvent];
+        }
+
         return [tempEvent, ...old];
       });
 
@@ -157,9 +171,8 @@ export function useIssueRewards() {
     },
     onError: (err, variables, context) => {
       // If the mutation fails, roll back to the previous value
-      const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
-      if (merchantPDA && context?.previousEvents) {
-        queryClient.setQueryData(["merchantIssuanceEvents", merchantPDA.toString()], context.previousEvents);
+      if (publicKey && context?.previousEvents) {
+        queryClient.setQueryData(["merchantIssuanceEvents", publicKey.toString()], context.previousEvents);
       }
     },
   });

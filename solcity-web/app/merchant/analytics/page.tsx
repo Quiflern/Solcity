@@ -4,41 +4,28 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantAnalytics } from "@/hooks/merchant/useMerchantAnalytics";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
 export default function MerchantAnalyticsPage() {
   const { publicKey } = useWallet();
   const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
-  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "custom">(
-    "30d",
-  );
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "custom">("30d");
   const [showTierInfo, setShowTierInfo] = useState(false);
 
-  const topCustomers = [
-    {
-      id: "customer-1",
-      wallet: "8xY2...pL9n",
-      earned: "4,280 SLCY",
-      redeemed: "3,100 SLCY",
-      tier: "Platinum",
-      lastActivity: "2 hours ago",
-    },
-    {
-      id: "customer-2",
-      wallet: "KLp4...o0Pz",
-      earned: "3,150 SLCY",
-      redeemed: "1,200 SLCY",
-      tier: "Gold",
-      lastActivity: "Yesterday",
-    },
-    {
-      id: "customer-3",
-      wallet: "Am2k...9vR3",
-      earned: "2,890 SLCY",
-      redeemed: "850 SLCY",
-      tier: "Gold",
-      lastActivity: "3 days ago",
-    },
-  ];
+  // Get merchant PDA for analytics
+  const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
+  const {
+    isLoading: analyticsLoading,
+    metrics,
+    timeSeriesData,
+    tierDistribution,
+    redemptionBreakdown,
+    topCustomers,
+  } = useMerchantAnalytics(merchantPDA, dateRange);
+
+  const isLoading = merchantLoading || analyticsLoading;
 
   return (
     <ProtectedRoute>
@@ -136,25 +123,33 @@ export default function MerchantAnalyticsPage() {
                   <div className="text-[0.7rem] uppercase text-text-secondary mb-2 tracking-wider">
                     Avg Reward / Tx
                   </div>
-                  <div className="text-2xl font-semibold">12.4 SLCY</div>
+                  <div className="text-2xl font-semibold">
+                    {isLoading ? "..." : `${metrics.avgRewardPerTx.toFixed(1)} SLCY`}
+                  </div>
                 </div>
                 <div className="bg-panel border border-border p-6 rounded-xl">
                   <div className="text-[0.7rem] uppercase text-text-secondary mb-2 tracking-wider">
                     Redemption Rate
                   </div>
-                  <div className="text-2xl font-semibold">33.2%</div>
+                  <div className="text-2xl font-semibold">
+                    {isLoading ? "..." : `${metrics.redemptionRate.toFixed(1)}%`}
+                  </div>
                 </div>
                 <div className="bg-panel border border-border p-6 rounded-xl">
                   <div className="text-[0.7rem] uppercase text-text-secondary mb-2 tracking-wider">
                     Retention Rate
                   </div>
-                  <div className="text-2xl font-semibold">68.5%</div>
+                  <div className="text-2xl font-semibold">
+                    {isLoading ? "..." : `${metrics.retentionRate.toFixed(1)}%`}
+                  </div>
                 </div>
                 <div className="bg-panel border border-border p-6 rounded-xl">
                   <div className="text-[0.7rem] uppercase text-text-secondary mb-2 tracking-wider">
                     New Customers
                   </div>
-                  <div className="text-2xl font-semibold">+142</div>
+                  <div className="text-2xl font-semibold">
+                    {isLoading ? "..." : `+${metrics.newCustomers}`}
+                  </div>
                 </div>
               </div>
 
@@ -165,21 +160,47 @@ export default function MerchantAnalyticsPage() {
                   <div className="text-sm font-semibold mb-6">
                     Issuance & Redemption Volume
                   </div>
-                  <div className="h-[200px] flex items-end gap-2 pb-2.5 border-b border-border">
-                    {/* biome-ignore lint/suspicious/noArrayIndexKey: Static decorative chart bars */}
-                    {[40, 15, 55, 20, 45, 12, 70, 35, 85, 40, 60, 25].map(
-                      (height, i) => (
-                        <div
-                          key={`bar-${i}`}
-                          className={`flex-1 rounded-t-sm ${i % 2 === 0
-                            ? "bg-linear-to-t from-accent/2 to-accent/20"
-                            : "bg-linear-to-t from-white/2 to-white/10"
-                            }`}
-                          style={{ height: `${height}%` }}
+                  {isLoading ? (
+                    <div className="h-[200px] flex items-center justify-center">
+                      <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin" />
+                    </div>
+                  ) : timeSeriesData.length === 0 ? (
+                    <div className="h-[200px] flex items-center justify-center text-text-secondary text-sm">
+                      No data available for this period
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={timeSeriesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          stroke="#888"
+                          style={{ fontSize: '0.7rem' }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         />
-                      ),
-                    )}
-                  </div>
+                        <YAxis
+                          stroke="#888"
+                          style={{ fontSize: '0.7rem' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #333',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '0.875rem'
+                          }}
+                          cursor={{ fill: 'rgba(192, 255, 0, 0.05)' }}
+                        />
+                        <Bar dataKey="issued" fill="#c0ff00" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="redeemed" fill="#444" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                   <div className="flex gap-5 mt-4">
                     <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                       <div className="w-2 h-2 rounded-sm bg-accent" />
@@ -207,31 +228,39 @@ export default function MerchantAnalyticsPage() {
                       </svg>
                     </button>
                   </div>
-                  <div className="flex items-center justify-center relative h-[200px]">
-                    <div className="w-[140px] h-[140px] rounded-full border-15 border-border border-t-accent border-r-[#A3C910] rotate-45" />
-                    <div className="absolute text-center">
-                      <div className="text-xl font-bold">1,429</div>
-                      <div className="text-[0.6rem] text-text-secondary">TOTAL</div>
+                  {isLoading ? (
+                    <div className="h-[200px] flex items-center justify-center">
+                      <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin" />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-4">
-                    <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                      <div className="w-2 h-2 rounded-sm bg-accent/10 border border-accent" />
-                      Plat (12%)
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                      <div className="w-2 h-2 rounded-sm bg-[#FFD700]/10 border border-[#FFD700]" />
-                      Gold (24%)
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                      <div className="w-2 h-2 rounded-sm bg-[#C0C0C0]/10 border border-[#C0C0C0]" />
-                      Silver (31%)
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                      <div className="w-2 h-2 rounded-sm bg-[#CD7F32]/10 border border-[#CD7F32]" />
-                      Bronze (33%)
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-center relative h-[200px]">
+                        <div className="w-[140px] h-[140px] rounded-full border-[15px] border-[#CD7F32] border-t-accent border-r-[#FFD700] border-b-[#C0C0C0] rotate-45" />
+                        <div className="absolute text-center">
+                          <div className="text-xl font-bold">{metrics.totalCustomers}</div>
+                          <div className="text-[0.6rem] text-text-secondary">TOTAL</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <div className="w-2 h-2 rounded-sm bg-accent/10 border border-accent" />
+                          Plat ({metrics.totalCustomers > 0 ? ((tierDistribution.platinum / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <div className="w-2 h-2 rounded-sm bg-[#FFD700]/10 border border-[#FFD700]" />
+                          Gold ({metrics.totalCustomers > 0 ? ((tierDistribution.gold / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <div className="w-2 h-2 rounded-sm bg-[#C0C0C0]/10 border border-[#C0C0C0]" />
+                          Silver ({metrics.totalCustomers > 0 ? ((tierDistribution.silver / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                          <div className="w-2 h-2 rounded-sm bg-[#CD7F32]/10 border border-[#CD7F32]" />
+                          Bronze ({metrics.totalCustomers > 0 ? ((tierDistribution.bronze / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -240,24 +269,45 @@ export default function MerchantAnalyticsPage() {
                 {/* Customer Growth */}
                 <div className="bg-panel border border-border rounded-xl p-6">
                   <div className="text-sm font-semibold mb-6">Customer Growth</div>
-                  <div className="h-[140px]">
-                    <svg
-                      width="100%"
-                      height="100%"
-                      viewBox="0 0 400 100"
-                      preserveAspectRatio="none"
-                      role="img"
-                      aria-label="Customer growth chart"
-                    >
-                      <title>Customer Growth Chart</title>
-                      <path
-                        d="M0,80 Q50,70 100,60 T200,40 T300,20 T400,10"
-                        fill="none"
-                        stroke="var(--accent)"
-                        strokeWidth="3"
-                      />
-                    </svg>
-                  </div>
+                  {isLoading ? (
+                    <div className="h-[140px] flex items-center justify-center">
+                      <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin" />
+                    </div>
+                  ) : timeSeriesData.length === 0 ? (
+                    <div className="h-[140px] flex items-center justify-center text-text-secondary text-sm">
+                      No data available
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={140}>
+                      <LineChart data={timeSeriesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          stroke="#888"
+                          style={{ fontSize: '0.7rem' }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        />
+                        <YAxis
+                          stroke="#888"
+                          style={{ fontSize: '0.7rem' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #333',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '0.875rem'
+                          }}
+                        />
+                        <Line type="monotone" dataKey="issued" stroke="#c0ff00" strokeWidth={3} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
                 {/* Redemption Breakdown */}
@@ -265,90 +315,125 @@ export default function MerchantAnalyticsPage() {
                   <div className="text-sm font-semibold mb-6">
                     Redemption Breakdown
                   </div>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex justify-between text-xs">
-                      <span>Free Americano</span>
-                      <span className="text-accent">45%</span>
+                  {isLoading ? (
+                    <div className="h-[140px] flex items-center justify-center">
+                      <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin" />
                     </div>
-                    <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                      <div className="w-[45%] h-full bg-accent" />
+                  ) : redemptionBreakdown.length === 0 ? (
+                    <div className="h-[140px] flex items-center justify-center text-text-secondary text-sm">
+                      No redemptions yet
                     </div>
-                    <div className="flex justify-between text-xs">
-                      <span>10% Store Discount</span>
-                      <span className="text-accent">32%</span>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {redemptionBreakdown.slice(0, 3).map((item) => (
+                        <div key={item.offerName}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="truncate">{item.offerName}</span>
+                            <span className="text-accent">{item.percentage.toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
+                            <div className="h-full bg-accent" style={{ width: `${item.percentage}%` }} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                      <div className="w-[32%] h-full bg-accent" />
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>Pastry Combo</span>
-                      <span className="text-accent">23%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                      <div className="w-[23%] h-full bg-accent" />
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
               {/* Top Performing Customers */}
               <div className="mt-4">
                 <h3 className="text-lg mb-6">Top Performing Customers</h3>
-                <div className="bg-panel border border-border rounded-xl overflow-hidden">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-white/2">
-                        <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
-                          Wallet Address
-                        </th>
-                        <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
-                          Total Earned
-                        </th>
-                        <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
-                          Total Redeemed
-                        </th>
-                        <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
-                          Tier Status
-                        </th>
-                        <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
-                          Last Activity
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topCustomers.map((customer) => (
-                        <tr key={customer.id}>
-                          <td className="py-5 px-6 border-b border-border text-sm">
-                            <code>{customer.wallet}</code>
-                          </td>
-                          <td className="py-5 px-6 border-b border-border text-sm">
-                            {customer.earned}
-                          </td>
-                          <td className="py-5 px-6 border-b border-border text-sm">
-                            {customer.redeemed}
-                          </td>
-                          <td className="py-5 px-6 border-b border-border text-sm">
-                            <span
-                              className={`text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold ${customer.tier === "Platinum"
-                                ? "bg-accent/10 text-accent"
-                                : customer.tier === "Gold"
-                                  ? "bg-[#FFD700]/10 text-[#FFD700]"
-                                  : customer.tier === "Silver"
-                                    ? "bg-[#C0C0C0]/10 text-[#C0C0C0]"
-                                    : "bg-[#CD7F32]/10 text-[#CD7F32]"
-                                }`}
-                            >
-                              {customer.tier}
-                            </span>
-                          </td>
-                          <td className="py-5 px-6 border-b border-border text-sm text-text-secondary">
-                            {customer.lastActivity}
-                          </td>
+                {isLoading ? (
+                  <div className="bg-panel border border-border rounded-xl p-12 text-center">
+                    <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-text-secondary text-sm">Loading customers...</p>
+                  </div>
+                ) : topCustomers.length === 0 ? (
+                  <div className="bg-panel border border-border rounded-xl p-12 text-center">
+                    <p className="text-text-secondary text-sm">No customers yet</p>
+                    <p className="text-text-secondary text-xs mt-2">
+                      Customers will appear here once they register
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-panel border border-border rounded-xl overflow-hidden">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-white/2">
+                          <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                            Wallet Address
+                          </th>
+                          <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                            Total Earned
+                          </th>
+                          <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                            Total Redeemed
+                          </th>
+                          <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                            Tier Status
+                          </th>
+                          <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                            Last Activity
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {topCustomers.map((customer: any) => {
+                          const lastActivityDate = new Date(customer.lastActivity * 1000);
+                          const now = new Date();
+                          const diffMs = now.getTime() - lastActivityDate.getTime();
+                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffDays = Math.floor(diffHours / 24);
+
+                          let lastActivityText = "Never";
+                          if (customer.lastActivity > 0) {
+                            if (diffHours < 1) {
+                              lastActivityText = "Just now";
+                            } else if (diffHours < 24) {
+                              lastActivityText = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                            } else if (diffDays === 1) {
+                              lastActivityText = "Yesterday";
+                            } else {
+                              lastActivityText = `${diffDays} days ago`;
+                            }
+                          }
+
+                          return (
+                            <tr key={customer.publicKey}>
+                              <td className="py-5 px-6 border-b border-border text-sm">
+                                <code>{customer.wallet.slice(0, 4)}...{customer.wallet.slice(-4)}</code>
+                              </td>
+                              <td className="py-5 px-6 border-b border-border text-sm">
+                                {customer.earned.toLocaleString()} SLCY
+                              </td>
+                              <td className="py-5 px-6 border-b border-border text-sm">
+                                {customer.redeemed.toLocaleString()} SLCY
+                              </td>
+                              <td className="py-5 px-6 border-b border-border text-sm">
+                                <span
+                                  className={`text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold ${customer.tier === "Platinum"
+                                    ? "bg-accent/10 text-accent"
+                                    : customer.tier === "Gold"
+                                      ? "bg-[#FFD700]/10 text-[#FFD700]"
+                                      : customer.tier === "Silver"
+                                        ? "bg-[#C0C0C0]/10 text-[#C0C0C0]"
+                                        : "bg-[#CD7F32]/10 text-[#CD7F32]"
+                                    }`}
+                                >
+                                  {customer.tier}
+                                </span>
+                              </td>
+                              <td className="py-5 px-6 border-b border-border text-sm text-text-secondary">
+                                {lastActivityText}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </>
           ) : null}

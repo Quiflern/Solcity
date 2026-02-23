@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useConnection } from "@solana/wallet-adapter-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "../program/useSolcityProgram";
 import { PublicKey } from "@solana/web3.js";
+import { BorshCoder, EventParser } from "@coral-xyz/anchor";
 
 export interface IssuanceEvent {
   signature: string;
@@ -21,105 +22,169 @@ export interface IssuanceEvent {
 export function useMerchantIssuanceEvents(merchantPubkey: PublicKey | null) {
   const { connection } = useConnection();
   const { program } = useSolcityProgram();
+  const { publicKey: merchantAuthority } = useWallet();
+  const queryClient = useQueryClient();
 
   return useQuery({
-    queryKey: ["merchantIssuanceEvents", merchantPubkey?.toString()],
+    queryKey: ["merchantIssuanceEvents", merchantAuthority?.toString()],
     queryFn: async () => {
-      if (!program || !merchantPubkey) {
+      if (!program || !merchantAuthority) {
         return [];
       }
 
       try {
-        console.log("Fetching issuance events for merchant:", merchantPubkey.toString());
+        console.log("=== Fetching Issuance Events ===");
+        console.log("Merchant wallet address:", merchantAuthority.toString());
+        console.log("Program ID:", program.programId.toString());
+        console.log("RPC endpoint:", connection.rpcEndpoint);
 
-        // Fetch RewardsIssuedEvent events from the program
-        // Events are stored in program logs, we need to parse transaction signatures
-        const signatures = await connection.getSignaturesForAddress(merchantPubkey, {
+        // Fetch transaction signatures from the merchant's wallet
+        const signatures = await connection.getSignaturesForAddress(merchantAuthority, {
           limit: 100,
         });
 
-        console.log(`Found ${signatures.length} signatures for merchant`);
+        console.log(`Found ${signatures.length} signatures for merchant wallet`);
+
+        if (signatures.length === 0) {
+          console.warn("No signatures found. Possible reasons:");
+          console.warn("1. No transactions have been made from this wallet");
+          console.warn("2. Test ledger was cleared after transactions");
+          console.warn("3. Wrong wallet address being queried");
+          console.warn("4. RPC endpoint issue");
+
+          // Try to get recent blockhash to verify connection
+          try {
+            const recentBlockhash = await connection.getLatestBlockhash();
+            console.log("Connection is working. Latest blockhash:", recentBlockhash.blockhash);
+          } catch (e) {
+            console.error("Connection test failed:", e);
+          }
+
+          return [];
+        }
+
+        console.log("Sample signatures:", signatures.slice(0, 3).map(s => ({
+          signature: s.signature.slice(0, 20) + "...",
+          slot: s.slot,
+          blockTime: s.blockTime ? new Date(s.blockTime * 1000).toISOString() : "unknown"
+        })));
 
         const events: IssuanceEvent[] = [];
+        const eventParser = new EventParser(program.programId, new BorshCoder(program.idl));
+
+        let processedCount = 0;
+        let errorCount = 0;
+        let eventsFoundCount = 0;
 
         for (const sig of signatures) {
           try {
+            processedCount++;
+
             const tx = await connection.getTransaction(sig.signature, {
               maxSupportedTransactionVersion: 0,
             });
 
-            if (!tx || !tx.meta || !tx.meta.logMessages) continue;
+            if (!tx) {
+              console.warn(`Transaction ${sig.signature.slice(0, 20)}... not found`);
+              continue;
+            }
 
-            const logs = tx.meta.logMessages;
+            if (!tx.meta) {
+              console.warn(`Transaction ${sig.signature.slice(0, 20)}... has no metadata`);
+              continue;
+            }
 
-            // Look for RewardsIssuedEvent in logs
-            // Anchor events are emitted as "Program data: <base64>" in logs
-            const eventLog = logs.find(log =>
-              log.includes("Program data:") &&
-              logs.some(l => l.includes("Issued") && l.includes("tokens"))
-            );
+            // Check if transaction was successful
+            if (tx.meta.err) {
+              console.log(`Transaction ${sig.signature.slice(0, 20)}... failed:`, tx.meta.err);
+              continue;
+            }
 
-            if (eventLog) {
-              // Parse the "Issued X tokens" log for amount
-              const issuedLog = logs.find(log => log.includes("Issued") && log.includes("tokens"));
+            // Check if this transaction involves our program
+            const involvesSolcityProgram = tx.transaction.message.getAccountKeys().staticAccountKeys
+              .some(key => key.equals(program.programId));
 
-              if (issuedLog) {
-                console.log("Found issued log:", issuedLog);
+            if (!involvesSolcityProgram) {
+              console.log(`Transaction ${sig.signature.slice(0, 20)}... doesn't involve Solcity program`);
+              continue;
+            }
 
-                // Extract data from log message
-                // Format: "Issued X tokens (purchase: $Y, tier: Z, tier_mult: Ax, rule_mult: Bx, rule_applied: true/false, fee: C lamports)"
-                const amountMatch = issuedLog.match(/Issued (\d+) tokens/);
-                const purchaseMatch = issuedLog.match(/purchase: \$([0-9.]+)/);
-                const tierMatch = issuedLog.match(/tier: (\w+)/);
-                const tierMultMatch = issuedLog.match(/tier_mult: ([0-9.]+)x/);
-                const ruleMultMatch = issuedLog.match(/rule_mult: ([0-9.]+)x/);
-                const ruleAppliedMatch = issuedLog.match(/rule_applied: (true|false)/);
+            console.log(`Processing transaction ${sig.signature.slice(0, 20)}...`);
+            console.log("Log messages:", tx.meta.logMessages?.length || 0);
 
-                if (amountMatch) {
-                  const amount = parseInt(amountMatch[1]);
-                  const purchaseAmount = purchaseMatch ? parseFloat(purchaseMatch[1]) : 0;
-                  const tier = tierMatch ? tierMatch[1] : "Bronze";
-                  const tierMult = tierMultMatch ? parseFloat(tierMultMatch[1]) : 1.0;
-                  const ruleMult = ruleMultMatch ? parseFloat(ruleMultMatch[1]) : 1.0;
-                  const ruleApplied = ruleAppliedMatch ? ruleAppliedMatch[1] === "true" : false;
+            // Parse events from transaction logs using Anchor's event parser
+            // parseLogs returns a generator, so convert to array
+            const parsedEvents = Array.from(eventParser.parseLogs(tx.meta.logMessages || []));
 
-                  // Try to extract customer wallet from accounts
-                  let customerWallet = "Unknown";
-                  if (tx.transaction.message.staticAccountKeys && tx.transaction.message.staticAccountKeys.length > 2) {
-                    // Customer account is typically one of the accounts
-                    customerWallet = tx.transaction.message.staticAccountKeys[2]?.toString() || "Unknown";
+            console.log(`Found ${parsedEvents.length} events in transaction`);
+
+            for (const event of parsedEvents) {
+              console.log("Event name:", event.name);
+
+              // Check if this is a RewardsIssuedEvent
+              if (event.name === "RewardsIssuedEvent") {
+                eventsFoundCount++;
+                const data = event.data as any;
+
+                console.log("RewardsIssuedEvent data:", {
+                  finalReward: data.finalReward?.toString(),
+                  customerWallet: data.customerWallet?.toString(),
+                  purchaseAmount: data.purchaseAmount?.toString(),
+                  tierMultiplier: data.tierMultiplier?.toString(),
+                  ruleMultiplier: data.ruleMultiplier?.toString(),
+                  ruleApplied: data.ruleApplied,
+                });
+
+                // Extract tier name from the tier enum
+                let tierName = "Bronze";
+                if (data.customerTier) {
+                  const tierKeys = Object.keys(data.customerTier);
+                  if (tierKeys.length > 0) {
+                    tierName = tierKeys[0].charAt(0).toUpperCase() + tierKeys[0].slice(1);
                   }
-
-                  events.push({
-                    signature: sig.signature,
-                    timestamp: sig.blockTime || Date.now() / 1000,
-                    customerWallet,
-                    amount,
-                    purchaseAmount,
-                    tierMultiplier: tierMult,
-                    ruleMultiplier: ruleMult,
-                    ruleApplied,
-                    customerTier: tier,
-                  });
-
-                  console.log(`Added event: ${amount} SLCY to ${customerWallet.slice(0, 8)}`);
                 }
+
+                events.push({
+                  signature: sig.signature,
+                  timestamp: sig.blockTime || Date.now() / 1000,
+                  customerWallet: data.customerWallet.toString(),
+                  amount: data.finalReward.toNumber(),
+                  purchaseAmount: data.purchaseAmount.toNumber() / 100, // Convert cents to dollars
+                  tierMultiplier: data.tierMultiplier.toNumber() / 100, // Convert basis points
+                  ruleMultiplier: data.ruleMultiplier.toNumber() / 100, // Convert basis points
+                  ruleApplied: data.ruleApplied,
+                  ruleName: data.ruleName || undefined,
+                  customerTier: tierName,
+                });
+
+                console.log(`✓ Added event: ${data.finalReward.toNumber()} SLCY to ${data.customerWallet.toString().slice(0, 8)}...`);
               }
             }
           } catch (err) {
-            console.error("Error parsing transaction:", err);
+            errorCount++;
+            console.error(`Error parsing transaction ${sig.signature.slice(0, 20)}...:`, err);
           }
         }
 
-        console.log(`Parsed ${events.length} issuance events`);
+        console.log("=== Processing Summary ===");
+        console.log(`Processed: ${processedCount}/${signatures.length} transactions`);
+        console.log(`Errors: ${errorCount}`);
+        console.log(`RewardsIssuedEvents found: ${eventsFoundCount}`);
+        console.log(`Final events array length: ${events.length}`);
+
         return events.sort((a, b) => b.timestamp - a.timestamp);
       } catch (error) {
         console.error("Error fetching issuance events:", error);
-        return [];
+        // Return existing data instead of empty array to prevent data loss
+        const existingData = queryClient.getQueryData(["merchantIssuanceEvents", merchantAuthority?.toString()]);
+        return existingData || [];
       }
     },
-    enabled: !!program && !!merchantPubkey,
-    staleTime: 5000, // 5 seconds - refetch more aggressively
-    refetchInterval: 15000, // Refetch every 15 seconds for near real-time updates
+    enabled: !!program && !!merchantAuthority,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
+    gcTime: Infinity, // Never garbage collect - keep data forever
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 }
