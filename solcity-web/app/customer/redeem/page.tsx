@@ -2,11 +2,11 @@
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState, useEffect } from "react";
-import { useAllRedemptionOffers } from "@/hooks/useAllRedemptionOffers";
-import { useSolcityProgram } from "@/hooks/useSolcityProgram";
-import { useCustomerAccount } from "@/hooks/useCustomerAccount";
-import { useRedeemRewards } from "@/hooks/useRedeemRewards";
-import { useCustomerVouchers, type Voucher } from "@/hooks/useCustomerVouchers";
+import { useAllRedemptionOffers } from "@/hooks/offers/useAllRedemptionOffers";
+import { useSolcityProgram } from "@/hooks/program/useSolcityProgram";
+import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import { useRedeemRewards } from "@/hooks/customer/useRedeemRewards";
+import { useCustomerVouchers, type Voucher } from "@/hooks/customer/useCustomerVouchers";
 import { useRouter } from "next/navigation";
 import { PublicKey } from "@solana/web3.js";
 import { Percent, Package, Coins, Ticket, Gift } from "lucide-react";

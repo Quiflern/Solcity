@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { useSolcityProgram } from "./useSolcityProgram";
+import { useSolcityProgram } from "../program/useSolcityProgram";
 import { PublicKey } from "@solana/web3.js";
 
 export interface IssuanceEvent {

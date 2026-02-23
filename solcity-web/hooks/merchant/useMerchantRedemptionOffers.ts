@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { useSolcityProgram } from "./useSolcityProgram";
+import { useSolcityProgram } from "../program/useSolcityProgram";
 
 export function useMerchantRedemptionOffers(merchantPubkey: PublicKey | null) {
   const { connection } = useConnection();

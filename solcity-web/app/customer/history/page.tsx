@@ -2,8 +2,8 @@
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState, useMemo } from "react";
-import { useCustomerAccount } from "@/hooks/useCustomerAccount";
-import { useTransactionHistory } from "@/hooks/useTransactionHistory";
+import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import { useTransactionHistory } from "@/hooks/customer/useTransactionHistory";
 import { getTierInfo } from "@/lib/tiers";
 
 export default function HistoryPage() {

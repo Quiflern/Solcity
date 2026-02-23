@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useSolcityProgram } from "./useSolcityProgram";
+import { useSolcityProgram } from "../program/useSolcityProgram";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
 export function useMerchantAccount() {

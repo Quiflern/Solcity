@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useSolcityProgram } from "./useSolcityProgram";
+import { useSolcityProgram } from "../program/useSolcityProgram";
 import { PublicKey } from "@solana/web3.js";
 
 interface Transaction {

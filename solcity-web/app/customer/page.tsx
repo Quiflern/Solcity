@@ -2,7 +2,7 @@
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useCustomerAccount } from "@/hooks/useCustomerAccount";
+import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
 import Link from "next/link";
 import { useEffect, useState } from "react";

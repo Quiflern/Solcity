@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { BN } from "@coral-xyz/anchor";
-import { useSolcityProgram } from "./useSolcityProgram";
+import { useSolcityProgram } from "../program/useSolcityProgram";
 import { getLoyaltyProgramPDA, getMerchantPDA, getRewardRulePDA } from "@/lib/anchor/pdas";
 
 export type RuleType =

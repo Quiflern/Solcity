@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useMemo } from "react";
-import { useAllMerchants } from "@/hooks/useAllMerchants";
+import { useAllMerchants } from "@/hooks/merchant/useAllMerchants";
 
 export default function ExploreMerchantsPage() {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -179,7 +179,7 @@ export default function ExploreMerchantsPage() {
                     Total Issued
                   </span>
                   <span className="text-base font-semibold text-accent">
-                    {formatNumber(merchant.totalIssued / 1e6)} SLCY
+                    {formatNumber(merchant.totalIssued)} SLCY
                   </span>
                 </div>
               </div>

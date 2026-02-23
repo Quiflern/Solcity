@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMerchantAccount } from "@/hooks/useMerchantAccount";
-import { useMerchantUpdate } from "@/hooks/useMerchantUpdate";
-import { useMerchantClose } from "@/hooks/useMerchantClose";
-import { useMerchantRewardRules } from "@/hooks/useMerchantRewardRules";
+import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantUpdate } from "@/hooks/merchant/useMerchantUpdate";
+import { useMerchantClose } from "@/hooks/merchant/useMerchantClose";
+import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
 import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";

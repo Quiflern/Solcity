@@ -2,9 +2,9 @@
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useCustomerAccount } from "@/hooks/useCustomerAccount";
-import { useAllMerchants } from "@/hooks/useAllMerchants";
-import { useCustomerVouchers, type Voucher } from "@/hooks/useCustomerVouchers";
+import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import { useAllMerchants } from "@/hooks/merchant/useAllMerchants";
+import { useCustomerVouchers, type Voucher } from "@/hooks/customer/useCustomerVouchers";
 import { getTierInfo, calculateTierProgress } from "@/lib/tiers";
 import Link from "next/link";
 import { useState } from "react";

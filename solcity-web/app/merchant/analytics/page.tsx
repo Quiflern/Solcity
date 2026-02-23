@@ -3,7 +3,7 @@
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMerchantAccount } from "@/hooks/useMerchantAccount";
+import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
 
 export default function MerchantAnalyticsPage() {
   const { publicKey } = useWallet();

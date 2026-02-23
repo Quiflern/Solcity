@@ -3,9 +3,9 @@
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";
 import { useState } from "react";
-import { useMerchantRegister } from "@/hooks/useMerchantRegister";
-import { useMerchantAccount } from "@/hooks/useMerchantAccount";
-import { useLoyaltyProgram } from "@/hooks/useLoyaltyProgram";
+import { useMerchantRegister } from "@/hooks/merchant/useMerchantRegister";
+import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useLoyaltyProgram } from "@/hooks/program/useLoyaltyProgram";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { toast } from "sonner";
 import Link from "next/link";
