@@ -1,4 +1,4 @@
-use crate::{LoyaltyProgram, Merchant, SolcityError, MERCHANT_REGISTRATION_FEE};
+use crate::{LoyaltyProgram, Merchant, MerchantRegisteredEvent, SolcityError, MERCHANT_REGISTRATION_FEE};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
@@ -95,6 +95,15 @@ pub fn handler(
         .total_fees_collected
         .checked_add(MERCHANT_REGISTRATION_FEE)
         .ok_or(SolcityError::Overflow)?;
+
+    // Emit merchant registered event
+    emit!(MerchantRegisteredEvent {
+        merchant: merchant.key(),
+        authority: ctx.accounts.merchant_authority.key(),
+        name: name.clone(),
+        reward_rate,
+        timestamp: clock.unix_timestamp,
+    });
 
     msg!(
         "Merchant '{}' registered with reward rate: {} tokens/$ (Fee: {} lamports)",

@@ -1,4 +1,4 @@
-use crate::{Customer, CustomerTier, LoyaltyProgram, SolcityError};
+use crate::{Customer, CustomerRegisteredEvent, CustomerTier, LoyaltyProgram, SolcityError};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_2022::Token2022;
@@ -69,6 +69,14 @@ pub fn handler(ctx: Context<RegisterCustomer>) -> Result<()> {
         .total_customers
         .checked_add(1)
         .ok_or(SolcityError::Overflow)?;
+
+    // Emit customer registered event
+    emit!(CustomerRegisteredEvent {
+        customer: customer.key(),
+        wallet: ctx.accounts.customer_authority.key(),
+        merchant: loyalty_program.key(), // Using loyalty program as merchant reference
+        timestamp: clock.unix_timestamp,
+    });
 
     msg!("Customer registered with Bronze tier");
 

@@ -2,11 +2,13 @@ use anchor_lang::prelude::*;
 
 pub mod constants;
 pub mod errors;
+pub mod events;
 pub mod instructions;
 pub mod state;
 
 pub use constants::*;
 pub use errors::*;
+pub use events::*;
 #[allow(ambiguous_glob_reexports)]
 pub use instructions::*;
 pub use state::*;

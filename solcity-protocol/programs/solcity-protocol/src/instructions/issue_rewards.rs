@@ -1,5 +1,6 @@
 use crate::{
-    Customer, LoyaltyProgram, Merchant, RewardRule, SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
+    Customer, LoyaltyProgram, Merchant, RewardRule, RewardsIssuedEvent, TierUpgradeEvent,
+    SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
@@ -78,6 +79,11 @@ pub fn handler(
 ) -> Result<()> {
     require!(purchase_amount > 0, SolcityError::InvalidRewardAmount);
 
+    // Get keys before mutable borrows
+    let customer_key = ctx.accounts.customer.key();
+    let merchant_key = ctx.accounts.merchant.key();
+    let merchant_authority_key = ctx.accounts.merchant_authority.key();
+
     let merchant = &mut ctx.accounts.merchant;
     let customer = &mut ctx.accounts.customer;
     let loyalty_program = &mut ctx.accounts.loyalty_program;
@@ -105,6 +111,7 @@ pub fn handler(
     // Apply reward rule if provided
     let mut rule_applied = false;
     let mut rule_multiplier = 100u64; // Default 1.0x
+    let mut rule_name: Option<String> = None;
     
     msg!("Checking reward_rule account: {}", ctx.accounts.reward_rule.key);
     msg!("System program ID: {}", System::id());
@@ -146,6 +153,7 @@ pub fn handler(
                             
                             rule_applied = true;
                             rule_multiplier = rule.multiplier;
+                            rule_name = Some(rule.name.clone());
                             msg!("Applied rule '{}' with {}x multiplier", rule.name, rule.multiplier as f64 / 100.0);
                         } else {
                             msg!("Rule not applied: purchase amount ${} below minimum ${}", 
@@ -238,12 +246,42 @@ pub fn handler(
         .ok_or(SolcityError::Overflow)?;
 
     // Check for tier upgrade
+    let old_tier = customer.tier.clone();
     let new_tier = Customer::calculate_tier(customer.total_earned);
+    let customer_wallet = customer.wallet;
+    
     if new_tier != customer.tier {
-        let old_tier = customer.tier.clone();
         customer.tier = new_tier.clone();
         msg!("Customer upgraded from {:?} to {:?}", old_tier, new_tier);
+        
+        // Emit tier upgrade event
+        emit!(TierUpgradeEvent {
+            customer: customer_key,
+            customer_wallet,
+            old_tier,
+            new_tier: new_tier.clone(),
+            total_earned: customer.total_earned,
+            timestamp: clock.unix_timestamp,
+        });
     }
+
+    // Emit rewards issued event
+    emit!(RewardsIssuedEvent {
+        merchant: merchant_key,
+        merchant_authority: merchant_authority_key,
+        customer: customer_key,
+        customer_wallet,
+        purchase_amount,
+        base_reward,
+        tier_multiplier,
+        rule_multiplier,
+        rule_applied,
+        rule_name,
+        final_reward,
+        customer_tier: customer.tier.clone(),
+        platform_fee,
+        timestamp: clock.unix_timestamp,
+    });
 
     msg!(
         "Issued {} tokens (purchase: ${}, tier: {:?}, tier_mult: {}x, rule_mult: {}x, rule_applied: {}, fee: {} lamports)",

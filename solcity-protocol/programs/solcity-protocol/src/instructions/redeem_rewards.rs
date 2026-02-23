@@ -1,4 +1,4 @@
-use crate::{Customer, LoyaltyProgram, Merchant, RedemptionOffer, RedemptionType, RedemptionVoucher, SolcityError};
+use crate::{Customer, LoyaltyProgram, Merchant, RedemptionOffer, RedemptionVoucher, RewardsRedeemedEvent, SolcityError};
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
@@ -166,9 +166,10 @@ pub fn handler(ctx: Context<RedeemRewards>, voucher_seed: u64) -> Result<()> {
     customer.last_activity = clock.unix_timestamp;
 
     // Emit event for off-chain processing
-    emit!(RedemptionEvent {
-        customer: customer.wallet,
-        merchant: merchant.authority,
+    emit!(RewardsRedeemedEvent {
+        customer: customer.key(),
+        customer_wallet: ctx.accounts.customer_authority.key(),
+        merchant: merchant.key(),
         offer_name,
         amount: offer_cost,
         redemption_type: offer_type,
@@ -180,16 +181,4 @@ pub fn handler(ctx: Context<RedeemRewards>, voucher_seed: u64) -> Result<()> {
     msg!("Redeemed {} tokens for offer, voucher created", offer_cost);
 
     Ok(())
-}
-
-#[event]
-pub struct RedemptionEvent {
-    pub customer: Pubkey,
-    pub merchant: Pubkey,
-    pub offer_name: String,
-    pub amount: u64,
-    pub redemption_type: RedemptionType,
-    pub redemption_code: String,
-    pub voucher: Pubkey,
-    pub timestamp: i64,
 }
