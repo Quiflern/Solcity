@@ -1,58 +1,95 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAllMerchants } from "@/hooks/merchant/useAllMerchants";
 
+/**
+ * Explore Merchants Page
+ *
+ * Marketplace for discovering and browsing all active merchants in the Solcity network.
+ *
+ * Features:
+ * - Search functionality to find merchants by name
+ * - Category filtering (Food & Drink, Retail, Services, etc.)
+ * - Merchant cards showing key information:
+ *   - Business name and avatar
+ *   - Reward rate (SLCY per dollar spent)
+ *   - Total rewards issued
+ *   - Join date
+ * - Click-through to detailed merchant pages
+ *
+ * @returns Merchant discovery and browsing interface
+ */
 export default function ExploreMerchantsPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const { merchants, isLoading, error } = useAllMerchants();
 
-  // Get unique categories from merchants
+  /**
+   * Extracts unique categories from all merchants
+   * @returns Sorted array of unique category names
+   */
   const categories = useMemo(() => {
-    const uniqueCategories = new Set(merchants.map(m => m.category));
+    const uniqueCategories = new Set(merchants.map((m) => m.category));
     return Array.from(uniqueCategories).sort();
   }, [merchants]);
 
-  // Generate avatar URL from code or custom URL
+  /**
+   * Generates an avatar URL from merchant data
+   * @param avatarCode - Avatar identifier or URL from merchant
+   * @param businessName - Merchant business name for fallback generation
+   * @returns Complete avatar URL
+   */
   const getAvatarUrl = (avatarCode: string, businessName: string) => {
     if (!avatarCode) {
       return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(businessName)}&backgroundColor=d0ff14`;
     }
-    if (avatarCode.startsWith('http://') || avatarCode.startsWith('https://')) {
+    if (avatarCode.startsWith("http://") || avatarCode.startsWith("https://")) {
       return avatarCode;
     }
     return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(avatarCode)}&backgroundColor=d0ff14`;
   };
 
-  // Filter merchants based on active filter and search query
+  /**
+   * Filters merchants based on category and search query
+   * @returns Filtered array of active merchants
+   */
   const filteredMerchants = useMemo(() => {
-    let filtered = merchants.filter(m => m.isActive);
+    let filtered = merchants.filter((m) => m.isActive);
 
     // Apply category filter
     if (activeFilter !== "all") {
-      filtered = filtered.filter(m => m.category === activeFilter);
+      filtered = filtered.filter((m) => m.category === activeFilter);
     }
 
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(m =>
-        m.name.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter((m) => m.name.toLowerCase().includes(query));
     }
 
     return filtered;
   }, [merchants, activeFilter, searchQuery]);
 
-  // Format date
+  /**
+   * Formats a Unix timestamp to readable date string
+   * @param timestamp - Unix timestamp in seconds
+   * @returns Formatted date string (e.g., "Jan 2024")
+   */
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
   };
 
-  // Format number with K/M suffix
+  /**
+   * Formats large numbers with K/M suffix
+   * @param num - Number to format
+   * @returns Formatted string (e.g., "1.5K", "2.3M")
+   */
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
@@ -65,7 +102,6 @@ export default function ExploreMerchantsPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-
       {/* Header */}
       <header className="py-16 px-8 pb-8 max-w-[1400px] mx-auto w-full">
         <h1 className="text-[2.5rem] font-medium tracking-tight mb-4">
@@ -90,24 +126,28 @@ export default function ExploreMerchantsPage() {
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
-            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === "all"
-              ? "text-accent border-accent"
-              : "text-text-secondary border-transparent hover:text-text"
-              }`}
+            className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+              activeFilter === "all"
+                ? "text-accent border-accent"
+                : "text-text-secondary border-transparent hover:text-text"
+            }`}
           >
-            All Merchants ({merchants.filter(m => m.isActive).length})
+            All Merchants ({merchants.filter((m) => m.isActive).length})
           </button>
           {categories.map((category) => {
-            const count = merchants.filter(m => m.isActive && m.category === category).length;
+            const count = merchants.filter(
+              (m) => m.isActive && m.category === category,
+            ).length;
             return (
               <button
                 key={category}
                 type="button"
                 onClick={() => setActiveFilter(category)}
-                className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${activeFilter === category
-                  ? "text-accent border-accent"
-                  : "text-text-secondary border-transparent hover:text-text"
-                  }`}
+                className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+                  activeFilter === category
+                    ? "text-accent border-accent"
+                    : "text-text-secondary border-transparent hover:text-text"
+                }`}
               >
                 {category} ({count})
               </button>
@@ -136,7 +176,9 @@ export default function ExploreMerchantsPage() {
           <div className="col-span-full flex items-center justify-center py-20">
             <div className="text-center">
               <p className="text-text-secondary">
-                {searchQuery ? "No merchants found matching your search" : "No merchants available yet"}
+                {searchQuery
+                  ? "No merchants found matching your search"
+                  : "No merchants available yet"}
               </p>
             </div>
           </div>
@@ -148,6 +190,7 @@ export default function ExploreMerchantsPage() {
               className="bg-panel border border-border rounded-xl p-6 transition-all duration-300 cursor-pointer flex flex-col gap-6 relative overflow-hidden hover:-translate-y-1.5 hover:border-accent hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] after:content-[''] after:absolute after:top-0 after:right-0 after:w-20 after:h-20 after:bg-[radial-gradient(circle_at_top_right,rgba(208,255,20,0.05),transparent_70%)]"
             >
               <div className="flex gap-4 items-center">
+                {/* biome-ignore lint/performance/noImgElement: Avatar from external source */}
                 <img
                   src={getAvatarUrl(merchant.avatarUrl, merchant.name)}
                   alt={merchant.name}
@@ -196,7 +239,6 @@ export default function ExploreMerchantsPage() {
           ))
         )}
       </main>
-
     </div>
   );
 }

@@ -1,21 +1,23 @@
 "use client";
 
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import { Gift } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PublicKey } from "@solana/web3.js";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useSolcityProgram } from "@/hooks/program/useSolcityProgram";
-import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
-import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
-import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
-import { useMerchantRedemptionOffers } from "@/hooks/merchant/useMerchantRedemptionOffers";
-import { IconRenderer } from "@/contexts/IconPickerContext";
-import { Gift } from "lucide-react";
-import Card from "@/components/ui/Card";
 import { toast } from "sonner";
-import { useConnection } from "@solana/wallet-adapter-react";
+import Card from "@/components/ui/Card";
+import { IconRenderer } from "@/contexts/IconPickerContext";
+import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantRedemptionOffers } from "@/hooks/merchant/useMerchantRedemptionOffers";
+import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
+import { useSolcityProgram } from "@/hooks/program/useSolcityProgram";
 
+/**
+ * Merchant data structure fetched from blockchain
+ */
 interface MerchantData {
   publicKey: PublicKey;
   authority: PublicKey;
@@ -31,6 +33,24 @@ interface MerchantData {
   createdAt: number;
 }
 
+/**
+ * Merchant Detail Page
+ *
+ * Displays comprehensive information about a specific merchant including:
+ * - Business details and description
+ * - Reward rules and earning rates
+ * - Available redemption offers
+ * - Registration functionality for customers
+ * - QR code for merchant scanning
+ * - On-chain statistics
+ *
+ * Features different views for:
+ * - Merchant owners (shows their QR code)
+ * - Registered customers (shows registered status)
+ * - Unregistered visitors (shows registration CTA)
+ *
+ * @returns Merchant detail page with registration and rewards information
+ */
 export default function MerchantDetailPage() {
   const params = useParams();
   const merchantId = params.merchantId as string;
@@ -46,15 +66,17 @@ export default function MerchantDetailPage() {
 
   // Fetch reward rules for this merchant
   const { data: rules = [], isLoading: rulesLoading } = useMerchantRewardRules(
-    merchant ? merchant.publicKey : null
+    merchant ? merchant.publicKey : null,
   );
 
   // Fetch redemption offers for this merchant
-  const { data: offers = [], isLoading: offersLoading } = useMerchantRedemptionOffers(
-    merchant ? merchant.publicKey : null
-  );
+  const { data: offers = [], isLoading: offersLoading } =
+    useMerchantRedemptionOffers(merchant ? merchant.publicKey : null);
 
-  // Handle customer registration
+  /**
+   * Handles customer registration at this merchant
+   * Creates a customer account on-chain linked to the merchant's loyalty program
+   */
   const handleRegisterCustomer = async () => {
     if (!program || !publicKey) {
       toast.error("Please connect your wallet first");
@@ -66,18 +88,25 @@ export default function MerchantDetailPage() {
       return;
     }
 
+    if (!merchant) {
+      toast.error("Merchant data not loaded");
+      return;
+    }
+
     setIsRegistering(true);
     const loadingToast = toast.loading("Registering as customer...");
 
     try {
-      const [loyaltyProgram] = await program.account.merchant.fetch(merchant!.publicKey).then(m => [m.loyaltyProgram]);
+      // Fetch loyalty program from merchant account (not currently used but validates merchant exists)
+      await program.account.merchant
+        .fetch(merchant.publicKey)
+        .then((m) => m.loyaltyProgram);
 
       const tx = await program.methods
         .registerCustomer()
         .accounts({
           customerAuthority: publicKey,
-          loyaltyProgram: loyaltyProgram,
-        } as any)
+        })
         .rpc();
 
       // Wait for confirmation
@@ -95,16 +124,18 @@ export default function MerchantDetailPage() {
 
       // Refetch customer account
       setTimeout(() => refetchCustomer(), 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Registration error:", err);
       toast.dismiss(loadingToast);
 
-      if (err.message?.includes("already in use")) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+
+      if (errorMessage.includes("already in use")) {
         toast.info("You're already registered!", { duration: 4000 });
         refetchCustomer();
       } else {
         toast.error("Registration failed", {
-          description: err.message || "Please try again",
+          description: errorMessage || "Please try again",
           duration: 5000,
         });
       }
@@ -113,6 +144,9 @@ export default function MerchantDetailPage() {
     }
   };
 
+  /**
+   * Fetches merchant data from blockchain when component mounts or merchantId changes
+   */
   useEffect(() => {
     const fetchMerchant = async () => {
       if (!program || !merchantId) return;
@@ -122,8 +156,10 @@ export default function MerchantDetailPage() {
         setError(null);
 
         const merchantPubkey = new PublicKey(merchantId);
-        const merchantAccount = await program.account.merchant.fetch(merchantPubkey);
+        const merchantAccount =
+          await program.account.merchant.fetch(merchantPubkey);
 
+        // Transform blockchain data to component state format
         setMerchant({
           publicKey: merchantPubkey,
           authority: merchantAccount.authority,
@@ -138,9 +174,11 @@ export default function MerchantDetailPage() {
           isActive: merchantAccount.isActive,
           createdAt: merchantAccount.createdAt.toNumber(),
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error fetching merchant:", err);
-        setError(err.message || "Failed to load merchant");
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load merchant";
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -154,7 +192,7 @@ export default function MerchantDetailPage() {
     if (!avatarCode) {
       return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(businessName)}&backgroundColor=d0ff14`;
     }
-    if (avatarCode.startsWith('http://') || avatarCode.startsWith('https://')) {
+    if (avatarCode.startsWith("http://") || avatarCode.startsWith("https://")) {
       return avatarCode;
     }
     return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(avatarCode)}&backgroundColor=d0ff14`;
@@ -163,7 +201,7 @@ export default function MerchantDetailPage() {
   // Format date
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
   // Format number with K/M suffix
@@ -204,11 +242,10 @@ export default function MerchantDetailPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-500 mb-2">Failed to load merchant</p>
-            <p className="text-text-secondary text-sm mb-4">{error || "Merchant not found"}</p>
-            <Link
-              href="/explore"
-              className="text-accent hover:underline"
-            >
+            <p className="text-text-secondary text-sm mb-4">
+              {error || "Merchant not found"}
+            </p>
+            <Link href="/explore" className="text-accent hover:underline">
               Back to Explore
             </Link>
           </div>
@@ -219,7 +256,6 @@ export default function MerchantDetailPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-
       {/* Content */}
       <div className="max-w-[1400px] mx-auto px-8 py-12">
         {/* Back Button */}
@@ -227,7 +263,15 @@ export default function MerchantDetailPage() {
           href="/explore"
           className="inline-flex items-center gap-2 text-text-secondary hover:text-accent transition-colors mb-8"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           Back to Explore
@@ -236,6 +280,7 @@ export default function MerchantDetailPage() {
         {/* Merchant Header */}
         <header className="flex gap-10 mb-16 items-start">
           <div className="w-[120px] h-[120px] bg-panel border border-border flex items-center justify-center rounded-xl overflow-hidden">
+            {/* biome-ignore lint/performance/noImgElement: Avatar from external source */}
             <img
               src={getAvatarUrl(merchant.avatarUrl, merchant.name)}
               alt={merchant.name}
@@ -247,7 +292,9 @@ export default function MerchantDetailPage() {
               {merchant.category}
             </span>
             <div className="flex items-center gap-3 mb-4">
-              <h1 className="text-4xl font-medium tracking-tight">{merchant.name}</h1>
+              <h1 className="text-4xl font-medium tracking-tight">
+                {merchant.name}
+              </h1>
               <div className="bg-accent text-black text-[10px] font-extrabold px-2 py-1 rounded-sm tracking-wider">
                 VERIFIED
               </div>
@@ -264,19 +311,25 @@ export default function MerchantDetailPage() {
         {/* Program Summary */}
         <div className="grid grid-cols-3 gap-px bg-border border border-border mb-16">
           <div className="bg-panel p-8">
-            <span className="text-[0.7rem] uppercase text-text-secondary mb-2 block">Base Reward Rate</span>
+            <span className="text-[0.7rem] uppercase text-text-secondary mb-2 block">
+              Base Reward Rate
+            </span>
             <div className="text-2xl font-semibold text-accent">
               {(merchant.rewardRate / 100).toFixed(1)} SLCY / $
             </div>
           </div>
           <div className="bg-panel p-8">
-            <span className="text-[0.7rem] uppercase text-text-secondary mb-2 block">Total Issued</span>
+            <span className="text-[0.7rem] uppercase text-text-secondary mb-2 block">
+              Total Issued
+            </span>
             <div className="text-2xl font-semibold text-accent">
               {formatNumber(merchant.totalIssued / 1e9)} SLCY
             </div>
           </div>
           <div className="bg-panel p-8">
-            <span className="text-[0.7rem] uppercase text-text-secondary mb-2 block">Active Rules</span>
+            <span className="text-[0.7rem] uppercase text-text-secondary mb-2 block">
+              Active Rules
+            </span>
             <div className="text-2xl font-semibold text-accent">
               {activeRules.length}
             </div>
@@ -291,7 +344,8 @@ export default function MerchantDetailPage() {
             <section className="mb-12">
               <h2 className="text-xl font-medium mb-8 flex items-center gap-3">
                 <span className="w-1 h-[18px] bg-accent" />
-                Redemption Offers ({offers.filter(o => o.isActive).length} available)
+                Redemption Offers ({offers.filter((o) => o.isActive).length}{" "}
+                available)
               </h2>
               {offersLoading ? (
                 <div className="text-center py-8">
@@ -300,27 +354,38 @@ export default function MerchantDetailPage() {
               ) : offers.length === 0 ? (
                 <div className="bg-panel border border-border p-8 text-center rounded-lg">
                   <Gift className="w-12 h-12 text-text-secondary mx-auto mb-3 opacity-50" />
-                  <p className="text-text-secondary">No redemption offers available yet</p>
+                  <p className="text-text-secondary">
+                    No redemption offers available yet
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   {offers
-                    .filter(offer => offer.isActive)
+                    .filter((offer) => offer.isActive)
                     .map((offer) => {
                       const now = Date.now() / 1000;
-                      const isExpired = offer.expiration && offer.expiration.toNumber() < now;
-                      const isSoldOut = offer.quantityLimit && offer.quantityClaimed >= offer.quantityLimit;
+                      const isExpired =
+                        offer.expiration && offer.expiration.toNumber() < now;
+                      const isSoldOut =
+                        offer.quantityLimit &&
+                        offer.quantityClaimed >= offer.quantityLimit;
                       const isAvailable = !isExpired && !isSoldOut;
 
                       return (
                         <div
                           key={offer.publicKey.toString()}
-                          className={`bg-panel border p-6 transition-all hover:-translate-y-0.5 rounded-lg ${isAvailable ? 'border-border hover:border-accent' : 'border-border/50 opacity-60'
-                            }`}
+                          className={`bg-panel border p-6 transition-all hover:-translate-y-0.5 rounded-lg ${
+                            isAvailable
+                              ? "border-border hover:border-accent"
+                              : "border-border/50 opacity-60"
+                          }`}
                         >
                           <div className="flex items-start justify-between mb-4">
                             {offer.icon ? (
-                              <IconRenderer icon={offer.icon} className="w-8 h-8 text-accent" />
+                              <IconRenderer
+                                icon={offer.icon}
+                                className="w-8 h-8 text-accent"
+                              />
                             ) : (
                               <Gift className="w-8 h-8 text-accent" />
                             )}
@@ -330,23 +395,29 @@ export default function MerchantDetailPage() {
                               </span>
                               {!isAvailable && (
                                 <span className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">
-                                  {isSoldOut ? 'Sold Out' : 'Expired'}
+                                  {isSoldOut ? "Sold Out" : "Expired"}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <h4 className="text-base mb-2 font-semibold">{offer.name}</h4>
+                          <h4 className="text-base mb-2 font-semibold">
+                            {offer.name}
+                          </h4>
                           <p className="text-sm text-text-secondary mb-3 line-clamp-2">
                             {offer.description}
                           </p>
                           {offer.quantityLimit && (
                             <div className="text-xs text-text-secondary mb-2">
-                              {offer.quantityClaimed.toString()} / {offer.quantityLimit.toString()} claimed
+                              {offer.quantityClaimed.toString()} /{" "}
+                              {offer.quantityLimit.toString()} claimed
                             </div>
                           )}
                           {offer.expiration && (
                             <div className="text-xs text-text-secondary">
-                              Expires: {new Date(offer.expiration.toNumber() * 1000).toLocaleDateString()}
+                              Expires:{" "}
+                              {new Date(
+                                offer.expiration.toNumber() * 1000,
+                              ).toLocaleDateString()}
                             </div>
                           )}
                         </div>
@@ -375,7 +446,7 @@ export default function MerchantDetailPage() {
                   {rules.map((rule) => (
                     <Card
                       key={rule.ruleId.toString()}
-                      className={`${!rule.isActive ? 'opacity-60' : ''}`}
+                      className={`${!rule.isActive ? "opacity-60" : ""}`}
                     >
                       <div className="flex items-start justify-between mb-4">
                         <svg
@@ -383,6 +454,7 @@ export default function MerchantDetailPage() {
                           fill="none"
                           viewBox="0 0 24 24"
                           strokeWidth="2"
+                          aria-hidden="true"
                         >
                           <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -397,12 +469,15 @@ export default function MerchantDetailPage() {
                           )}
                         </div>
                       </div>
-                      <h4 className="text-base mb-2 font-semibold">{rule.name}</h4>
+                      <h4 className="text-base mb-2 font-semibold">
+                        {rule.name}
+                      </h4>
                       <p className="text-sm text-text-secondary mb-3">
                         Min Purchase: ${(rule.minPurchase / 100).toFixed(2)}
                       </p>
                       <div className="text-xs text-text-secondary">
-                        {new Date(rule.startTime * 1000).toLocaleDateString()} - {new Date(rule.endTime * 1000).toLocaleDateString()}
+                        {new Date(rule.startTime * 1000).toLocaleDateString()} -{" "}
+                        {new Date(rule.endTime * 1000).toLocaleDateString()}
                       </div>
                     </Card>
                   ))}
@@ -419,23 +494,33 @@ export default function MerchantDetailPage() {
               <div className="bg-panel border border-border p-8 rounded-lg">
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <p className="text-sm text-text-secondary mb-2">Total Tokens Issued</p>
+                    <p className="text-sm text-text-secondary mb-2">
+                      Total Tokens Issued
+                    </p>
                     <p className="text-2xl font-semibold text-accent">
                       {formatNumber(merchant.totalIssued / 1e9)} SLCY
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-text-secondary mb-2">Total Tokens Redeemed</p>
+                    <p className="text-sm text-text-secondary mb-2">
+                      Total Tokens Redeemed
+                    </p>
                     <p className="text-2xl font-semibold text-accent">
                       {formatNumber(merchant.totalRedeemed / 1e9)} SLCY
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-text-secondary mb-2">Redemption Rate</p>
+                    <p className="text-sm text-text-secondary mb-2">
+                      Redemption Rate
+                    </p>
                     <p className="text-2xl font-semibold text-accent">
                       {merchant.totalIssued > 0
-                        ? ((merchant.totalRedeemed / merchant.totalIssued) * 100).toFixed(1)
-                        : "0"}%
+                        ? (
+                            (merchant.totalRedeemed / merchant.totalIssued) *
+                            100
+                          ).toFixed(1)
+                        : "0"}
+                      %
                     </p>
                   </div>
                   <div>
@@ -454,11 +539,16 @@ export default function MerchantDetailPage() {
             {merchant && (
               <>
                 {/* CTA Widget with QR Code or Register Button */}
-                {publicKey && merchantAccount?.publicKey && merchantAccount.publicKey.toString() === merchant.publicKey.toString() ? (
+                {publicKey &&
+                merchantAccount &&
+                merchant.authority.toString() === publicKey.toString() ? (
                   // Show QR code for the merchant owner
                   <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
-                    <h3 className="text-xl font-bold mb-6">Your Merchant QR Code</h3>
+                    <h3 className="text-xl font-bold mb-6">
+                      Your Merchant QR Code
+                    </h3>
                     <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
+                      {/* biome-ignore lint/performance/noImgElement: External QR code API requires img element */}
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
                         alt="Merchant QR Code"
@@ -466,19 +556,24 @@ export default function MerchantDetailPage() {
                       />
                     </div>
                     <p className="text-sm opacity-80">
-                      Customers scan this code to register and earn rewards at your business.
+                      Customers scan this code to register and earn rewards at
+                      your business.
                     </p>
                     <div className="mt-4 pt-4 border-t border-black/20">
                       <p className="text-xs opacity-60">
-                        As the merchant owner, you cannot register as a customer at your own store.
+                        As the merchant owner, you cannot register as a customer
+                        at your own store.
                       </p>
                     </div>
                   </div>
                 ) : (
                   // Show register/earn CTA for customers
                   <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
-                    <h3 className="text-xl font-bold mb-6">Start Earning Here</h3>
+                    <h3 className="text-xl font-bold mb-6">
+                      Start Earning Here
+                    </h3>
                     <div className="w-[180px] h-[180px] bg-white mx-auto mb-6 flex items-center justify-center p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.1)]">
+                      {/* biome-ignore lint/performance/noImgElement: External QR code API requires img element */}
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(merchant.publicKey.toString())}`}
                         alt="Merchant QR Code"
@@ -489,10 +584,21 @@ export default function MerchantDetailPage() {
                       customerAccount ? (
                         <div className="bg-black/20 border border-black/30 rounded-lg p-4 mb-4">
                           <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
+                              />
                             </svg>
-                            <span className="font-semibold">You're Registered!</span>
+                            <span className="font-semibold">
+                              You're Registered!
+                            </span>
                           </div>
                           <p className="text-sm opacity-80">
                             Start earning rewards on your next purchase
@@ -505,15 +611,16 @@ export default function MerchantDetailPage() {
                           disabled={isRegistering}
                           className="bg-black text-accent px-6 py-3 rounded-lg font-semibold hover:bg-black/90 transition-colors w-full mb-4 disabled:opacity-50"
                         >
-                          {isRegistering ? "Registering..." : "Register to Earn Rewards"}
+                          {isRegistering
+                            ? "Registering..."
+                            : "Register to Earn Rewards"}
                         </button>
                       )
                     ) : (
-                      <>
-                        <p className="text-sm opacity-80 mb-4">
-                          Connect your wallet to register and start earning rewards at this merchant.
-                        </p>
-                      </>
+                      <p className="text-sm opacity-80 mb-4">
+                        Connect your wallet to register and start earning
+                        rewards at this merchant.
+                      </p>
                     )}
                     <p className="text-sm opacity-80">
                       Scan this code at checkout to earn rewards instantly.
@@ -561,7 +668,15 @@ export default function MerchantDetailPage() {
                     className="text-accent text-xs flex items-center gap-1.5 mt-4 hover:underline"
                   >
                     View on Solana Explorer
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden="true"
+                    >
                       <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
                     </svg>
                   </a>
@@ -571,7 +686,6 @@ export default function MerchantDetailPage() {
           </aside>
         </div>
       </div>
-
     </div>
   );
 }
