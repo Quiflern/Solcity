@@ -167,6 +167,8 @@ export default function RedeemPage() {
         isMock: false,
         publicKey: offer.publicKey.toString(),
         merchantPubkey: offer.merchant.toString(),
+        quantityLimit: offer.quantityLimit ? offer.quantityLimit.toNumber() : null,
+        quantityClaimed: offer.quantityClaimed.toNumber(),
       };
     });
 
@@ -312,6 +314,21 @@ export default function RedeemPage() {
                             </p>
                           </div>
                         </div>
+
+                        {/* Quantity indicator */}
+                        {(reward as any).quantityLimit !== undefined && (reward as any).quantityLimit !== null ? (
+                          <div className="mb-4 flex items-center justify-between text-xs">
+                            <span className="text-text-secondary">Available</span>
+                            <span className="font-semibold text-text">
+                              {Math.max(0, (reward as any).quantityLimit - (reward as any).quantityClaimed)} / {(reward as any).quantityLimit}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mb-4 flex items-center justify-between text-xs">
+                            <span className="text-text-secondary">Available</span>
+                            <span className="font-semibold text-accent">Unlimited</span>
+                          </div>
+                        )}
 
                         {reward.available ? (
                           <button
