@@ -3,6 +3,7 @@
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import { useTransactionHistory } from "@/hooks/customer/useTransactionHistory";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -11,34 +12,10 @@ import { getTierInfo, calculateTierProgress } from "@/lib/tiers";
 export default function CustomerDashboard() {
   const { publicKey } = useWallet();
   const { customerAccount, isRegistered, isLoading } = useCustomerAccount();
+  const { data: transactions = [], isLoading: txLoading } = useTransactionHistory();
 
-  // Mock transactions - will be replaced with real data later
-  const recentTransactions = [
-    {
-      id: "1",
-      merchant: "Solana Coffee",
-      type: "Reward",
-      amount: 45.0,
-      date: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      signature: "5x9A...k7Wp",
-    },
-    {
-      id: "2",
-      merchant: "Elite Fitness",
-      type: "Redeem",
-      amount: -150.0,
-      date: new Date(Date.now() - 1000 * 60 * 60 * 48),
-      signature: "8r2B...m2Nq",
-    },
-    {
-      id: "3",
-      merchant: "The Solana Store",
-      type: "Reward",
-      amount: 210.5,
-      date: new Date(Date.now() - 1000 * 60 * 60 * 72),
-      signature: "2z7Y...v0Lx",
-    },
-  ];
+  // Get recent transactions (last 5)
+  const recentTransactions = transactions.slice(0, 5);
 
   const totalEarned = customerAccount?.totalEarned ? Number(customerAccount.totalEarned) : 0;
   const transactionCount = customerAccount?.transactionCount ? Number(customerAccount.transactionCount) : 0;
@@ -53,6 +30,20 @@ export default function CustomerDashboard() {
       navigator.clipboard.writeText(publicKey.toString());
       // You can add a toast notification here
     }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) return "Just now";
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   return (
@@ -257,44 +248,47 @@ export default function CustomerDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {recentTransactions.length === 0 ? (
+                        {txLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8">
+                              <div className="w-8 h-8 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-2" />
+                              <p className="text-text-secondary text-sm">Loading transactions...</p>
+                            </TableCell>
+                          </TableRow>
+                        ) : recentTransactions.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={5} className="text-center text-text-secondary py-8">
-                              No transactions yet
+                              <p className="mb-2">No transactions yet</p>
+                              <p className="text-xs">Make a purchase at a merchant to earn rewards</p>
                             </TableCell>
                           </TableRow>
                         ) : (
                           recentTransactions.map((tx) => (
-                            <TableRow key={tx.id}>
+                            <TableRow key={tx.signature}>
                               <TableCell>{tx.merchant}</TableCell>
                               <TableCell>
                                 <span
-                                  className={`text-xs px-2 py-0.5 rounded ${tx.type === "Reward"
-                                    ? "bg-accent/10 text-accent"
-                                    : "bg-red-500/10 text-red-500"
+                                  className={`text-xs px-2 py-0.5 rounded ${tx.type === "earned"
+                                      ? "bg-accent/10 text-accent"
+                                      : "bg-red-500/10 text-red-500"
                                     }`}
                                 >
-                                  {tx.type}
+                                  {tx.type === "earned" ? "Earned" : "Redeemed"}
                                 </span>
                               </TableCell>
                               <TableCell
-                                className={`font-semibold ${tx.amount > 0 ? "text-accent" : "text-red-500"
+                                className={`font-semibold ${tx.type === "earned" ? "text-accent" : "text-red-500"
                                   }`}
                               >
-                                {tx.amount > 0 ? "+" : ""}
-                                {tx.amount.toFixed(2)} SLCY
+                                {tx.type === "earned" ? "+" : "-"}
+                                {tx.amount.toLocaleString()} SLCY
                               </TableCell>
                               <TableCell className="text-text-secondary">
-                                {tx.date.toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                {formatDate(tx.timestamp)}
                               </TableCell>
                               <TableCell>
                                 <a
-                                  href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom`}
+                                  href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-text-secondary text-xs flex items-center gap-1 hover:text-accent transition-colors"
