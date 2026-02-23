@@ -121,7 +121,8 @@ export default function MerchantRegisterPage() {
 
       toast.dismiss(loadingToast);
       toast.success("Loyalty program deployed successfully!", {
-        description: "Your on-chain loyalty program is now live"
+        description: "Your on-chain loyalty program is now live",
+        duration: 4000,
       });
       setSuccess(true);
       setTxSignature(result.signature);
@@ -150,7 +151,8 @@ export default function MerchantRegisterPage() {
       }
 
       toast.error(errorTitle, {
-        description: errorDescription
+        description: errorDescription,
+        duration: 5000,
       });
     }
   };

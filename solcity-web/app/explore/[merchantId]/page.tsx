@@ -89,7 +89,8 @@ export default function MerchantDetailPage() {
 
       toast.dismiss(loadingToast);
       toast.success("Successfully registered!", {
-        description: "You can now earn rewards at this merchant"
+        description: "You can now earn rewards at this merchant",
+        duration: 4000,
       });
 
       // Refetch customer account
@@ -99,11 +100,12 @@ export default function MerchantDetailPage() {
       toast.dismiss(loadingToast);
 
       if (err.message?.includes("already in use")) {
-        toast.info("You're already registered!");
+        toast.info("You're already registered!", { duration: 4000 });
         refetchCustomer();
       } else {
         toast.error("Registration failed", {
-          description: err.message || "Please try again"
+          description: err.message || "Please try again",
+          duration: 5000,
         });
       }
     } finally {

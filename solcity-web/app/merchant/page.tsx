@@ -87,9 +87,12 @@ export default function MerchantDashboard() {
     if (!customerWallet || !purchaseAmount) {
       toast.error("Missing Information", {
         description: "Please enter both customer wallet and purchase amount",
+        duration: 4000,
       });
       return;
     }
+
+    let loadingToastId: string | number | undefined;
 
     try {
       // Validate wallet address
@@ -99,6 +102,7 @@ export default function MerchantDashboard() {
       } catch (e) {
         toast.error("Invalid Wallet Address", {
           description: "Please enter a valid Solana wallet address (base58 format)",
+          duration: 4000,
         });
         return;
       }
@@ -108,6 +112,7 @@ export default function MerchantDashboard() {
       if (amount <= 0) {
         toast.error("Invalid Amount", {
           description: "Purchase amount must be greater than 0",
+          duration: 4000,
         });
         return;
       }
@@ -115,17 +120,19 @@ export default function MerchantDashboard() {
       if (isNaN(amount)) {
         toast.error("Invalid Amount", {
           description: "Please enter a valid number",
+          duration: 4000,
         });
         return;
       }
 
-      toast.loading("Issuing rewards...", { id: "issue-rewards" });
+      loadingToastId = toast.loading("Issuing rewards...");
 
       await issueRewards(customerPubkey, amount, selectedRuleId ?? undefined);
 
       toast.success("Rewards Issued!", {
-        id: "issue-rewards",
+        id: loadingToastId,
         description: `Successfully issued ${estimatedIssuance.toFixed(2)} SLCY tokens`,
+        duration: 4000,
       });
 
       // Clear form
@@ -133,6 +140,11 @@ export default function MerchantDashboard() {
       setPurchaseAmount("");
       setSelectedRuleId(null);
     } catch (err: any) {
+      // Dismiss loading toast if it exists
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
+
       let errorTitle = "Failed to Issue Rewards";
       let errorDescription = "An unexpected error occurred";
 
@@ -156,9 +168,8 @@ export default function MerchantDashboard() {
       }
 
       toast.error(errorTitle, {
-        id: "issue-rewards",
         description: errorDescription,
-        duration: 5000, // Auto-dismiss after 5 seconds
+        duration: 5000,
       });
     }
   };

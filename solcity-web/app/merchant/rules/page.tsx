@@ -131,6 +131,7 @@ export default function MerchantRulesPage() {
       toast.dismiss(loadingToast);
       toast.success("Reward rule created successfully!", {
         description: `Transaction: ${result.signature.slice(0, 8)}...${result.signature.slice(-8)}`,
+        duration: 4000,
       });
 
       // Invalidate queries to refetch rules
@@ -141,6 +142,7 @@ export default function MerchantRulesPage() {
       toast.dismiss(loadingToast);
       toast.error("Failed to create reward rule", {
         description: err.message || "Unknown error occurred",
+        duration: 5000,
       });
     }
   };
@@ -180,6 +182,7 @@ export default function MerchantRulesPage() {
       toast.dismiss(loadingToast);
       toast.success("Rule updated successfully!", {
         description: `Transaction: ${result.signature.slice(0, 8)}...`,
+        duration: 4000,
       });
 
       // Invalidate queries to refetch rules
@@ -192,6 +195,7 @@ export default function MerchantRulesPage() {
       toast.dismiss(loadingToast);
       toast.error("Failed to update rule", {
         description: err.message,
+        duration: 5000,
       });
     }
   };
@@ -206,7 +210,9 @@ export default function MerchantRulesPage() {
       await toggleRewardRule(ruleId, !currentStatus);
 
       toast.dismiss(loadingToast);
-      toast.success(`Rule ${!currentStatus ? "activated" : "paused"}`);
+      toast.success(`Rule ${!currentStatus ? "activated" : "paused"}`, {
+        duration: 3000,
+      });
 
       // Invalidate queries to refetch rules
       queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
@@ -215,6 +221,7 @@ export default function MerchantRulesPage() {
       toast.dismiss(loadingToast);
       toast.error("Failed to toggle rule", {
         description: err.message,
+        duration: 5000,
       });
     }
   };
@@ -233,7 +240,9 @@ export default function MerchantRulesPage() {
       await deleteRewardRule(deletingRuleId);
 
       toast.dismiss(loadingToast);
-      toast.success("Rule deleted successfully");
+      toast.success("Rule deleted successfully", {
+        duration: 3000,
+      });
 
       // Invalidate queries to refetch rules
       queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
@@ -244,6 +253,7 @@ export default function MerchantRulesPage() {
       toast.dismiss(loadingToast);
       toast.error("Failed to delete rule", {
         description: err.message,
+        duration: 5000,
       });
     }
   };

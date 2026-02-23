@@ -112,21 +112,22 @@ export default function MerchantProfilePage() {
 
       if (Object.keys(updates).length === 0) {
         toast.dismiss(loadingToast);
-        toast.info("No changes to save");
+        toast.info("No changes to save", { duration: 3000 });
         return;
       }
 
       await updateMerchant(updates);
 
       toast.dismiss(loadingToast);
-      toast.success("Profile updated successfully!");
+      toast.success("Profile updated successfully!", { duration: 3000 });
 
       // Refetch merchant account
       setTimeout(() => refetch(), 1000);
     } catch (err: any) {
       toast.dismiss(loadingToast);
       toast.error("Failed to update profile", {
-        description: err.message || "Please try again"
+        description: err.message || "Please try again",
+        duration: 5000,
       });
     }
   };
@@ -139,7 +140,8 @@ export default function MerchantProfilePage() {
 
       toast.dismiss(loadingToast);
       toast.success("Account closed successfully!", {
-        description: "Your merchant account has been closed and rent refunded"
+        description: "Your merchant account has been closed and rent refunded",
+        duration: 4000,
       });
 
       setShowCloseModal(false);
@@ -151,7 +153,8 @@ export default function MerchantProfilePage() {
     } catch (err: any) {
       toast.dismiss(loadingToast);
       toast.error("Failed to close account", {
-        description: err.message || "Please try again"
+        description: err.message || "Please try again",
+        duration: 5000,
       });
     }
   };
