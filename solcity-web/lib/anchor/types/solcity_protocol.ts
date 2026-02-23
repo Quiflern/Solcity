@@ -2101,16 +2101,120 @@ export type SolcityProtocol = {
   ],
   "events": [
     {
-      "name": "redemptionEvent",
+      "name": "customerRegisteredEvent",
       "discriminator": [
-        72,
-        165,
-        70,
-        6,
         179,
-        67,
+        112,
+        191,
+        211,
+        102,
+        24,
+        216,
+        135
+      ]
+    },
+    {
+      "name": "merchantRegisteredEvent",
+      "discriminator": [
         82,
-        183
+        74,
+        214,
+        141,
+        55,
+        182,
+        57,
+        95
+      ]
+    },
+    {
+      "name": "merchantUpdatedEvent",
+      "discriminator": [
+        223,
+        197,
+        196,
+        11,
+        71,
+        228,
+        75,
+        71
+      ]
+    },
+    {
+      "name": "redemptionOfferEvent",
+      "discriminator": [
+        65,
+        63,
+        245,
+        109,
+        105,
+        188,
+        126,
+        177
+      ]
+    },
+    {
+      "name": "rewardRuleEvent",
+      "discriminator": [
+        104,
+        22,
+        243,
+        254,
+        78,
+        82,
+        127,
+        121
+      ]
+    },
+    {
+      "name": "rewardsIssuedEvent",
+      "discriminator": [
+        241,
+        65,
+        191,
+        37,
+        211,
+        229,
+        243,
+        114
+      ]
+    },
+    {
+      "name": "rewardsRedeemedEvent",
+      "discriminator": [
+        49,
+        161,
+        159,
+        143,
+        15,
+        91,
+        224,
+        105
+      ]
+    },
+    {
+      "name": "tierUpgradeEvent",
+      "discriminator": [
+        25,
+        131,
+        86,
+        164,
+        15,
+        77,
+        84,
+        202
+      ]
+    },
+    {
+      "name": "voucherUsedEvent",
+      "discriminator": [
+        97,
+        138,
+        157,
+        61,
+        6,
+        211,
+        111,
+        236
       ]
     }
   ],
@@ -2269,6 +2373,33 @@ export type SolcityProtocol = {
             "docs": [
               "Registration timestamp"
             ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "customerRegisteredEvent",
+      "docs": [
+        "Event emitted when a customer registers"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
             "type": "i64"
           }
         ]
@@ -2479,41 +2610,59 @@ export type SolcityProtocol = {
       }
     },
     {
-      "name": "redemptionEvent",
+      "name": "merchantRegisteredEvent",
+      "docs": [
+        "Event emitted when a merchant registers"
+      ],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "customer",
-            "type": "pubkey"
-          },
           {
             "name": "merchant",
             "type": "pubkey"
           },
           {
-            "name": "offerName",
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
             "type": "string"
           },
           {
-            "name": "amount",
+            "name": "rewardRate",
             "type": "u64"
           },
           {
-            "name": "redemptionType",
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "merchantUpdatedEvent",
+      "docs": [
+        "Event emitted when a merchant profile is updated"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
             "type": {
-              "defined": {
-                "name": "redemptionType"
-              }
+              "option": "string"
             }
           },
           {
-            "name": "redemptionCode",
-            "type": "string"
-          },
-          {
-            "name": "voucher",
-            "type": "pubkey"
+            "name": "rewardRate",
+            "type": {
+              "option": "u64"
+            }
           },
           {
             "name": "timestamp",
@@ -2586,6 +2735,63 @@ export type SolcityProtocol = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "redemptionOfferEvent",
+      "docs": [
+        "Event emitted when a redemption offer is created or updated"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "cost",
+            "type": "u64"
+          },
+          {
+            "name": "offerType",
+            "type": {
+              "defined": {
+                "name": "redemptionType"
+              }
+            }
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "quantityAvailable",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "quantityClaimed",
+            "type": "u64"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -2788,6 +2994,181 @@ export type SolcityProtocol = {
       }
     },
     {
+      "name": "rewardRuleEvent",
+      "docs": [
+        "Event emitted when a reward rule is created or updated"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "ruleId",
+            "type": "u64"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "multiplier",
+            "type": "u64"
+          },
+          {
+            "name": "minPurchase",
+            "type": "u64"
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "startTime",
+            "type": "i64"
+          },
+          {
+            "name": "endTime",
+            "type": "i64"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rewardsIssuedEvent",
+      "docs": [
+        "Event emitted when rewards are issued"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchantAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "customerWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "purchaseAmount",
+            "type": "u64"
+          },
+          {
+            "name": "baseReward",
+            "type": "u64"
+          },
+          {
+            "name": "tierMultiplier",
+            "type": "u64"
+          },
+          {
+            "name": "ruleMultiplier",
+            "type": "u64"
+          },
+          {
+            "name": "ruleApplied",
+            "type": "bool"
+          },
+          {
+            "name": "ruleName",
+            "type": {
+              "option": "string"
+            }
+          },
+          {
+            "name": "finalReward",
+            "type": "u64"
+          },
+          {
+            "name": "customerTier",
+            "type": {
+              "defined": {
+                "name": "customerTier"
+              }
+            }
+          },
+          {
+            "name": "platformFee",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rewardsRedeemedEvent",
+      "docs": [
+        "Event emitted when rewards are redeemed"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "customerWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "offerName",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "redemptionType",
+            "type": {
+              "defined": {
+                "name": "redemptionType"
+              }
+            }
+          },
+          {
+            "name": "redemptionCode",
+            "type": "string"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ruleType",
       "type": {
         "kind": "enum",
@@ -2809,6 +3190,84 @@ export type SolcityProtocol = {
           },
           {
             "name": "streakBonus"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tierUpgradeEvent",
+      "docs": [
+        "Event emitted when a customer tier is upgraded"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "customerWallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "oldTier",
+            "type": {
+              "defined": {
+                "name": "customerTier"
+              }
+            }
+          },
+          {
+            "name": "newTier",
+            "type": {
+              "defined": {
+                "name": "customerTier"
+              }
+            }
+          },
+          {
+            "name": "totalEarned",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "voucherUsedEvent",
+      "docs": [
+        "Event emitted when a voucher is used"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "offerName",
+            "type": "string"
+          },
+          {
+            "name": "redemptionCode",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

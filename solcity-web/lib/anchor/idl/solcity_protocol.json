@@ -2095,16 +2095,120 @@
   ],
   "events": [
     {
-      "name": "RedemptionEvent",
+      "name": "CustomerRegisteredEvent",
       "discriminator": [
-        72,
-        165,
-        70,
-        6,
         179,
-        67,
+        112,
+        191,
+        211,
+        102,
+        24,
+        216,
+        135
+      ]
+    },
+    {
+      "name": "MerchantRegisteredEvent",
+      "discriminator": [
         82,
-        183
+        74,
+        214,
+        141,
+        55,
+        182,
+        57,
+        95
+      ]
+    },
+    {
+      "name": "MerchantUpdatedEvent",
+      "discriminator": [
+        223,
+        197,
+        196,
+        11,
+        71,
+        228,
+        75,
+        71
+      ]
+    },
+    {
+      "name": "RedemptionOfferEvent",
+      "discriminator": [
+        65,
+        63,
+        245,
+        109,
+        105,
+        188,
+        126,
+        177
+      ]
+    },
+    {
+      "name": "RewardRuleEvent",
+      "discriminator": [
+        104,
+        22,
+        243,
+        254,
+        78,
+        82,
+        127,
+        121
+      ]
+    },
+    {
+      "name": "RewardsIssuedEvent",
+      "discriminator": [
+        241,
+        65,
+        191,
+        37,
+        211,
+        229,
+        243,
+        114
+      ]
+    },
+    {
+      "name": "RewardsRedeemedEvent",
+      "discriminator": [
+        49,
+        161,
+        159,
+        143,
+        15,
+        91,
+        224,
+        105
+      ]
+    },
+    {
+      "name": "TierUpgradeEvent",
+      "discriminator": [
+        25,
+        131,
+        86,
+        164,
+        15,
+        77,
+        84,
+        202
+      ]
+    },
+    {
+      "name": "VoucherUsedEvent",
+      "discriminator": [
+        97,
+        138,
+        157,
+        61,
+        6,
+        211,
+        111,
+        236
       ]
     }
   ],
@@ -2263,6 +2367,33 @@
             "docs": [
               "Registration timestamp"
             ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CustomerRegisteredEvent",
+      "docs": [
+        "Event emitted when a customer registers"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
             "type": "i64"
           }
         ]
@@ -2473,41 +2604,59 @@
       }
     },
     {
-      "name": "RedemptionEvent",
+      "name": "MerchantRegisteredEvent",
+      "docs": [
+        "Event emitted when a merchant registers"
+      ],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "customer",
-            "type": "pubkey"
-          },
           {
             "name": "merchant",
             "type": "pubkey"
           },
           {
-            "name": "offer_name",
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
             "type": "string"
           },
           {
-            "name": "amount",
+            "name": "reward_rate",
             "type": "u64"
           },
           {
-            "name": "redemption_type",
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MerchantUpdatedEvent",
+      "docs": [
+        "Event emitted when a merchant profile is updated"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
             "type": {
-              "defined": {
-                "name": "RedemptionType"
-              }
+              "option": "string"
             }
           },
           {
-            "name": "redemption_code",
-            "type": "string"
-          },
-          {
-            "name": "voucher",
-            "type": "pubkey"
+            "name": "reward_rate",
+            "type": {
+              "option": "u64"
+            }
           },
           {
             "name": "timestamp",
@@ -2580,6 +2729,63 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RedemptionOfferEvent",
+      "docs": [
+        "Event emitted when a redemption offer is created or updated"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "cost",
+            "type": "u64"
+          },
+          {
+            "name": "offer_type",
+            "type": {
+              "defined": {
+                "name": "RedemptionType"
+              }
+            }
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "quantity_available",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "quantity_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -2782,6 +2988,181 @@
       }
     },
     {
+      "name": "RewardRuleEvent",
+      "docs": [
+        "Event emitted when a reward rule is created or updated"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "rule_id",
+            "type": "u64"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "multiplier",
+            "type": "u64"
+          },
+          {
+            "name": "min_purchase",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardsIssuedEvent",
+      "docs": [
+        "Event emitted when rewards are issued"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "purchase_amount",
+            "type": "u64"
+          },
+          {
+            "name": "base_reward",
+            "type": "u64"
+          },
+          {
+            "name": "tier_multiplier",
+            "type": "u64"
+          },
+          {
+            "name": "rule_multiplier",
+            "type": "u64"
+          },
+          {
+            "name": "rule_applied",
+            "type": "bool"
+          },
+          {
+            "name": "rule_name",
+            "type": {
+              "option": "string"
+            }
+          },
+          {
+            "name": "final_reward",
+            "type": "u64"
+          },
+          {
+            "name": "customer_tier",
+            "type": {
+              "defined": {
+                "name": "CustomerTier"
+              }
+            }
+          },
+          {
+            "name": "platform_fee",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardsRedeemedEvent",
+      "docs": [
+        "Event emitted when rewards are redeemed"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer_name",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "redemption_type",
+            "type": {
+              "defined": {
+                "name": "RedemptionType"
+              }
+            }
+          },
+          {
+            "name": "redemption_code",
+            "type": "string"
+          },
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "RuleType",
       "type": {
         "kind": "enum",
@@ -2803,6 +3184,84 @@
           },
           {
             "name": "StreakBonus"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TierUpgradeEvent",
+      "docs": [
+        "Event emitted when a customer tier is upgraded"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "old_tier",
+            "type": {
+              "defined": {
+                "name": "CustomerTier"
+              }
+            }
+          },
+          {
+            "name": "new_tier",
+            "type": {
+              "defined": {
+                "name": "CustomerTier"
+              }
+            }
+          },
+          {
+            "name": "total_earned",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoucherUsedEvent",
+      "docs": [
+        "Event emitted when a voucher is used"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "voucher",
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer_name",
+            "type": "string"
+          },
+          {
+            "name": "redemption_code",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
