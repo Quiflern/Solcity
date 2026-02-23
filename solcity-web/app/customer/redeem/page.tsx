@@ -1,19 +1,37 @@
 "use client";
 
+import { PublicKey } from "@solana/web3.js";
+import { Coins, Gift, Package, Percent, Ticket } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useState, useEffect } from "react";
+import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
+import { IconRenderer } from "@/contexts/IconPickerContext";
+import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import {
+  useCustomerVouchers,
+  type Voucher,
+} from "@/hooks/customer/useCustomerVouchers";
+import { useRedeemRewards } from "@/hooks/customer/useRedeemRewards";
 import { useAllRedemptionOffers } from "@/hooks/offers/useAllRedemptionOffers";
 import { useSolcityProgram } from "@/hooks/program/useSolcityProgram";
-import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
-import { useRedeemRewards } from "@/hooks/customer/useRedeemRewards";
-import { useCustomerVouchers, type Voucher } from "@/hooks/customer/useCustomerVouchers";
-import { useRouter } from "next/navigation";
-import { PublicKey } from "@solana/web3.js";
-import { Percent, Package, Coins, Ticket, Gift } from "lucide-react";
-import { IconRenderer } from "@/contexts/IconPickerContext";
-import Modal from "@/components/ui/Modal";
-import Button from "@/components/ui/Button";
 
+/**
+ * Rewards Redemption Page
+ *
+ * Allows customers to:
+ * - Browse available redemption offers from all merchants
+ * - Redeem rewards using earned SLCY tokens
+ * - View redemption history and active vouchers
+ * - Display voucher QR codes for merchant scanning
+ *
+ * Features two tabs:
+ * - Marketplace: Browse and redeem available offers
+ * - History: View past redemptions and voucher status
+ *
+ * @returns Redemption marketplace and history component
+ */
 export default function RedeemPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"marketplace" | "history">(
@@ -25,28 +43,38 @@ export default function RedeemPage() {
     name: "",
     cost: 0,
     publicKey: "",
-    merchantPubkey: ""
+    merchantPubkey: "",
   });
-  const [merchantNames, setMerchantNames] = useState<Record<string, string>>({});
-  const [merchantAvatars, setMerchantAvatars] = useState<Record<string, string>>({});
+  const [merchantNames, setMerchantNames] = useState<Record<string, string>>(
+    {},
+  );
+  const [merchantAvatars, setMerchantAvatars] = useState<
+    Record<string, string>
+  >({});
   const [redeemSignature, setRedeemSignature] = useState("");
   const [voucherAddress, setVoucherAddress] = useState("");
   const [voucherModalOpen, setVoucherModalOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
   // Fetch real data from blockchain
-  const { data: blockchainOffers = [], isLoading: offersLoading } = useAllRedemptionOffers();
+  const { data: blockchainOffers = [], isLoading: offersLoading } =
+    useAllRedemptionOffers();
   const { customerAccount, isLoading: customerLoading } = useCustomerAccount();
-  const { data: vouchers = [], isLoading: vouchersLoading } = useCustomerVouchers();
+  const { data: vouchers = [], isLoading: vouchersLoading } =
+    useCustomerVouchers();
   const { program } = useSolcityProgram();
   const redeemMutation = useRedeemRewards();
 
-  // Calculate current balance
+  // Calculate current balance (earned - redeemed)
   const currentBalance = customerAccount
-    ? Number(customerAccount.totalEarned) - Number(customerAccount.totalRedeemed)
+    ? Number(customerAccount.totalEarned) -
+      Number(customerAccount.totalRedeemed)
     : 0;
 
-  // Fetch merchant names and avatars for blockchain offers
+  /**
+   * Fetches merchant names and avatars for all offers
+   * Runs when program or offers change
+   */
   useEffect(() => {
     const fetchMerchantData = async () => {
       if (!program || blockchainOffers.length === 0) return;
@@ -56,7 +84,9 @@ export default function RedeemPage() {
 
       for (const offer of blockchainOffers) {
         try {
-          const merchantAccount = await program.account.merchant.fetch(offer.merchant);
+          const merchantAccount = await program.account.merchant.fetch(
+            offer.merchant,
+          );
           names[offer.merchant.toString()] = merchantAccount.name;
           avatars[offer.merchant.toString()] = merchantAccount.avatarUrl;
         } catch (err) {
@@ -73,16 +103,35 @@ export default function RedeemPage() {
     fetchMerchantData();
   }, [program, blockchainOffers]);
 
-  const openRedeemModal = (name: string, cost: number, publicKey: string = "", merchantPubkey: string = "") => {
+  /**
+   * Opens the redemption confirmation modal
+   * @param name - Offer name
+   * @param cost - Cost in SLCY tokens
+   * @param publicKey - Offer account public key
+   * @param merchantPubkey - Merchant account public key
+   */
+  const openRedeemModal = (
+    name: string,
+    cost: number,
+    publicKey: string = "",
+    merchantPubkey: string = "",
+  ) => {
     setSelectedReward({ name, cost, publicKey, merchantPubkey });
     setModalView("confirm");
     setModalOpen(true);
   };
 
+  /**
+   * Closes the redemption modal
+   */
   const closeModal = () => {
     setModalOpen(false);
   };
 
+  /**
+   * Opens the voucher detail modal
+   * @param voucherAddress - Voucher account public key
+   */
   const openVoucherModal = (voucherAddress: string) => {
     const voucher = vouchers.find((v) => v.publicKey === voucherAddress);
     if (voucher) {
@@ -91,12 +140,18 @@ export default function RedeemPage() {
     }
   };
 
+  /**
+   * Closes the voucher detail modal
+   */
   const closeVoucherModal = () => {
     setVoucherModalOpen(false);
     setSelectedVoucher(null);
   };
 
-
+  /**
+   * Executes the reward redemption transaction
+   * Creates a voucher on-chain and updates customer balance
+   */
   const confirmRedeem = async () => {
     if (!selectedReward.publicKey || !selectedReward.merchantPubkey) {
       return;
@@ -117,7 +172,12 @@ export default function RedeemPage() {
     }
   };
 
-  const getOfferIcon = (offerType: any) => {
+  /**
+   * Returns the appropriate icon component for an offer type
+   * @param offerType - Offer type object from blockchain
+   * @returns React icon component
+   */
+  const getOfferIcon = (offerType: Record<string, unknown>) => {
     if ("discount" in offerType) return <Percent className="w-8 h-8" />;
     if ("freeProduct" in offerType) return <Package className="w-8 h-8" />;
     if ("cashback" in offerType) return <Coins className="w-8 h-8" />;
@@ -125,10 +185,11 @@ export default function RedeemPage() {
     return <Gift className="w-8 h-8" />;
   };
 
-  // Convert blockchain offers to display format
+  // Convert blockchain offers to display format with availability checks
   const blockchainRewardsFormatted = blockchainOffers
     .filter((offer) => offer.isActive) // Only show active offers
     .map((offer) => {
+      // Determine offer type from blockchain enum
       let type = "custom";
 
       if ("discount" in offer.offerType) {
@@ -141,15 +202,20 @@ export default function RedeemPage() {
         type = "exclusive";
       }
 
-      // Check if offer is available
+      // Check offer availability based on expiration and quantity
       const now = Date.now() / 1000;
       const isExpired = offer.expiration && offer.expiration.toNumber() < now;
-      const isSoldOut = offer.quantityLimit && offer.quantityClaimed >= offer.quantityLimit;
+      const isSoldOut =
+        offer.quantityLimit && offer.quantityClaimed >= offer.quantityLimit;
       const available = !isExpired && !isSoldOut;
 
       // Use stored icon or fallback to type-based icon
       const iconElement = offer.icon ? (
-        <IconRenderer icon={offer.icon} className="w-8 h-8" />
+        <IconRenderer
+          key={offer.publicKey.toString()}
+          icon={offer.icon}
+          className="w-8 h-8"
+        />
       ) : (
         getOfferIcon(offer.offerType)
       );
@@ -167,7 +233,9 @@ export default function RedeemPage() {
         isMock: false,
         publicKey: offer.publicKey.toString(),
         merchantPubkey: offer.merchant.toString(),
-        quantityLimit: offer.quantityLimit ? offer.quantityLimit.toNumber() : null,
+        quantityLimit: offer.quantityLimit
+          ? offer.quantityLimit.toNumber()
+          : null,
         quantityClaimed: offer.quantityClaimed.toNumber(),
       };
     });
@@ -225,8 +293,9 @@ export default function RedeemPage() {
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
-            className={`py-4 text-sm font-medium relative ${activeTab === "marketplace" ? "text-text" : "text-text-secondary"
-              }`}
+            className={`py-4 text-sm font-medium relative ${
+              activeTab === "marketplace" ? "text-text" : "text-text-secondary"
+            }`}
           >
             Marketplace
             {activeTab === "marketplace" && (
@@ -236,8 +305,9 @@ export default function RedeemPage() {
           <button
             type="button"
             onClick={() => setActiveTab("history")}
-            className={`py-4 text-sm font-medium relative ${activeTab === "history" ? "text-text" : "text-text-secondary"
-              }`}
+            className={`py-4 text-sm font-medium relative ${
+              activeTab === "history" ? "text-text" : "text-text-secondary"
+            }`}
           >
             Redemption History
             {activeTab === "history" && (
@@ -268,14 +338,15 @@ export default function RedeemPage() {
                       <div className="p-6 pb-4 border-b border-border/50">
                         <div className="flex items-center justify-between mb-3">
                           <span
-                            className={`text-[0.65rem] uppercase font-bold px-3 py-1.5 rounded-full ${reward.type === "discount"
-                              ? "bg-accent/10 text-accent"
-                              : reward.type === "product"
-                                ? "bg-blue-500/10 text-blue-400"
-                                : reward.type === "cashback"
-                                  ? "bg-green-500/10 text-green-400"
-                                  : "bg-purple-500/10 text-purple-400"
-                              }`}
+                            className={`text-[0.65rem] uppercase font-bold px-3 py-1.5 rounded-full ${
+                              reward.type === "discount"
+                                ? "bg-accent/10 text-accent"
+                                : reward.type === "product"
+                                  ? "bg-blue-500/10 text-blue-400"
+                                  : reward.type === "cashback"
+                                    ? "bg-green-500/10 text-green-400"
+                                    : "bg-purple-500/10 text-purple-400"
+                            }`}
                           >
                             {reward.type === "discount"
                               ? "Discount"
@@ -285,20 +356,30 @@ export default function RedeemPage() {
                                   ? "Cashback"
                                   : "Exclusive"}
                           </span>
-                          <div className="text-xl font-bold text-accent">{reward.cost} <span className="text-xs text-text-secondary">SLCY</span></div>
+                          <div className="text-xl font-bold text-accent">
+                            {reward.cost}{" "}
+                            <span className="text-xs text-text-secondary">
+                              SLCY
+                            </span>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-3">
-                          {(reward as any).merchantAvatar && (
+                          {reward.merchantAvatar && (
+                            // biome-ignore lint/performance/noImgElement: Avatar from external source
                             <img
-                              src={(reward as any).merchantAvatar}
+                              src={reward.merchantAvatar}
                               alt={reward.merchant}
                               className="w-10 h-10 rounded-full object-cover border-2 border-border"
                             />
                           )}
                           <div>
-                            <div className="text-xs text-text-secondary uppercase tracking-wider mb-0.5">From</div>
-                            <div className="text-sm font-semibold">{reward.merchant}</div>
+                            <div className="text-xs text-text-secondary uppercase tracking-wider mb-0.5">
+                              From
+                            </div>
+                            <div className="text-sm font-semibold">
+                              {reward.merchant}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -308,7 +389,9 @@ export default function RedeemPage() {
                         <div className="flex items-start gap-4 mb-4">
                           <div className="text-4xl shrink-0">{reward.icon}</div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold leading-tight mb-2">{reward.name}</h3>
+                            <h3 className="text-xl font-bold leading-tight mb-2">
+                              {reward.name}
+                            </h3>
                             <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">
                               {reward.description}
                             </p>
@@ -316,29 +399,42 @@ export default function RedeemPage() {
                         </div>
 
                         {/* Quantity indicator */}
-                        {(reward as any).quantityLimit !== undefined && (reward as any).quantityLimit !== null ? (
+                        {reward.quantityLimit !== undefined &&
+                        reward.quantityLimit !== null ? (
                           <div className="mb-4 flex items-center justify-between text-xs">
-                            <span className="text-text-secondary">Available</span>
+                            <span className="text-text-secondary">
+                              Available
+                            </span>
                             <span className="font-semibold text-text">
-                              {Math.max(0, (reward as any).quantityLimit - (reward as any).quantityClaimed)} / {(reward as any).quantityLimit}
+                              {Math.max(
+                                0,
+                                reward.quantityLimit - reward.quantityClaimed,
+                              )}{" "}
+                              / {reward.quantityLimit}
                             </span>
                           </div>
                         ) : (
                           <div className="mb-4 flex items-center justify-between text-xs">
-                            <span className="text-text-secondary">Available</span>
-                            <span className="font-semibold text-accent">Unlimited</span>
+                            <span className="text-text-secondary">
+                              Available
+                            </span>
+                            <span className="font-semibold text-accent">
+                              Unlimited
+                            </span>
                           </div>
                         )}
 
                         {reward.available ? (
                           <button
                             type="button"
-                            onClick={() => openRedeemModal(
-                              reward.name,
-                              reward.cost,
-                              reward.publicKey || "",
-                              (reward as any).merchantPubkey || ""
-                            )}
+                            onClick={() =>
+                              openRedeemModal(
+                                reward.name,
+                                reward.cost,
+                                reward.publicKey || "",
+                                reward.merchantPubkey || "",
+                              )
+                            }
                             className="w-full py-3 rounded-lg bg-accent text-black font-semibold text-sm transition-all duration-200 hover:bg-accent/90 hover:shadow-lg hover:shadow-accent/20"
                             disabled={reward.isMock}
                           >
@@ -372,7 +468,9 @@ export default function RedeemPage() {
 
               {!vouchersLoading && history.length === 0 && (
                 <div className="text-center py-16">
-                  <p className="text-text-secondary">No redemption history yet</p>
+                  <p className="text-text-secondary">
+                    No redemption history yet
+                  </p>
                   <p className="text-text-secondary text-sm mt-2">
                     Start redeeming rewards to see your history here
                   </p>
@@ -405,7 +503,10 @@ export default function RedeemPage() {
                   </thead>
                   <tbody>
                     {history.map((item) => (
-                      <tr key={item.id} className="hover:bg-bg-secondary/30 transition-colors">
+                      <tr
+                        key={item.id}
+                        className="hover:bg-bg-secondary/30 transition-colors"
+                      >
                         <td className="py-5 px-4 border-b border-border text-sm">
                           {item.reward}
                         </td>
@@ -420,10 +521,11 @@ export default function RedeemPage() {
                         </td>
                         <td className="py-5 px-4 border-b border-border text-sm">
                           <span
-                            className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "used"
-                              ? "bg-[rgba(128,128,128,0.1)] text-gray-400"
-                              : "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                              }`}
+                            className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${
+                              item.status === "used"
+                                ? "bg-[rgba(128,128,128,0.1)] text-gray-400"
+                                : "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
+                            }`}
                           >
                             {item.status}
                           </span>
@@ -431,7 +533,9 @@ export default function RedeemPage() {
                         <td className="py-5 px-4 border-b border-border text-sm">
                           <button
                             type="button"
-                            onClick={() => openVoucherModal(item.voucherAddress)}
+                            onClick={() =>
+                              openVoucherModal(item.voucherAddress)
+                            }
                             className="text-accent hover:underline text-sm font-medium"
                           >
                             View Voucher
@@ -457,7 +561,9 @@ export default function RedeemPage() {
             <div className="bg-bg rounded-lg p-6 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-text-secondary">Reward</span>
-                <span className="font-medium text-text">{selectedReward.name}</span>
+                <span className="font-medium text-text">
+                  {selectedReward.name}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-text-secondary">Cost</span>
@@ -471,11 +577,7 @@ export default function RedeemPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={closeModal}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={closeModal} className="flex-1">
                 Cancel
               </Button>
               <Button
@@ -531,16 +633,14 @@ export default function RedeemPage() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => router.push(`/customer/voucher/${voucherAddress}`)}
+                onClick={() =>
+                  router.push(`/customer/voucher/${voucherAddress}`)
+                }
                 className="flex-1"
               >
                 View Voucher
               </Button>
-              <Button
-                variant="primary"
-                onClick={closeModal}
-                className="flex-1"
-              >
+              <Button variant="primary" onClick={closeModal} className="flex-1">
                 Done
               </Button>
             </div>
@@ -571,11 +671,13 @@ export default function RedeemPage() {
                 >
                   {/* Border gradient */}
                   <div
-                    className="absolute inset-[-1px] rounded-sm pointer-events-none opacity-50"
+                    className="absolute -inset-px rounded-sm pointer-events-none opacity-50"
                     style={{
-                      background: "linear-gradient(180deg, rgba(255,255,255,0.1), transparent 40%, #d0ff14)",
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,0.1), transparent 40%, #d0ff14)",
                       padding: "1px",
-                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      WebkitMask:
+                        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                       WebkitMaskComposite: "xor",
                       maskComposite: "exclude",
                     }}
@@ -594,8 +696,10 @@ export default function RedeemPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 bg-[#d0ff14] shadow-[0_0_8px_#d0ff14]" />
-                        <span className="font-bold tracking-tight text-sm">SOLCITY</span>
+                        <div className="w-2.5 h-2.5 bg-accent shadow-[0_0_8px_#d0ff14]" />
+                        <span className="font-bold tracking-tight text-sm">
+                          SOLCITY
+                        </span>
                       </div>
                       <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold mt-0.5">
                         Proof of Redemption
@@ -609,10 +713,14 @@ export default function RedeemPage() {
                         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
                       }}
                     >
-                      <span className="text-[8px] text-gray-400 uppercase tracking-widest">Cost</span>
+                      <span className="text-[8px] text-gray-400 uppercase tracking-widest">
+                        Cost
+                      </span>
                       <span
-                        className="font-bold font-mono text-[0.7rem] text-[#d0ff14]"
-                        style={{ textShadow: "0 0 8px rgba(208, 255, 20, 0.3)" }}
+                        className="font-bold font-mono text-[0.7rem] text-accent"
+                        style={{
+                          textShadow: "0 0 8px rgba(208, 255, 20, 0.3)",
+                        }}
                       >
                         {selectedVoucher.cost} SLCY
                       </span>
@@ -625,20 +733,27 @@ export default function RedeemPage() {
                       <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-1">
                         Merchant
                       </span>
-                      <h2 className="text-base font-medium text-white tracking-wide">{selectedVoucher.merchantName}</h2>
+                      <h2 className="text-base font-medium text-white tracking-wide">
+                        {selectedVoucher.merchantName}
+                      </h2>
                     </div>
 
                     <div className="relative">
                       {/* Accent bar */}
-                      <div className="absolute -left-5 w-0.5 h-full bg-[#d0ff14]" style={{ boxShadow: "0 0 10px #d0ff14" }} />
+                      <div
+                        className="absolute -left-5 w-0.5 h-full bg-accent"
+                        style={{ boxShadow: "0 0 10px #d0ff14" }}
+                      />
                       <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
                         Offer Details
                       </span>
                       <h1 className="text-xl font-bold text-white leading-tight">
-                        {selectedVoucher.offerName.split(" - ")[0] || selectedVoucher.offerName}
+                        {selectedVoucher.offerName.split(" - ")[0] ||
+                          selectedVoucher.offerName}
                         <br />
                         <span className="text-gray-400 text-base">
-                          {selectedVoucher.offerName.split(" - ")[1] || selectedVoucher.offerDescription.split(".")[0]}
+                          {selectedVoucher.offerName.split(" - ")[1] ||
+                            selectedVoucher.offerDescription.split(".")[0]}
                         </span>
                       </h1>
                     </div>
@@ -646,8 +761,16 @@ export default function RedeemPage() {
 
                   {/* Perforation - Zigzag like a ticket */}
                   <div className="relative w-full my-3">
-                    <svg width="100%" height="8" viewBox="0 0 280 8" preserveAspectRatio="none" className="opacity-40">
-                      <path d="M0,4 L7,0 L14,4 L21,0 L28,4 L35,0 L42,4 L49,0 L56,4 L63,0 L70,4 L77,0 L84,4 L91,0 L98,4 L105,0 L112,4 L119,0 L126,4 L133,0 L140,4 L147,0 L154,4 L161,0 L168,4 L175,0 L182,4 L189,0 L196,4 L203,0 L210,4 L217,0 L224,4 L231,0 L238,4 L245,0 L252,4 L259,0 L266,4 L273,0 L280,4"
+                    <svg
+                      width="100%"
+                      height="8"
+                      viewBox="0 0 280 8"
+                      preserveAspectRatio="none"
+                      className="opacity-40"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M0,4 L7,0 L14,4 L21,0 L28,4 L35,0 L42,4 L49,0 L56,4 L63,0 L70,4 L77,0 L84,4 L91,0 L98,4 L105,0 L112,4 L119,0 L126,4 L133,0 L140,4 L147,0 L154,4 L161,0 L168,4 L175,0 L182,4 L189,0 L196,4 L203,0 L210,4 L217,0 L224,4 L231,0 L238,4 L245,0 L252,4 L259,0 L266,4 L273,0 L280,4"
                         stroke="#666"
                         strokeWidth="1"
                         fill="none"
@@ -662,7 +785,7 @@ export default function RedeemPage() {
                         <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
                           Redemption Code
                         </span>
-                        <div className="font-mono text-sm text-[#d0ff14] font-bold tracking-widest">
+                        <div className="font-mono text-sm text-accent font-bold tracking-widest">
                           {selectedVoucher.redemptionCode}
                         </div>
                       </div>
@@ -672,7 +795,9 @@ export default function RedeemPage() {
                           Expires
                         </span>
                         <span className="text-[#eee] text-xs font-medium">
-                          {new Date(selectedVoucher.expiresAt * 1000).toLocaleDateString("en-US", {
+                          {new Date(
+                            selectedVoucher.expiresAt * 1000,
+                          ).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
@@ -683,6 +808,7 @@ export default function RedeemPage() {
 
                     {/* QR Code */}
                     <div className="w-[70px] h-[70px] bg-white rounded p-1 shadow-lg flex items-center justify-center shrink-0">
+                      {/* biome-ignore lint/performance/noImgElement: External QR code API requires img element */}
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(selectedVoucher.redemptionCode)}`}
                         alt="QR Code"
@@ -704,7 +830,6 @@ export default function RedeemPage() {
             </div>
           )}
         </Modal>
-
       </div>
     </ProtectedRoute>
   );

@@ -1,19 +1,39 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useState, useMemo } from "react";
 import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
 import { useTransactionHistory } from "@/hooks/customer/useTransactionHistory";
 import { getTierInfo } from "@/lib/tiers";
 
+/**
+ * Transaction History Page
+ *
+ * Displays comprehensive transaction history for customers with:
+ * - Filterable transaction list (all, earned, redeemed)
+ * - Date range filtering (7d, 30d, 90d, all time)
+ * - Summary statistics for selected period
+ * - Transaction details including merchant, amount, and blockchain signature
+ * - Visual indicators for transaction types
+ *
+ * @returns Transaction history component with filtering and statistics
+ */
 export default function HistoryPage() {
-  const [activeTab, setActiveTab] = useState<"all" | "earned" | "redeemed">("all");
-  const [dateFilter, setDateFilter] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [activeTab, setActiveTab] = useState<"all" | "earned" | "redeemed">(
+    "all",
+  );
+  const [dateFilter, setDateFilter] = useState<"7d" | "30d" | "90d" | "all">(
+    "30d",
+  );
 
   const { customerAccount, isLoading: customerLoading } = useCustomerAccount();
-  const { data: transactions = [], isLoading: txLoading } = useTransactionHistory();
+  const { data: transactions = [], isLoading: txLoading } =
+    useTransactionHistory();
 
-  // Calculate date range
+  /**
+   * Calculates the timestamp threshold for date filtering
+   * @returns Timestamp in milliseconds for the start of the selected period
+   */
   const dateRangeMs = useMemo(() => {
     const now = Date.now();
     switch (dateFilter) {
@@ -28,14 +48,17 @@ export default function HistoryPage() {
     }
   }, [dateFilter]);
 
-  // Filter transactions
+  /**
+   * Filters transactions based on active tab and date range
+   * @returns Filtered transaction array
+   */
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
-      // Filter by tab
+      // Filter by transaction type (tab)
       if (activeTab === "earned" && tx.type !== "earned") return false;
       if (activeTab === "redeemed" && tx.type !== "redeemed") return false;
 
-      // Filter by date
+      // Filter by date range
       const txDate = tx.timestamp * 1000;
       if (dateFilter !== "all" && txDate < dateRangeMs) return false;
 
@@ -43,7 +66,10 @@ export default function HistoryPage() {
     });
   }, [transactions, activeTab, dateFilter, dateRangeMs]);
 
-  // Calculate summary stats for the selected period
+  /**
+   * Calculates summary statistics for the selected period
+   * @returns Object with earned, redeemed, and net amounts
+   */
   const stats = useMemo(() => {
     const filtered = transactions.filter((tx) => {
       const txDate = tx.timestamp * 1000;
@@ -69,6 +95,11 @@ export default function HistoryPage() {
     ? getTierInfo(customerAccount.tier)
     : { displayName: "Bronze", color: "#cd7f32" };
 
+  /**
+   * Formats a Unix timestamp to readable date string
+   * @param timestamp - Unix timestamp in seconds
+   * @returns Formatted date string (e.g., "Jan 15, 2:30 PM")
+   */
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString("en-US", {
@@ -79,10 +110,19 @@ export default function HistoryPage() {
     });
   };
 
+  /**
+   * Formats a transaction signature to shortened display format
+   * @param sig - Full transaction signature
+   * @returns Shortened signature (e.g., "AbC1...XyZ9")
+   */
   const formatSignature = (sig: string) => {
     return `${sig.slice(0, 4)}...${sig.slice(-4)}`;
   };
 
+  /**
+   * Returns a human-readable label for the selected date filter
+   * @returns Period label string
+   */
   const getPeriodLabel = () => {
     switch (dateFilter) {
       case "7d":
@@ -114,7 +154,9 @@ export default function HistoryPage() {
               {customerLoading || txLoading ? (
                 <div className="h-9 bg-border/20 rounded animate-pulse" />
               ) : (
-                <div className="text-3xl font-semibold">{stats.earned.toLocaleString()} SLCY</div>
+                <div className="text-3xl font-semibold">
+                  {stats.earned.toLocaleString()} SLCY
+                </div>
               )}
             </div>
             <div className="bg-panel border border-border p-8 rounded-lg">
@@ -124,7 +166,9 @@ export default function HistoryPage() {
               {customerLoading || txLoading ? (
                 <div className="h-9 bg-border/20 rounded animate-pulse" />
               ) : (
-                <div className="text-3xl font-semibold">{stats.redeemed.toLocaleString()} SLCY</div>
+                <div className="text-3xl font-semibold">
+                  {stats.redeemed.toLocaleString()} SLCY
+                </div>
               )}
             </div>
             <div className="bg-panel border border-border p-8 rounded-lg">
@@ -134,7 +178,9 @@ export default function HistoryPage() {
               {customerLoading || txLoading ? (
                 <div className="h-9 bg-border/20 rounded animate-pulse" />
               ) : (
-                <div className={`text-3xl font-semibold ${stats.net >= 0 ? "text-accent" : "text-red-400"}`}>
+                <div
+                  className={`text-3xl font-semibold ${stats.net >= 0 ? "text-accent" : "text-red-400"}`}
+                >
                   {stats.net >= 0 ? "+" : ""}
                   {stats.net.toLocaleString()} SLCY
                 </div>
@@ -148,8 +194,9 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}
-                className={`pb-4 text-sm font-medium relative ${activeTab === "all" ? "text-text" : "text-text-secondary"
-                  }`}
+                className={`pb-4 text-sm font-medium relative ${
+                  activeTab === "all" ? "text-text" : "text-text-secondary"
+                }`}
               >
                 All Activity
                 {activeTab === "all" && (
@@ -159,8 +206,9 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("earned")}
-                className={`pb-4 text-sm font-medium relative ${activeTab === "earned" ? "text-text" : "text-text-secondary"
-                  }`}
+                className={`pb-4 text-sm font-medium relative ${
+                  activeTab === "earned" ? "text-text" : "text-text-secondary"
+                }`}
               >
                 Earned
                 {activeTab === "earned" && (
@@ -170,8 +218,9 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("redeemed")}
-                className={`pb-4 text-sm font-medium relative ${activeTab === "redeemed" ? "text-text" : "text-text-secondary"
-                  }`}
+                className={`pb-4 text-sm font-medium relative ${
+                  activeTab === "redeemed" ? "text-text" : "text-text-secondary"
+                }`}
               >
                 Redeemed
                 {activeTab === "redeemed" && (
@@ -183,40 +232,44 @@ export default function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setDateFilter("7d")}
-                className={`px-3 py-1.5 rounded text-xs ${dateFilter === "7d"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
-                  }`}
+                className={`px-3 py-1.5 rounded text-xs ${
+                  dateFilter === "7d"
+                    ? "bg-panel border border-border text-text"
+                    : "bg-transparent border border-transparent text-text-secondary"
+                }`}
               >
                 7d
               </button>
               <button
                 type="button"
                 onClick={() => setDateFilter("30d")}
-                className={`px-3 py-1.5 rounded text-xs ${dateFilter === "30d"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
-                  }`}
+                className={`px-3 py-1.5 rounded text-xs ${
+                  dateFilter === "30d"
+                    ? "bg-panel border border-border text-text"
+                    : "bg-transparent border border-transparent text-text-secondary"
+                }`}
               >
                 30d
               </button>
               <button
                 type="button"
                 onClick={() => setDateFilter("90d")}
-                className={`px-3 py-1.5 rounded text-xs ${dateFilter === "90d"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
-                  }`}
+                className={`px-3 py-1.5 rounded text-xs ${
+                  dateFilter === "90d"
+                    ? "bg-panel border border-border text-text"
+                    : "bg-transparent border border-transparent text-text-secondary"
+                }`}
               >
                 90d
               </button>
               <button
                 type="button"
                 onClick={() => setDateFilter("all")}
-                className={`px-3 py-1.5 rounded text-xs ${dateFilter === "all"
-                  ? "bg-panel border border-border text-text"
-                  : "bg-transparent border border-transparent text-text-secondary"
-                  }`}
+                className={`px-3 py-1.5 rounded text-xs ${
+                  dateFilter === "all"
+                    ? "bg-panel border border-border text-text"
+                    : "bg-transparent border border-transparent text-text-secondary"
+                }`}
               >
                 All Time
               </button>
@@ -233,11 +286,24 @@ export default function HistoryPage() {
             ) : filteredTransactions.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-8 h-8 text-accent"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                 </div>
-                <p className="text-text-secondary mb-2 font-semibold">No transactions found</p>
+                <p className="text-text-secondary mb-2 font-semibold">
+                  No transactions found
+                </p>
                 <p className="text-text-secondary text-sm max-w-md mx-auto">
                   {activeTab === "all"
                     ? "Your transaction history will appear here once you earn or redeem rewards. Visit merchants to start earning!"
@@ -274,33 +340,46 @@ export default function HistoryPage() {
                   {filteredTransactions.map((tx, index) => (
                     <tr key={tx.signature}>
                       <td
-                        className={`py-5 px-6 text-sm ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""
-                          }`}
+                        className={`py-5 px-6 text-sm ${
+                          index !== filteredTransactions.length - 1
+                            ? "border-b border-border"
+                            : ""
+                        }`}
                       >
                         {formatDate(tx.timestamp)}
                       </td>
                       <td
-                        className={`py-5 px-6 text-sm ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""
-                          }`}
+                        className={`py-5 px-6 text-sm ${
+                          index !== filteredTransactions.length - 1
+                            ? "border-b border-border"
+                            : ""
+                        }`}
                       >
                         {tx.merchant}
                       </td>
                       <td
-                        className={`py-5 px-6 text-sm ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""
-                          }`}
+                        className={`py-5 px-6 text-sm ${
+                          index !== filteredTransactions.length - 1
+                            ? "border-b border-border"
+                            : ""
+                        }`}
                       >
                         <span
-                          className={`text-xs px-2 py-0.5 rounded ${tx.type === "earned"
-                            ? "bg-accent/10 text-accent"
-                            : "bg-red-400/10 text-red-400"
-                            }`}
+                          className={`text-xs px-2 py-0.5 rounded ${
+                            tx.type === "earned"
+                              ? "bg-accent/10 text-accent"
+                              : "bg-red-400/10 text-red-400"
+                          }`}
                         >
                           {tx.type === "earned" ? "Earned" : "Redeemed"}
                         </span>
                       </td>
                       <td
-                        className={`py-5 px-6 text-sm ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""
-                          }`}
+                        className={`py-5 px-6 text-sm ${
+                          index !== filteredTransactions.length - 1
+                            ? "border-b border-border"
+                            : ""
+                        }`}
                       >
                         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                           <div className="w-1.5 h-1.5 rounded-full bg-accent" />
@@ -308,15 +387,19 @@ export default function HistoryPage() {
                         </div>
                       </td>
                       <td
-                        className={`py-5 px-6 text-sm font-semibold ${tx.type === "earned" ? "text-accent" : "text-red-400"
-                          } ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""}`}
+                        className={`py-5 px-6 text-sm font-semibold ${
+                          tx.type === "earned" ? "text-accent" : "text-red-400"
+                        } ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""}`}
                       >
                         {tx.type === "earned" ? "+" : "-"}
                         {tx.amount.toLocaleString()} SLCY
                       </td>
                       <td
-                        className={`py-5 px-6 text-sm ${index !== filteredTransactions.length - 1 ? "border-b border-border" : ""
-                          }`}
+                        className={`py-5 px-6 text-sm ${
+                          index !== filteredTransactions.length - 1
+                            ? "border-b border-border"
+                            : ""
+                        }`}
                       >
                         <a
                           href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}

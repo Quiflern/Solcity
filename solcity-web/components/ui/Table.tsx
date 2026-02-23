@@ -1,3 +1,4 @@
+import type React from "react";
 import type { ReactNode } from "react";
 
 interface TableProps {
@@ -23,7 +24,7 @@ interface TableHeadProps {
   className?: string;
 }
 
-interface TableCellProps {
+interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
   children: ReactNode;
   className?: string;
 }
@@ -58,9 +59,9 @@ export function TableHead({ children, className = "" }: TableHeadProps) {
   );
 }
 
-export function TableCell({ children, className = "" }: TableCellProps) {
+export function TableCell({ children, className = "", ...props }: TableCellProps) {
   return (
-    <td className={`py-5 px-4 border-b border-border text-sm ${className}`}>
+    <td className={`py-5 px-4 border-b border-border text-sm ${className}`} {...props}>
       {children}
     </td>
   );
