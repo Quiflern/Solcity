@@ -1,21 +1,48 @@
 "use client";
 
-import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
-import { useMerchantUpdate } from "@/hooks/merchant/useMerchantUpdate";
-import { useMerchantClose } from "@/hooks/merchant/useMerchantClose";
-import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
-import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Dropdown from "@/components/ui/Dropdown";
-import Toggle from "@/components/ui/Toggle";
-import Modal from "@/components/ui/Modal";
-import { toast } from "sonner";
 import { AlertTriangle, ChevronRight, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Dropdown from "@/components/ui/Dropdown";
+import Modal from "@/components/ui/Modal";
+import Toggle from "@/components/ui/Toggle";
+import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantClose } from "@/hooks/merchant/useMerchantClose";
+import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
+import { useMerchantUpdate } from "@/hooks/merchant/useMerchantUpdate";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
+/**
+ * Merchant Profile Management Page
+ *
+ * Interface for viewing and updating merchant account settings.
+ *
+ * Features:
+ * - View current merchant information:
+ *   - Business name (immutable)
+ *   - Avatar, description, category
+ *   - Reward rate and account status
+ *   - Creation date and on-chain addresses
+ *
+ * - Update merchant settings:
+ *   - Avatar URL/code
+ *   - Business description
+ *   - Category
+ *   - Reward rate (SLCY per dollar)
+ *   - Active/inactive status
+ *
+ * - Account management:
+ *   - Close merchant account (requires no active rules)
+ *   - Reclaim SOL rent from closed account
+ *
+ * Changes are submitted to the blockchain and update the on-chain merchant account.
+ *
+ * @returns Merchant profile editor with update and close account functionality
+ */
 export default function MerchantProfilePage() {
   const router = useRouter();
   const { publicKey } = useWallet();
@@ -24,9 +51,10 @@ export default function MerchantProfilePage() {
   const { closeMerchant, isClosing } = useMerchantClose();
 
   // Fetch reward rules to check if any exist
-  const merchantPDA = publicKey && merchantAccount
-    ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
-    : null;
+  const merchantPDA =
+    publicKey && merchantAccount
+      ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
+      : null;
   const { data: rules = [] } = useMerchantRewardRules(merchantPDA);
 
   const [businessName, setBusinessName] = useState("");
@@ -53,7 +81,7 @@ export default function MerchantProfilePage() {
     if (!avatarCode) {
       return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(businessName)}&backgroundColor=d0ff14`;
     }
-    if (avatarCode.startsWith('http://') || avatarCode.startsWith('https://')) {
+    if (avatarCode.startsWith("http://") || avatarCode.startsWith("https://")) {
       return avatarCode;
     }
     return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(avatarCode)}&backgroundColor=d0ff14`;
@@ -69,21 +97,21 @@ export default function MerchantProfilePage() {
     // Validation
     if (description && description.length > 256) {
       toast.error("Description too long", {
-        description: "Description must be 256 characters or less"
+        description: "Description must be 256 characters or less",
       });
       return;
     }
 
     if (avatarUrl && avatarUrl.length > 256) {
       toast.error("Avatar URL too long", {
-        description: "Avatar URL must be 256 characters or less"
+        description: "Avatar URL must be 256 characters or less",
       });
       return;
     }
 
     if (category && category.length > 32) {
       toast.error("Category too long", {
-        description: "Category must be 32 characters or less"
+        description: "Category must be 32 characters or less",
       });
       return;
     }
@@ -91,7 +119,7 @@ export default function MerchantProfilePage() {
     const loadingToast = toast.loading("Updating merchant profile...");
 
     try {
-      const updates: any = {};
+      const updates: Record<string, string | number | boolean> = {};
 
       // Only include changed fields
       if (description !== (merchantAccount.description || "")) {
@@ -123,10 +151,12 @@ export default function MerchantProfilePage() {
 
       // Refetch merchant account
       setTimeout(() => refetch(), 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
+      const errorMessage =
+        err instanceof Error ? err.message : "Please try again";
       toast.error("Failed to update profile", {
-        description: err.message || "Please try again",
+        description: errorMessage,
         duration: 5000,
       });
     }
@@ -150,10 +180,12 @@ export default function MerchantProfilePage() {
       setTimeout(() => {
         router.push("/merchant/register");
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
+      const errorMessage =
+        err instanceof Error ? err.message : "Please try again";
       toast.error("Failed to close account", {
-        description: err.message || "Please try again",
+        description: errorMessage,
         duration: 5000,
       });
     }
@@ -182,7 +214,8 @@ export default function MerchantProfilePage() {
             </div>
             <h2 className="text-2xl mb-2">No Merchant Account Found</h2>
             <p className="text-text-secondary mb-6">
-              You need to register as a merchant before you can access this page.
+              You need to register as a merchant before you can access this
+              page.
             </p>
             <Link
               href="/merchant/register"
@@ -213,22 +246,30 @@ export default function MerchantProfilePage() {
             {/* Avatar Preview */}
             <div className="flex items-center gap-6 mb-8 pb-8 border-b border-border">
               <div className="w-24 h-24 bg-black border border-border rounded-xl overflow-hidden">
+                {/* biome-ignore lint/performance/noImgElement: Avatar from external source */}
                 <img
                   src={displayAvatarUrl}
                   alt={businessName}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    if (target.src !== getAvatarUrl(businessName, businessName)) {
+                    if (
+                      target.src !== getAvatarUrl(businessName, businessName)
+                    ) {
                       target.src = getAvatarUrl(businessName, businessName);
                     }
                   }}
                 />
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-1">{merchantAccount.name}</h2>
+                <h2 className="text-2xl font-bold mb-1">
+                  {merchantAccount.name}
+                </h2>
                 <p className="text-sm text-text-secondary">
-                  Registered on {new Date(merchantAccount.createdAt * 1000).toLocaleDateString()}
+                  Registered on{" "}
+                  {new Date(
+                    merchantAccount.createdAt * 1000,
+                  ).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -236,10 +277,14 @@ export default function MerchantProfilePage() {
             {/* Form Fields */}
             <div className="grid grid-cols-2 gap-6">
               <div className="col-span-2">
-                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                <label
+                  htmlFor="business-name-disabled"
+                  className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                >
                   Business Name (Cannot be changed)
                 </label>
                 <input
+                  id="business-name-disabled"
                   type="text"
                   value={businessName}
                   disabled
@@ -248,10 +293,14 @@ export default function MerchantProfilePage() {
               </div>
 
               <div className="col-span-2">
-                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                <label
+                  htmlFor="avatar-url-input"
+                  className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                >
                   Avatar Code or URL
                 </label>
                 <input
+                  id="avatar-url-input"
                   type="text"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
@@ -267,10 +316,14 @@ export default function MerchantProfilePage() {
               </div>
 
               <div className="col-span-2">
-                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                <label
+                  htmlFor="description-textarea"
+                  className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                >
                   Business Description
                 </label>
                 <textarea
+                  id="description-textarea"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-black border border-border text-text px-4 py-3 rounded-lg text-sm outline-none transition-colors focus:border-accent resize-none"
@@ -303,14 +356,20 @@ export default function MerchantProfilePage() {
               </div>
 
               <div>
-                <label className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider">
+                <label
+                  htmlFor="reward-rate-input"
+                  className="block text-[0.75rem] uppercase text-text-secondary mb-3 tracking-wider"
+                >
                   Reward Rate
                 </label>
                 <div className="flex items-center gap-3">
                   <input
+                    id="reward-rate-input"
                     type="number"
                     value={rewardRate}
-                    onChange={(e) => setRewardRate(parseFloat(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setRewardRate(parseFloat(e.target.value) || 0)
+                    }
                     min="0.1"
                     max="10"
                     step="0.1"
@@ -360,19 +419,27 @@ export default function MerchantProfilePage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-text-secondary mb-1">Authority</p>
-                <p className="font-mono text-xs break-all">{merchantAccount.authority.toString()}</p>
+                <p className="font-mono text-xs break-all">
+                  {merchantAccount.authority.toString()}
+                </p>
               </div>
               <div>
                 <p className="text-text-secondary mb-1">Loyalty Program</p>
-                <p className="font-mono text-xs break-all">{merchantAccount.loyaltyProgram.toString()}</p>
+                <p className="font-mono text-xs break-all">
+                  {merchantAccount.loyaltyProgram.toString()}
+                </p>
               </div>
               <div>
                 <p className="text-text-secondary mb-1">Total Issued</p>
-                <p className="text-accent">{(merchantAccount.totalIssued / 1e9).toFixed(2)} SLCY</p>
+                <p className="text-accent">
+                  {(merchantAccount.totalIssued / 1e9).toFixed(2)} SLCY
+                </p>
               </div>
               <div>
                 <p className="text-text-secondary mb-1">Total Redeemed</p>
-                <p className="text-accent">{(merchantAccount.totalRedeemed / 1e9).toFixed(2)} SLCY</p>
+                <p className="text-accent">
+                  {(merchantAccount.totalRedeemed / 1e9).toFixed(2)} SLCY
+                </p>
               </div>
             </div>
           </div>
@@ -391,9 +458,13 @@ export default function MerchantProfilePage() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm text-yellow-500 font-semibold mb-1">You have {rules.length} active reward rule{rules.length > 1 ? 's' : ''}</p>
+                  <p className="text-sm text-yellow-500 font-semibold mb-1">
+                    You have {rules.length} active reward rule
+                    {rules.length > 1 ? "s" : ""}
+                  </p>
                   <p className="text-sm text-text-secondary mb-3">
-                    Please delete all reward rules before closing your account to reclaim the rent.
+                    Please delete all reward rules before closing your account
+                    to reclaim the rent.
                   </p>
                   <Link
                     href="/merchant/rules"
@@ -410,9 +481,12 @@ export default function MerchantProfilePage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-red-500 font-semibold mb-1">Warning: This action cannot be undone</p>
+                <p className="text-sm text-red-500 font-semibold mb-1">
+                  Warning: This action cannot be undone
+                </p>
                 <p className="text-sm text-text-secondary">
-                  Closing your merchant account will permanently delete all your data and you will not be able to recover it.
+                  Closing your merchant account will permanently delete all your
+                  data and you will not be able to recover it.
                 </p>
               </div>
             </div>
@@ -422,7 +496,9 @@ export default function MerchantProfilePage() {
             <p>Before closing your account, please note:</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>Delete all reward rules first to reclaim rent</li>
-              <li>Customers will no longer be able to earn or redeem rewards</li>
+              <li>
+                Customers will no longer be able to earn or redeem rewards
+              </li>
               <li>Your merchant account rent (~0.04 SOL) will be refunded</li>
               <li>This action is permanent and cannot be reversed</li>
             </ul>
@@ -442,7 +518,11 @@ export default function MerchantProfilePage() {
               disabled={isClosing || rules.length > 0}
               className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isClosing ? "Closing Account..." : rules.length > 0 ? "Delete Rules First" : "Close Account"}
+              {isClosing
+                ? "Closing Account..."
+                : rules.length > 0
+                  ? "Delete Rules First"
+                  : "Close Account"}
             </button>
           </div>
         </div>

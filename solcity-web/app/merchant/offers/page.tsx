@@ -1,25 +1,50 @@
 "use client";
 
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { useRedemptionOffers, type RedemptionType } from "@/hooks/offers/useRedemptionOffers";
-import { useMerchantRedemptionOffers } from "@/hooks/merchant/useMerchantRedemptionOffers";
-import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
-import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
-import { toast } from "sonner";
 import { BN } from "@coral-xyz/anchor";
-import { Gift, Percent, Package, Coins, Ticket } from "lucide-react";
-import { IconPicker } from "@/components/ui/IconPicker";
-import { IconRenderer } from "@/contexts/IconPickerContext";
-import Dropdown from "@/components/ui/Dropdown";
-import Toggle from "@/components/ui/Toggle";
-import Modal from "@/components/ui/Modal";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Coins, Gift, Package, Percent, Ticket } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Button from "@/components/ui/Button";
+import Dropdown from "@/components/ui/Dropdown";
+import { IconPicker } from "@/components/ui/IconPicker";
+import Modal from "@/components/ui/Modal";
+import Toggle from "@/components/ui/Toggle";
+import { IconRenderer } from "@/contexts/IconPickerContext";
+import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantRedemptionOffers } from "@/hooks/merchant/useMerchantRedemptionOffers";
+import {
+  type RedemptionType,
+  useRedemptionOffers,
+} from "@/hooks/offers/useRedemptionOffers";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
 type OfferType = "discount" | "product" | "cashback" | "exclusive" | "custom";
 
+/**
+ * Merchant Redemption Offers Management Page
+ *
+ * Interface for creating and managing customer redemption offers.
+ *
+ * Features:
+ * - Create redemption offers with:
+ *   - Name, description, and icon
+ *   - Cost in SLCY tokens
+ *   - Offer type (discount %, free product, SOL cashback, exclusive access, custom)
+ *   - Optional quantity limits
+ *   - Optional expiration dates
+ * - Toggle offers active/inactive
+ * - Edit existing offers (except name)
+ * - Delete offers
+ * - Visual offer cards with status badges
+ *
+ * Customers can browse and redeem these offers using their earned SLCY tokens.
+ * Offers are stored on-chain and automatically enforced by the smart contract.
+ *
+ * @returns Redemption offers management interface with CRUD operations
+ */
 export default function MerchantOffersPage() {
   const { publicKey } = useWallet();
   const queryClient = useQueryClient();
@@ -28,19 +53,32 @@ export default function MerchantOffersPage() {
     updateRedemptionOffer,
     toggleRedemptionOffer,
     deleteRedemptionOffer,
-    isLoading: mutationLoading
+    isLoading: mutationLoading,
   } = useRedemptionOffers();
-  const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
+  const { isLoading: merchantLoading, isRegistered } = useMerchantAccount();
 
   // Get merchant PDA to fetch offers
-  const merchantPubkey = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
+  const merchantPubkey = publicKey
+    ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
+    : null;
 
   // Fetch offers from blockchain
-  const { data: fetchedOffers = [], isLoading: offersLoading } = useMerchantRedemptionOffers(merchantPubkey);
+  const { data: fetchedOffers = [], isLoading: offersLoading } =
+    useMerchantRedemptionOffers(merchantPubkey);
 
   const [showModal, setShowModal] = useState(false);
-  const [editingOffer, setEditingOffer] = useState<any | null>(null);
-  const [deletingOfferName, setDeletingOfferName] = useState<string | null>(null);
+  const [editingOffer, setEditingOffer] = useState<{
+    name: string;
+    offerType: RedemptionType;
+    description?: string;
+    icon?: string;
+    cost?: number;
+    quantityLimit?: number | null;
+    expiration?: number | null;
+  } | null>(null);
+  const [deletingOfferName, setDeletingOfferName] = useState<string | null>(
+    null,
+  );
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -63,8 +101,10 @@ export default function MerchantOffersPage() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const offerType = buildOfferType();
-      const cost = parseInt(formData.cost);
-      const quantityLimit = formData.hasQuantityLimit ? parseInt(formData.quantityLimit) : undefined;
+      const cost = parseInt(formData.cost, 10);
+      const quantityLimit = formData.hasQuantityLimit
+        ? parseInt(formData.quantityLimit, 10)
+        : undefined;
       const expiration = formData.hasExpiration
         ? Math.floor(new Date(formData.expiration).getTime() / 1000)
         : undefined;
@@ -84,7 +124,7 @@ export default function MerchantOffersPage() {
       toast.success("Offer created successfully!");
       setShowModal(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to create offer");
     },
   });
@@ -93,30 +133,38 @@ export default function MerchantOffersPage() {
   const updateMutation = useMutation({
     mutationFn: async () => {
       // Only build offer type if the type-specific fields are filled
-      let offerType: RedemptionType | undefined = undefined;
+      let offerType: RedemptionType | undefined;
 
       if (formData.offerType === "discount" && formData.discountPercentage) {
-        offerType = { discount: { percentage: parseInt(formData.discountPercentage) } };
+        offerType = {
+          discount: { percentage: parseInt(formData.discountPercentage, 10) },
+        };
       } else if (formData.offerType === "product" && formData.productId) {
         offerType = { freeProduct: { productId: formData.productId } };
       } else if (formData.offerType === "cashback" && formData.cashbackAmount) {
-        offerType = { cashback: { amountLamports: new BN(formData.cashbackAmount) } };
+        offerType = {
+          cashback: { amountLamports: new BN(formData.cashbackAmount) },
+        };
       } else if (formData.offerType === "exclusive" && formData.accessType) {
         offerType = { exclusiveAccess: { accessType: formData.accessType } };
       } else if (formData.offerType === "custom" && formData.customTypeName) {
         offerType = { custom: { typeName: formData.customTypeName } };
       }
 
-      const cost = formData.cost ? parseInt(formData.cost) : undefined;
+      const cost = formData.cost ? parseInt(formData.cost, 10) : undefined;
       const quantityLimit = formData.hasQuantityLimit
-        ? (formData.quantityLimit ? parseInt(formData.quantityLimit) : null)
+        ? formData.quantityLimit
+          ? parseInt(formData.quantityLimit, 10)
+          : null
         : undefined;
       const expiration = formData.hasExpiration
-        ? (formData.expiration ? Math.floor(new Date(formData.expiration).getTime() / 1000) : null)
+        ? formData.expiration
+          ? Math.floor(new Date(formData.expiration).getTime() / 1000)
+          : null
         : undefined;
 
       return await updateRedemptionOffer({
-        name: editingOffer.name,
+        name: editingOffer?.name || "",
         description: formData.description || undefined,
         icon: formData.icon || undefined,
         cost,
@@ -130,7 +178,7 @@ export default function MerchantOffersPage() {
       toast.success("Offer updated successfully!");
       setShowModal(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to update offer");
     },
   });
@@ -144,7 +192,7 @@ export default function MerchantOffersPage() {
       queryClient.invalidateQueries({ queryKey: ["merchantRedemptionOffers"] });
       toast.success("Offer status updated!");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to toggle offer");
     },
   });
@@ -160,19 +208,28 @@ export default function MerchantOffersPage() {
       setShowDeleteModal(false);
       setDeletingOfferName(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to delete offer");
     },
   });
 
+  /**
+   * Builds the offer type object based on form data
+   * Converts form values to the proper RedemptionType structure
+   * @returns RedemptionType object for blockchain submission
+   */
   const buildOfferType = (): RedemptionType => {
     switch (formData.offerType) {
       case "discount":
-        return { discount: { percentage: parseInt(formData.discountPercentage) } };
+        return {
+          discount: { percentage: parseInt(formData.discountPercentage, 10) },
+        };
       case "product":
         return { freeProduct: { productId: formData.productId } };
       case "cashback":
-        return { cashback: { amountLamports: new BN(formData.cashbackAmount) } };
+        return {
+          cashback: { amountLamports: new BN(formData.cashbackAmount) },
+        };
       case "exclusive":
         return { exclusiveAccess: { accessType: formData.accessType } };
       case "custom":
@@ -182,6 +239,10 @@ export default function MerchantOffersPage() {
     }
   };
 
+  /**
+   * Opens the modal for creating a new offer
+   * Resets form to default values
+   */
   const openCreateModal = () => {
     setEditingOffer(null);
     setFormData({
@@ -203,22 +264,37 @@ export default function MerchantOffersPage() {
     setShowModal(true);
   };
 
-  const openEditModal = (offer: any) => {
+  /**
+   * Opens the modal for editing an existing offer
+   * Populates form with current offer data
+   * @param offer - The offer to edit
+   */
+  const openEditModal = (offer: {
+    name: string;
+    offerType: RedemptionType;
+    description?: string;
+    icon?: string;
+    cost?: number;
+    quantityLimit?: number | null;
+    expiration?: number | null;
+  }) => {
     setEditingOffer(offer);
 
     // Parse offer type
     let offerType: OfferType = "discount";
-    let typeSpecificData: any = {};
+    const typeSpecificData: Record<string, string> = {};
 
     if ("discount" in offer.offerType) {
       offerType = "discount";
-      typeSpecificData.discountPercentage = offer.offerType.discount.percentage.toString();
+      typeSpecificData.discountPercentage =
+        offer.offerType.discount.percentage.toString();
     } else if ("freeProduct" in offer.offerType) {
       offerType = "product";
       typeSpecificData.productId = offer.offerType.freeProduct.productId;
     } else if ("cashback" in offer.offerType) {
       offerType = "cashback";
-      typeSpecificData.cashbackAmount = offer.offerType.cashback.amountLamports.toString();
+      typeSpecificData.cashbackAmount =
+        offer.offerType.cashback.amountLamports.toString();
     } else if ("exclusiveAccess" in offer.offerType) {
       offerType = "exclusive";
       typeSpecificData.accessType = offer.offerType.exclusiveAccess.accessType;
@@ -229,9 +305,9 @@ export default function MerchantOffersPage() {
 
     setFormData({
       name: offer.name,
-      description: offer.description,
+      description: offer.description || "",
       icon: offer.icon || "",
-      cost: offer.cost.toString(),
+      cost: offer.cost?.toString() || "",
       offerType,
       ...typeSpecificData,
       customTypeName: typeSpecificData.customTypeName || "",
@@ -241,7 +317,15 @@ export default function MerchantOffersPage() {
       accessType: typeSpecificData.accessType || "",
       quantityLimit: offer.quantityLimit?.toString() || "",
       hasQuantityLimit: !!offer.quantityLimit,
-      expiration: offer.expiration ? new Date(offer.expiration.toNumber() * 1000).toISOString().split("T")[0] : "",
+      expiration: offer.expiration
+        ? new Date(
+            (typeof offer.expiration === "number"
+              ? offer.expiration
+              : offer.expiration) * 1000,
+          )
+            .toISOString()
+            .split("T")[0]
+        : "",
       hasExpiration: !!offer.expiration,
     });
     setShowModal(true);
@@ -269,7 +353,7 @@ export default function MerchantOffersPage() {
     deleteMutation.mutate(deletingOfferName);
   };
 
-  const getOfferTypeLabel = (offerType: any) => {
+  const getOfferTypeLabel = (offerType: RedemptionType) => {
     if ("discount" in offerType) return "Discount %";
     if ("freeProduct" in offerType) return "Free Product";
     if ("cashback" in offerType) return "SOL Cashback";
@@ -278,29 +362,65 @@ export default function MerchantOffersPage() {
     return "Unknown";
   };
 
-  const getOfferTypeColor = (offerType: any) => {
-    if ("discount" in offerType) return "bg-accent/10 text-accent border-accent/20";
-    if ("freeProduct" in offerType) return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    if ("cashback" in offerType) return "bg-green-500/10 text-green-400 border-green-500/20";
-    if ("exclusiveAccess" in offerType) return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-    if ("custom" in offerType) return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+  const getOfferTypeColor = (offerType: RedemptionType) => {
+    if ("discount" in offerType)
+      return "bg-accent/10 text-accent border-accent/20";
+    if ("freeProduct" in offerType)
+      return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    if ("cashback" in offerType)
+      return "bg-green-500/10 text-green-400 border-green-500/20";
+    if ("exclusiveAccess" in offerType)
+      return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+    if ("custom" in offerType)
+      return "bg-orange-500/10 text-orange-400 border-orange-500/20";
     return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   };
 
-  const getStatusBadge = (offer: any) => {
+  const getStatusBadge = (offer: {
+    isActive: boolean;
+    quantityLimit?: number | null;
+    quantityRedeemed?: number;
+    expiration?: number | null;
+  }) => {
     if (!offer.isActive) {
-      return <span className="px-2 py-1 rounded text-xs bg-gray-500/10 text-gray-400 border border-gray-500/20">Inactive</span>;
+      return (
+        <span className="px-2 py-1 rounded text-xs bg-gray-500/10 text-gray-400 border border-gray-500/20">
+          Inactive
+        </span>
+      );
     }
 
-    if (offer.expiration && offer.expiration.toNumber() < Date.now() / 1000) {
-      return <span className="px-2 py-1 rounded text-xs bg-red-500/10 text-red-400 border border-red-500/20">Expired</span>;
+    if (
+      offer.expiration &&
+      (typeof offer.expiration === "number"
+        ? offer.expiration
+        : offer.expiration) <
+        Date.now() / 1000
+    ) {
+      return (
+        <span className="px-2 py-1 rounded text-xs bg-red-500/10 text-red-400 border border-red-500/20">
+          Expired
+        </span>
+      );
     }
 
-    if (offer.quantityLimit && offer.quantityClaimed >= offer.quantityLimit) {
-      return <span className="px-2 py-1 rounded text-xs bg-red-500/10 text-red-400 border border-red-500/20">Sold Out</span>;
+    if (
+      offer.quantityLimit &&
+      offer.quantityRedeemed &&
+      offer.quantityRedeemed >= offer.quantityLimit
+    ) {
+      return (
+        <span className="px-2 py-1 rounded text-xs bg-red-500/10 text-red-400 border border-red-500/20">
+          Sold Out
+        </span>
+      );
     }
 
-    return <span className="px-2 py-1 rounded text-xs bg-accent/10 text-accent border border-accent/20">Active</span>;
+    return (
+      <span className="px-2 py-1 rounded text-xs bg-accent/10 text-accent border border-accent/20">
+        Active
+      </span>
+    );
   };
 
   const isLoading = offersLoading || mutationLoading;
@@ -320,6 +440,7 @@ export default function MerchantOffersPage() {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
+                    <title>Alert</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -328,9 +449,13 @@ export default function MerchantOffersPage() {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold mb-3">No Merchant Account Found</h2>
+                <h2 className="text-2xl font-bold mb-3">
+                  No Merchant Account Found
+                </h2>
                 <p className="text-text-secondary mb-8 max-w-md mx-auto">
-                  You need to register as a merchant before you can create redemption offers. Register your business to get started with your loyalty program.
+                  You need to register as a merchant before you can create
+                  redemption offers. Register your business to get started with
+                  your loyalty program.
                 </p>
                 <a
                   href="/merchant/register"
@@ -348,9 +473,12 @@ export default function MerchantOffersPage() {
               {/* Header */}
               <div className="flex justify-between items-center mb-12">
                 <div>
-                  <h1 className="text-[2rem] font-bold mb-2">Redemption Offers</h1>
+                  <h1 className="text-[2rem] font-bold mb-2">
+                    Redemption Offers
+                  </h1>
                   <p className="text-text-secondary">
-                    Create and manage rewards that customers can redeem with their tokens
+                    Create and manage rewards that customers can redeem with
+                    their tokens
                   </p>
                 </div>
                 <button
@@ -379,7 +507,8 @@ export default function MerchantOffersPage() {
                   </div>
                   <h3 className="text-xl font-semibold mb-3">No Offers Yet</h3>
                   <p className="text-text-secondary mb-8">
-                    Create your first redemption offer to let customers redeem their tokens
+                    Create your first redemption offer to let customers redeem
+                    their tokens
                   </p>
                   <button
                     type="button"
@@ -398,7 +527,9 @@ export default function MerchantOffersPage() {
                     >
                       {/* Header */}
                       <div className="flex justify-between items-start mb-4">
-                        <span className={`px-3 py-1 rounded text-xs font-semibold border ${getOfferTypeColor(offer.offerType)}`}>
+                        <span
+                          className={`px-3 py-1 rounded text-xs font-semibold border ${getOfferTypeColor(offer.offerType)}`}
+                        >
                           {getOfferTypeLabel(offer.offerType)}
                         </span>
                         {getStatusBadge(offer)}
@@ -407,22 +538,31 @@ export default function MerchantOffersPage() {
                       {/* Icon */}
                       <div className="mb-4">
                         {offer.icon ? (
-                          <IconRenderer icon={offer.icon} className="w-12 h-12 text-accent" />
+                          <IconRenderer
+                            icon={offer.icon}
+                            className="w-12 h-12 text-accent"
+                          />
                         ) : (
                           <Gift className="w-12 h-12 text-accent" />
                         )}
                       </div>
 
                       {/* Content */}
-                      <h3 className="text-lg font-semibold mb-2">{offer.name}</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        {offer.name}
+                      </h3>
                       <p className="text-sm text-text-secondary mb-6 line-clamp-2">
                         {offer.description}
                       </p>
 
                       {/* Cost */}
                       <div className="flex items-baseline gap-2 mb-6 pb-6 border-b border-border">
-                        <span className="text-2xl font-bold text-accent">{offer.cost.toString()}</span>
-                        <span className="text-sm text-text-secondary">SLCY</span>
+                        <span className="text-2xl font-bold text-accent">
+                          {offer.cost.toString()}
+                        </span>
+                        <span className="text-sm text-text-secondary">
+                          SLCY
+                        </span>
                       </div>
 
                       {/* Stats */}
@@ -431,7 +571,8 @@ export default function MerchantOffersPage() {
                           <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Claimed</span>
                             <span className="font-medium">
-                              {offer.quantityClaimed.toString()} / {offer.quantityLimit.toString()}
+                              {offer.quantityClaimed.toString()} /{" "}
+                              {offer.quantityLimit.toString()}
                             </span>
                           </div>
                         )}
@@ -439,7 +580,9 @@ export default function MerchantOffersPage() {
                           <div className="flex justify-between text-sm">
                             <span className="text-text-secondary">Expires</span>
                             <span className="font-medium">
-                              {new Date(offer.expiration.toNumber() * 1000).toLocaleDateString()}
+                              {new Date(
+                                offer.expiration.toNumber() * 1000,
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
@@ -459,10 +602,11 @@ export default function MerchantOffersPage() {
                           type="button"
                           onClick={() => handleToggle(offer.name)}
                           disabled={isLoading}
-                          className={`flex-1 px-4 py-2 rounded border text-sm font-medium transition-colors disabled:opacity-50 ${offer.isActive
-                            ? "border-orange-500/20 text-orange-400 hover:bg-orange-500/10"
-                            : "border-accent/20 text-accent hover:bg-accent/10"
-                            }`}
+                          className={`flex-1 px-4 py-2 rounded border text-sm font-medium transition-colors disabled:opacity-50 ${
+                            offer.isActive
+                              ? "border-orange-500/20 text-orange-400 hover:bg-orange-500/10"
+                              : "border-accent/20 text-accent hover:bg-accent/10"
+                          }`}
                         >
                           {offer.isActive ? "Pause" : "Activate"}
                         </button>
@@ -492,17 +636,27 @@ export default function MerchantOffersPage() {
                       <div className="space-y-6">
                         {/* Name */}
                         <div>
-                          <label className="block text-sm font-medium mb-2">Offer Name</label>
+                          <label
+                            htmlFor="offer-name"
+                            className="block text-sm font-medium mb-2"
+                          >
+                            Offer Name
+                          </label>
                           <input
+                            id="offer-name"
                             type="text"
                             value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
                             placeholder="e.g., 50% Off Any Beverage"
                             disabled={!!editingOffer}
                             className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent disabled:opacity-50"
                           />
                           {editingOffer && (
-                            <p className="text-xs text-text-secondary mt-1">Name cannot be changed after creation</p>
+                            <p className="text-xs text-text-secondary mt-1">
+                              Name cannot be changed after creation
+                            </p>
                           )}
                         </div>
 
@@ -512,16 +666,29 @@ export default function MerchantOffersPage() {
                             <IconPicker
                               label="Offer Icon"
                               value={formData.icon}
-                              onChange={(iconName) => setFormData({ ...formData, icon: iconName })}
+                              onChange={(iconName) =>
+                                setFormData({ ...formData, icon: iconName })
+                              }
                               placeholder="Select an icon"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium mb-2">Cost (SLCY Tokens)</label>
+                            <label
+                              htmlFor="offer-cost"
+                              className="block text-sm font-medium mb-2"
+                            >
+                              Cost (SLCY Tokens)
+                            </label>
                             <input
+                              id="offer-cost"
                               type="number"
                               value={formData.cost}
-                              onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  cost: e.target.value,
+                                })
+                              }
                               placeholder="250"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
@@ -530,10 +697,21 @@ export default function MerchantOffersPage() {
 
                         {/* Description */}
                         <div>
-                          <label className="block text-sm font-medium mb-2">Description</label>
+                          <label
+                            htmlFor="offer-description"
+                            className="block text-sm font-medium mb-2"
+                          >
+                            Description
+                          </label>
                           <textarea
+                            id="offer-description"
                             value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                description: e.target.value,
+                              })
+                            }
                             placeholder="Describe what customers get with this offer"
                             rows={3}
                             className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent resize-none"
@@ -544,32 +722,37 @@ export default function MerchantOffersPage() {
                         <Dropdown
                           label="Offer Type"
                           value={formData.offerType}
-                          onChange={(value) => setFormData({ ...formData, offerType: value as OfferType })}
+                          onChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              offerType: value as OfferType,
+                            })
+                          }
                           options={[
                             {
                               value: "discount",
                               label: "Discount %",
-                              icon: <Percent className="w-4 h-4" />
+                              icon: <Percent className="w-4 h-4" />,
                             },
                             {
                               value: "product",
                               label: "Free Product",
-                              icon: <Package className="w-4 h-4" />
+                              icon: <Package className="w-4 h-4" />,
                             },
                             {
                               value: "cashback",
                               label: "SOL Cashback",
-                              icon: <Coins className="w-4 h-4" />
+                              icon: <Coins className="w-4 h-4" />,
                             },
                             {
                               value: "exclusive",
                               label: "Exclusive Access",
-                              icon: <Ticket className="w-4 h-4" />
+                              icon: <Ticket className="w-4 h-4" />,
                             },
                             {
                               value: "custom",
                               label: "Custom",
-                              icon: <Gift className="w-4 h-4" />
+                              icon: <Gift className="w-4 h-4" />,
                             },
                           ]}
                         />
@@ -577,11 +760,22 @@ export default function MerchantOffersPage() {
                         {/* Type-specific fields */}
                         {formData.offerType === "discount" && (
                           <div>
-                            <label className="block text-sm font-medium mb-2">Discount Percentage</label>
+                            <label
+                              htmlFor="discount-percentage"
+                              className="block text-sm font-medium mb-2"
+                            >
+                              Discount Percentage
+                            </label>
                             <input
+                              id="discount-percentage"
                               type="number"
                               value={formData.discountPercentage}
-                              onChange={(e) => setFormData({ ...formData, discountPercentage: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  discountPercentage: e.target.value,
+                                })
+                              }
                               placeholder="50"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
@@ -590,11 +784,22 @@ export default function MerchantOffersPage() {
 
                         {formData.offerType === "product" && (
                           <div>
-                            <label className="block text-sm font-medium mb-2">Product ID</label>
+                            <label
+                              htmlFor="product-id"
+                              className="block text-sm font-medium mb-2"
+                            >
+                              Product ID
+                            </label>
                             <input
+                              id="product-id"
                               type="text"
                               value={formData.productId}
-                              onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  productId: e.target.value,
+                                })
+                              }
                               placeholder="PROD-001"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
@@ -603,25 +808,49 @@ export default function MerchantOffersPage() {
 
                         {formData.offerType === "cashback" && (
                           <div>
-                            <label className="block text-sm font-medium mb-2">Cashback Amount (Lamports)</label>
+                            <label
+                              htmlFor="cashback-amount"
+                              className="block text-sm font-medium mb-2"
+                            >
+                              Cashback Amount (Lamports)
+                            </label>
                             <input
+                              id="cashback-amount"
                               type="number"
                               value={formData.cashbackAmount}
-                              onChange={(e) => setFormData({ ...formData, cashbackAmount: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  cashbackAmount: e.target.value,
+                                })
+                              }
                               placeholder="1000000"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
-                            <p className="text-xs text-text-secondary mt-1">1 SOL = 1,000,000,000 lamports</p>
+                            <p className="text-xs text-text-secondary mt-1">
+                              1 SOL = 1,000,000,000 lamports
+                            </p>
                           </div>
                         )}
 
                         {formData.offerType === "exclusive" && (
                           <div>
-                            <label className="block text-sm font-medium mb-2">Access Type</label>
+                            <label
+                              htmlFor="access-type"
+                              className="block text-sm font-medium mb-2"
+                            >
+                              Access Type
+                            </label>
                             <input
+                              id="access-type"
                               type="text"
                               value={formData.accessType}
-                              onChange={(e) => setFormData({ ...formData, accessType: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  accessType: e.target.value,
+                                })
+                              }
                               placeholder="VIP Lounge Access"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
@@ -630,11 +859,22 @@ export default function MerchantOffersPage() {
 
                         {formData.offerType === "custom" && (
                           <div>
-                            <label className="block text-sm font-medium mb-2">Custom Type Name</label>
+                            <label
+                              htmlFor="custom-type-name"
+                              className="block text-sm font-medium mb-2"
+                            >
+                              Custom Type Name
+                            </label>
                             <input
+                              id="custom-type-name"
                               type="text"
                               value={formData.customTypeName}
-                              onChange={(e) => setFormData({ ...formData, customTypeName: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  customTypeName: e.target.value,
+                                })
+                              }
                               placeholder="e.g., VIP Access, Gift Card"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
@@ -646,14 +886,24 @@ export default function MerchantOffersPage() {
                           <Toggle
                             label="Set Quantity Limit"
                             checked={formData.hasQuantityLimit}
-                            onChange={(e) => setFormData({ ...formData, hasQuantityLimit: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                hasQuantityLimit: e.target.checked,
+                              })
+                            }
                             className="mb-3"
                           />
                           {formData.hasQuantityLimit && (
                             <input
                               type="number"
                               value={formData.quantityLimit}
-                              onChange={(e) => setFormData({ ...formData, quantityLimit: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  quantityLimit: e.target.value,
+                                })
+                              }
                               placeholder="100"
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
@@ -665,14 +915,24 @@ export default function MerchantOffersPage() {
                           <Toggle
                             label="Set Expiration Date"
                             checked={formData.hasExpiration}
-                            onChange={(e) => setFormData({ ...formData, hasExpiration: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                hasExpiration: e.target.checked,
+                              })
+                            }
                             className="mb-3"
                           />
                           {formData.hasExpiration && (
                             <input
                               type="date"
                               value={formData.expiration}
-                              onChange={(e) => setFormData({ ...formData, expiration: e.target.value })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  expiration: e.target.value,
+                                })
+                              }
                               className="w-full bg-bg-primary border border-border rounded px-4 py-3 focus:outline-none focus:border-accent"
                             />
                           )}
@@ -695,7 +955,11 @@ export default function MerchantOffersPage() {
                           disabled={isLoading}
                           className="flex-1 px-6 py-3 rounded bg-accent text-black font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
                         >
-                          {isLoading ? "Processing..." : editingOffer ? "Update Offer" : "Create Offer"}
+                          {isLoading
+                            ? "Processing..."
+                            : editingOffer
+                              ? "Update Offer"
+                              : "Create Offer"}
                         </button>
                       </div>
                     </div>
@@ -714,7 +978,9 @@ export default function MerchantOffersPage() {
               >
                 <div className="space-y-4">
                   <p className="text-text-secondary">
-                    Are you sure you want to delete this offer? This action cannot be undone and will permanently remove the offer from the blockchain.
+                    Are you sure you want to delete this offer? This action
+                    cannot be undone and will permanently remove the offer from
+                    the blockchain.
                   </p>
                   <div className="flex gap-3 pt-4">
                     <Button

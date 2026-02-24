@@ -19,7 +19,12 @@ export interface IssuanceEvent {
   customerTier: string;
 }
 
-export function useMerchantIssuanceEvents(merchantPubkey: PublicKey | null) {
+export function useMerchantIssuanceEvents(merchantPubkey: PublicKey | null): {
+  data: IssuanceEvent[];
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+} {
   const { connection } = useConnection();
   const { program } = useSolcityProgram();
   const { publicKey: merchantAuthority } = useWallet();

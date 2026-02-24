@@ -1,21 +1,87 @@
 "use client";
 
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
 import { useMerchantAnalytics } from "@/hooks/merchant/useMerchantAnalytics";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+
+/**
+ * Merchant Analytics Dashboard Page
+ *
+ * Comprehensive analytics and insights for merchant loyalty program performance.
+ *
+ * Features:
+ * - Key Performance Metrics:
+ *   - Total tokens issued and redeemed
+ *   - Active customers count
+ *   - Average transaction value
+ *   - Redemption rate
+ *
+ * - Time-Series Charts:
+ *   - Daily issuance and redemption trends
+ *   - Customer growth over time
+ *   - Transaction volume patterns
+ *
+ * - Customer Insights:
+ *   - Top customers by earnings
+ *   - Customer tier distribution
+ *   - Engagement metrics
+ *
+ * - Date Range Filtering:
+ *   - Last 7 days, 30 days, 90 days
+ *   - Custom date range selection
+ *
+ * All data is aggregated from on-chain events and customer accounts.
+ *
+ * @returns Analytics dashboard with charts, metrics, and customer insights
+ */
+
+/**
+ * Customer analytics data structure
+ * Extends customer data with calculated metrics
+ */
+interface TopCustomer {
+  publicKey: string;
+  wallet: string;
+  tier: string;
+  totalEarned: number;
+  totalRedeemed: number;
+  transactionCount: number;
+  registeredAt: number;
+  earned: number; // Calculated from issuance events
+  redeemed: number; // Calculated from redemptions
+  lastActivity: number; // Timestamp of last transaction
+}
 
 export default function MerchantAnalyticsPage() {
   const { publicKey } = useWallet();
-  const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
-  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "custom">("30d");
+  const {
+    merchantAccount,
+    isLoading: merchantLoading,
+    isRegistered,
+  } = useMerchantAccount();
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "custom">(
+    "30d",
+  );
   const [showTierInfo, setShowTierInfo] = useState(false);
 
   // Get merchant PDA for analytics
-  const merchantPDA = publicKey ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0] : null;
+  const merchantPDA = publicKey
+    ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
+    : null;
   const {
     isLoading: analyticsLoading,
     metrics,
@@ -30,7 +96,6 @@ export default function MerchantAnalyticsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-
         {/* Container */}
         <div className="max-w-[1400px] mx-auto px-8 w-full py-12">
           {merchantLoading ? (
@@ -47,6 +112,7 @@ export default function MerchantAnalyticsPage() {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"
@@ -56,9 +122,13 @@ export default function MerchantAnalyticsPage() {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold mb-3">No Merchant Account Found</h2>
+                <h2 className="text-2xl font-bold mb-3">
+                  No Merchant Account Found
+                </h2>
                 <p className="text-text-secondary mb-8 max-w-md mx-auto">
-                  You need to register as a merchant before you can access analytics. Register your business to get started with your loyalty program.
+                  You need to register as a merchant before you can access
+                  analytics. Register your business to get started with your
+                  loyalty program.
                 </p>
                 <a
                   href="/merchant/register"
@@ -77,40 +147,44 @@ export default function MerchantAnalyticsPage() {
                   <button
                     type="button"
                     onClick={() => setDateRange("7d")}
-                    className={`px-4 py-2 text-xs font-semibold rounded-md ${dateRange === "7d"
-                      ? "bg-border text-text"
-                      : "bg-transparent text-text-secondary"
-                      }`}
+                    className={`px-4 py-2 text-xs font-semibold rounded-md ${
+                      dateRange === "7d"
+                        ? "bg-border text-text"
+                        : "bg-transparent text-text-secondary"
+                    }`}
                   >
                     7D
                   </button>
                   <button
                     type="button"
                     onClick={() => setDateRange("30d")}
-                    className={`px-4 py-2 text-xs font-semibold rounded-md ${dateRange === "30d"
-                      ? "bg-border text-text"
-                      : "bg-transparent text-text-secondary"
-                      }`}
+                    className={`px-4 py-2 text-xs font-semibold rounded-md ${
+                      dateRange === "30d"
+                        ? "bg-border text-text"
+                        : "bg-transparent text-text-secondary"
+                    }`}
                   >
                     30D
                   </button>
                   <button
                     type="button"
                     onClick={() => setDateRange("90d")}
-                    className={`px-4 py-2 text-xs font-semibold rounded-md ${dateRange === "90d"
-                      ? "bg-border text-text"
-                      : "bg-transparent text-text-secondary"
-                      }`}
+                    className={`px-4 py-2 text-xs font-semibold rounded-md ${
+                      dateRange === "90d"
+                        ? "bg-border text-text"
+                        : "bg-transparent text-text-secondary"
+                    }`}
                   >
                     90D
                   </button>
                   <button
                     type="button"
                     onClick={() => setDateRange("custom")}
-                    className={`px-4 py-2 text-xs font-semibold rounded-md ${dateRange === "custom"
-                      ? "bg-border text-text"
-                      : "bg-transparent text-text-secondary"
-                      }`}
+                    className={`px-4 py-2 text-xs font-semibold rounded-md ${
+                      dateRange === "custom"
+                        ? "bg-border text-text"
+                        : "bg-transparent text-text-secondary"
+                    }`}
                   >
                     Custom
                   </button>
@@ -124,7 +198,9 @@ export default function MerchantAnalyticsPage() {
                     Avg Reward / Tx
                   </div>
                   <div className="text-2xl font-semibold">
-                    {isLoading ? "..." : `${metrics.avgRewardPerTx.toFixed(1)} SLCY`}
+                    {isLoading
+                      ? "..."
+                      : `${metrics.avgRewardPerTx.toFixed(1)} SLCY`}
                   </div>
                 </div>
                 <div className="bg-panel border border-border p-6 rounded-xl">
@@ -132,7 +208,9 @@ export default function MerchantAnalyticsPage() {
                     Redemption Rate
                   </div>
                   <div className="text-2xl font-semibold">
-                    {isLoading ? "..." : `${metrics.redemptionRate.toFixed(1)}%`}
+                    {isLoading
+                      ? "..."
+                      : `${metrics.redemptionRate.toFixed(1)}%`}
                   </div>
                 </div>
                 <div className="bg-panel border border-border p-6 rounded-xl">
@@ -171,33 +249,50 @@ export default function MerchantAnalyticsPage() {
                   ) : (
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={timeSeriesData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#333"
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="date"
                           stroke="#888"
-                          style={{ fontSize: '0.7rem' }}
+                          style={{ fontSize: "0.7rem" }}
                           axisLine={false}
                           tickLine={false}
-                          tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          tickFormatter={(value) =>
+                            new Date(value).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          }
                         />
                         <YAxis
                           stroke="#888"
-                          style={{ fontSize: '0.7rem' }}
+                          style={{ fontSize: "0.7rem" }}
                           axisLine={false}
                           tickLine={false}
                         />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: '#1a1a1a',
-                            border: '1px solid #333',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '0.875rem'
+                            backgroundColor: "#1a1a1a",
+                            border: "1px solid #333",
+                            borderRadius: "8px",
+                            color: "#fff",
+                            fontSize: "0.875rem",
                           }}
-                          cursor={{ fill: 'rgba(192, 255, 0, 0.05)' }}
+                          cursor={{ fill: "rgba(192, 255, 0, 0.05)" }}
                         />
-                        <Bar dataKey="issued" fill="#c0ff00" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="redeemed" fill="#444" radius={[4, 4, 0, 0]} />
+                        <Bar
+                          dataKey="issued"
+                          fill="#c0ff00"
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="redeemed"
+                          fill="#444"
+                          radius={[4, 4, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -216,15 +311,26 @@ export default function MerchantAnalyticsPage() {
                 {/* Tier Distribution */}
                 <div className="bg-panel border border-border rounded-xl p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="text-sm font-semibold">Tier Distribution</div>
+                    <div className="text-sm font-semibold">
+                      Tier Distribution
+                    </div>
                     <button
                       type="button"
                       onClick={() => setShowTierInfo(true)}
                       className="text-accent hover:text-accent/80 transition-colors"
                       title="Learn about customer tiers"
                     >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <title>Information</title>
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -237,26 +343,62 @@ export default function MerchantAnalyticsPage() {
                       <div className="flex items-center justify-center relative h-[200px]">
                         <div className="w-[140px] h-[140px] rounded-full border-[15px] border-[#CD7F32] border-t-accent border-r-[#FFD700] border-b-[#C0C0C0] rotate-45" />
                         <div className="absolute text-center">
-                          <div className="text-xl font-bold">{metrics.totalCustomers}</div>
-                          <div className="text-[0.6rem] text-text-secondary">TOTAL</div>
+                          <div className="text-xl font-bold">
+                            {metrics.totalCustomers}
+                          </div>
+                          <div className="text-[0.6rem] text-text-secondary">
+                            TOTAL
+                          </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-4">
                         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                           <div className="w-2 h-2 rounded-sm bg-accent/10 border border-accent" />
-                          Plat ({metrics.totalCustomers > 0 ? ((tierDistribution.platinum / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                          Plat (
+                          {metrics.totalCustomers > 0
+                            ? (
+                                (tierDistribution.platinum /
+                                  metrics.totalCustomers) *
+                                100
+                              ).toFixed(0)
+                            : 0}
+                          %)
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                           <div className="w-2 h-2 rounded-sm bg-[#FFD700]/10 border border-[#FFD700]" />
-                          Gold ({metrics.totalCustomers > 0 ? ((tierDistribution.gold / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                          Gold (
+                          {metrics.totalCustomers > 0
+                            ? (
+                                (tierDistribution.gold /
+                                  metrics.totalCustomers) *
+                                100
+                              ).toFixed(0)
+                            : 0}
+                          %)
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                           <div className="w-2 h-2 rounded-sm bg-[#C0C0C0]/10 border border-[#C0C0C0]" />
-                          Silver ({metrics.totalCustomers > 0 ? ((tierDistribution.silver / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                          Silver (
+                          {metrics.totalCustomers > 0
+                            ? (
+                                (tierDistribution.silver /
+                                  metrics.totalCustomers) *
+                                100
+                              ).toFixed(0)
+                            : 0}
+                          %)
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                           <div className="w-2 h-2 rounded-sm bg-[#CD7F32]/10 border border-[#CD7F32]" />
-                          Bronze ({metrics.totalCustomers > 0 ? ((tierDistribution.bronze / metrics.totalCustomers) * 100).toFixed(0) : 0}%)
+                          Bronze (
+                          {metrics.totalCustomers > 0
+                            ? (
+                                (tierDistribution.bronze /
+                                  metrics.totalCustomers) *
+                                100
+                              ).toFixed(0)
+                            : 0}
+                          %)
                         </div>
                       </div>
                     </>
@@ -268,7 +410,9 @@ export default function MerchantAnalyticsPage() {
               <div className="grid grid-cols-2 gap-6 mb-4">
                 {/* Customer Growth */}
                 <div className="bg-panel border border-border rounded-xl p-6">
-                  <div className="text-sm font-semibold mb-6">Customer Growth</div>
+                  <div className="text-sm font-semibold mb-6">
+                    Customer Growth
+                  </div>
                   {isLoading ? (
                     <div className="h-[140px] flex items-center justify-center">
                       <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin" />
@@ -280,31 +424,46 @@ export default function MerchantAnalyticsPage() {
                   ) : (
                     <ResponsiveContainer width="100%" height={140}>
                       <LineChart data={timeSeriesData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#333"
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="date"
                           stroke="#888"
-                          style={{ fontSize: '0.7rem' }}
+                          style={{ fontSize: "0.7rem" }}
                           axisLine={false}
                           tickLine={false}
-                          tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          tickFormatter={(value) =>
+                            new Date(value).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          }
                         />
                         <YAxis
                           stroke="#888"
-                          style={{ fontSize: '0.7rem' }}
+                          style={{ fontSize: "0.7rem" }}
                           axisLine={false}
                           tickLine={false}
                         />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: '#1a1a1a',
-                            border: '1px solid #333',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '0.875rem'
+                            backgroundColor: "#1a1a1a",
+                            border: "1px solid #333",
+                            borderRadius: "8px",
+                            color: "#fff",
+                            fontSize: "0.875rem",
                           }}
                         />
-                        <Line type="monotone" dataKey="issued" stroke="#c0ff00" strokeWidth={3} dot={false} />
+                        <Line
+                          type="monotone"
+                          dataKey="issued"
+                          stroke="#c0ff00"
+                          strokeWidth={3}
+                          dot={false}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   )}
@@ -329,10 +488,15 @@ export default function MerchantAnalyticsPage() {
                         <div key={item.offerName}>
                           <div className="flex justify-between text-xs mb-1">
                             <span className="truncate">{item.offerName}</span>
-                            <span className="text-accent">{item.percentage.toFixed(0)}%</span>
+                            <span className="text-accent">
+                              {item.percentage.toFixed(0)}%
+                            </span>
                           </div>
                           <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
-                            <div className="h-full bg-accent" style={{ width: `${item.percentage}%` }} />
+                            <div
+                              className="h-full bg-accent"
+                              style={{ width: `${item.percentage}%` }}
+                            />
                           </div>
                         </div>
                       ))}
@@ -347,11 +511,15 @@ export default function MerchantAnalyticsPage() {
                 {isLoading ? (
                   <div className="bg-panel border border-border rounded-xl p-12 text-center">
                     <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-text-secondary text-sm">Loading customers...</p>
+                    <p className="text-text-secondary text-sm">
+                      Loading customers...
+                    </p>
                   </div>
                 ) : topCustomers.length === 0 ? (
                   <div className="bg-panel border border-border rounded-xl p-12 text-center">
-                    <p className="text-text-secondary text-sm">No customers yet</p>
+                    <p className="text-text-secondary text-sm">
+                      No customers yet
+                    </p>
                     <p className="text-text-secondary text-xs mt-2">
                       Customers will appear here once they register
                     </p>
@@ -379,11 +547,16 @@ export default function MerchantAnalyticsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {topCustomers.map((customer: any) => {
-                          const lastActivityDate = new Date(customer.lastActivity * 1000);
+                        {topCustomers.map((customer: TopCustomer) => {
+                          const lastActivityDate = new Date(
+                            customer.lastActivity * 1000,
+                          );
                           const now = new Date();
-                          const diffMs = now.getTime() - lastActivityDate.getTime();
-                          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffMs =
+                            now.getTime() - lastActivityDate.getTime();
+                          const diffHours = Math.floor(
+                            diffMs / (1000 * 60 * 60),
+                          );
                           const diffDays = Math.floor(diffHours / 24);
 
                           let lastActivityText = "Never";
@@ -391,7 +564,7 @@ export default function MerchantAnalyticsPage() {
                             if (diffHours < 1) {
                               lastActivityText = "Just now";
                             } else if (diffHours < 24) {
-                              lastActivityText = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                              lastActivityText = `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
                             } else if (diffDays === 1) {
                               lastActivityText = "Yesterday";
                             } else {
@@ -402,7 +575,10 @@ export default function MerchantAnalyticsPage() {
                           return (
                             <tr key={customer.publicKey}>
                               <td className="py-5 px-6 border-b border-border text-sm">
-                                <code>{customer.wallet.slice(0, 4)}...{customer.wallet.slice(-4)}</code>
+                                <code>
+                                  {customer.wallet.slice(0, 4)}...
+                                  {customer.wallet.slice(-4)}
+                                </code>
                               </td>
                               <td className="py-5 px-6 border-b border-border text-sm">
                                 {customer.earned.toLocaleString()} SLCY
@@ -412,14 +588,15 @@ export default function MerchantAnalyticsPage() {
                               </td>
                               <td className="py-5 px-6 border-b border-border text-sm">
                                 <span
-                                  className={`text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold ${customer.tier === "Platinum"
-                                    ? "bg-accent/10 text-accent"
-                                    : customer.tier === "Gold"
-                                      ? "bg-[#FFD700]/10 text-[#FFD700]"
-                                      : customer.tier === "Silver"
-                                        ? "bg-[#C0C0C0]/10 text-[#C0C0C0]"
-                                        : "bg-[#CD7F32]/10 text-[#CD7F32]"
-                                    }`}
+                                  className={`text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold ${
+                                    customer.tier === "Platinum"
+                                      ? "bg-accent/10 text-accent"
+                                      : customer.tier === "Gold"
+                                        ? "bg-[#FFD700]/10 text-[#FFD700]"
+                                        : customer.tier === "Silver"
+                                          ? "bg-[#C0C0C0]/10 text-[#C0C0C0]"
+                                          : "bg-[#CD7F32]/10 text-[#CD7F32]"
+                                  }`}
                                 >
                                   {customer.tier}
                                 </span>
@@ -451,8 +628,19 @@ export default function MerchantAnalyticsPage() {
                     onClick={() => setShowTierInfo(false)}
                     className="text-text-secondary hover:text-text transition-colors"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <title>Close</title>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -460,8 +648,12 @@ export default function MerchantAnalyticsPage() {
                 <div className="space-y-6">
                   <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
                     <p className="text-sm text-text-secondary">
-                      Customer tiers are <span className="text-accent font-semibold">automatically calculated</span> based on lifetime tokens earned.
-                      As customers earn more, they unlock higher tiers with better reward multipliers.
+                      Customer tiers are{" "}
+                      <span className="text-accent font-semibold">
+                        automatically calculated
+                      </span>{" "}
+                      based on lifetime tokens earned. As customers earn more,
+                      they unlock higher tiers with better reward multipliers.
                     </p>
                   </div>
 
@@ -471,9 +663,13 @@ export default function MerchantAnalyticsPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 rounded-sm bg-accent" />
-                          <h3 className="text-lg font-semibold text-accent">Platinum</h3>
+                          <h3 className="text-lg font-semibold text-accent">
+                            Platinum
+                          </h3>
                         </div>
-                        <span className="text-accent font-bold">2.0x Multiplier</span>
+                        <span className="text-accent font-bold">
+                          2.0x Multiplier
+                        </span>
                       </div>
                       <p className="text-sm text-text-secondary mb-2">
                         50,000+ lifetime tokens earned
@@ -488,9 +684,13 @@ export default function MerchantAnalyticsPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 rounded-sm bg-[#FFD700]" />
-                          <h3 className="text-lg font-semibold text-[#FFD700]">Gold</h3>
+                          <h3 className="text-lg font-semibold text-[#FFD700]">
+                            Gold
+                          </h3>
                         </div>
-                        <span className="text-[#FFD700] font-bold">1.5x Multiplier</span>
+                        <span className="text-[#FFD700] font-bold">
+                          1.5x Multiplier
+                        </span>
                       </div>
                       <p className="text-sm text-text-secondary mb-2">
                         10,000 - 49,999 lifetime tokens earned
@@ -505,9 +705,13 @@ export default function MerchantAnalyticsPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 rounded-sm bg-[#C0C0C0]" />
-                          <h3 className="text-lg font-semibold text-[#C0C0C0]">Silver</h3>
+                          <h3 className="text-lg font-semibold text-[#C0C0C0]">
+                            Silver
+                          </h3>
                         </div>
-                        <span className="text-[#C0C0C0] font-bold">1.25x Multiplier</span>
+                        <span className="text-[#C0C0C0] font-bold">
+                          1.25x Multiplier
+                        </span>
                       </div>
                       <p className="text-sm text-text-secondary mb-2">
                         1,000 - 9,999 lifetime tokens earned
@@ -522,9 +726,13 @@ export default function MerchantAnalyticsPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 rounded-sm bg-[#CD7F32]" />
-                          <h3 className="text-lg font-semibold text-[#CD7F32]">Bronze</h3>
+                          <h3 className="text-lg font-semibold text-[#CD7F32]">
+                            Bronze
+                          </h3>
                         </div>
-                        <span className="text-[#CD7F32] font-bold">1.0x Multiplier</span>
+                        <span className="text-[#CD7F32] font-bold">
+                          1.0x Multiplier
+                        </span>
                       </div>
                       <p className="text-sm text-text-secondary mb-2">
                         0 - 999 lifetime tokens earned
@@ -537,7 +745,12 @@ export default function MerchantAnalyticsPage() {
 
                   <div className="bg-black border border-dashed border-border rounded-lg p-5">
                     <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                      <svg
+                        className="w-4 h-4 text-accent"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <title>Star</title>
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       How It Works
@@ -545,19 +758,31 @@ export default function MerchantAnalyticsPage() {
                     <ul className="space-y-2 text-sm text-text-secondary">
                       <li className="flex items-start gap-2">
                         <span className="text-accent mt-0.5">•</span>
-                        <span>Tiers are calculated automatically based on lifetime tokens earned</span>
+                        <span>
+                          Tiers are calculated automatically based on lifetime
+                          tokens earned
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-accent mt-0.5">•</span>
-                        <span>Customers are upgraded instantly when they reach the next tier threshold</span>
+                        <span>
+                          Customers are upgraded instantly when they reach the
+                          next tier threshold
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-accent mt-0.5">•</span>
-                        <span>Multipliers are applied automatically when issuing rewards</span>
+                        <span>
+                          Multipliers are applied automatically when issuing
+                          rewards
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-accent mt-0.5">•</span>
-                        <span>No merchant configuration needed - it's all handled on-chain</span>
+                        <span>
+                          No merchant configuration needed - it's all handled
+                          on-chain
+                        </span>
                       </li>
                     </ul>
                   </div>
@@ -574,7 +799,6 @@ export default function MerchantAnalyticsPage() {
             </div>
           </div>
         )}
-
       </div>
     </ProtectedRoute>
   );

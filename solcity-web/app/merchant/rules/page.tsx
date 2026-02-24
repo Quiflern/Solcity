@@ -1,25 +1,27 @@
 "use client";
 
+import { useWallet } from "@solana/wallet-adapter-react";
+import type { PublicKey } from "@solana/web3.js";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Dropdown from "@/components/ui/Dropdown";
-import Toggle from "@/components/ui/Toggle";
+import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
-import { useState } from "react";
-import { useRewardRules, type RuleType } from "@/hooks/offers/useRewardRules";
+import Toggle from "@/components/ui/Toggle";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
 import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
-import { getMerchantPDA, getLoyaltyProgramPDA } from "@/lib/anchor/pdas";
-import { toast } from "sonner";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { type RuleType, useRewardRules } from "@/hooks/offers/useRewardRules";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
 interface Rule {
-  id: number;
+  publicKey: PublicKey;
+  ruleId: number;
   name: string;
-  type: string;
+  ruleType: RuleType;
   multiplier: number;
   minPurchase: number;
   startTime: number;
@@ -27,21 +29,54 @@ interface Rule {
   isActive: boolean;
 }
 
+/**
+ * Merchant Reward Rules Management Page
+ *
+ * Interface for creating and managing reward multiplier rules.
+ *
+ * Features:
+ * - Create custom reward rules with:
+ *   - Rule name and type (bonus multiplier, base reward, tier bonus, time-based)
+ *   - Multiplier value (e.g., 2x, 1.5x)
+ *   - Minimum purchase requirement
+ *   - Start and end dates (optional)
+ * - Toggle rules active/inactive
+ * - Edit existing rules
+ * - Delete rules
+ * - Visual rule cards showing all parameters
+ *
+ * Rules are applied automatically during reward issuance when conditions are met.
+ * Multiple rules can be active, but only one is applied per transaction.
+ *
+ * @returns Reward rules management interface with CRUD operations
+ */
 export default function MerchantRulesPage() {
   const { publicKey } = useWallet();
   const queryClient = useQueryClient();
-  const { createRewardRule, updateRewardRule, toggleRewardRule, deleteRewardRule, isLoading } = useRewardRules();
-  const { merchantAccount, isLoading: merchantLoading, isRegistered } = useMerchantAccount();
+  const {
+    createRewardRule,
+    updateRewardRule,
+    toggleRewardRule,
+    deleteRewardRule,
+    isLoading,
+  } = useRewardRules();
+  const {
+    merchantAccount,
+    isLoading: merchantLoading,
+    isRegistered,
+  } = useMerchantAccount();
 
   // Get merchant PDA to fetch rules
-  const merchantPubkey = merchantAccount && publicKey
-    ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
-    : null;
+  const merchantPubkey =
+    merchantAccount && publicKey
+      ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
+      : null;
 
   // Fetch rules from blockchain
-  const { data: fetchedRules = [], isLoading: rulesLoading } = useMerchantRewardRules(merchantPubkey);
+  const { data: fetchedRules = [], isLoading: rulesLoading } =
+    useMerchantRewardRules(merchantPubkey);
 
-  const [editingRule, setEditingRule] = useState<any | null>(null);
+  const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deletingRuleId, setDeletingRuleId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -70,6 +105,9 @@ export default function MerchantRulesPage() {
     { value: "500", label: "5.0x" },
   ];
 
+  /**
+   * Resets the rule form to default values
+   */
   const resetForm = () => {
     setRuleName("");
     setRuleType("bonusMultiplier");
@@ -79,6 +117,10 @@ export default function MerchantRulesPage() {
     setEndDate("");
   };
 
+  /**
+   * Handles creating or updating a reward rule
+   * Validates inputs, converts values to proper units, and submits to blockchain
+   */
   const handleSaveRule = async () => {
     if (!publicKey) {
       toast.error("Please connect your wallet");
@@ -110,11 +152,15 @@ export default function MerchantRulesPage() {
     try {
       const ruleTypeEnum: RuleType = { [ruleType]: {} } as RuleType;
       const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
-      const startTime = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0;
-      const endTime = endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0;
+      const startTime = startDate
+        ? Math.floor(new Date(startDate).getTime() / 1000)
+        : 0;
+      const endTime = endDate
+        ? Math.floor(new Date(endDate).getTime() / 1000)
+        : 0;
 
       // Generate next available ruleId (0, 1, 2, 3, etc.)
-      const existingIds = fetchedRules.map(r => r.ruleId);
+      const existingIds = fetchedRules.map((r) => r.ruleId);
       const nextId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 0;
       const ruleId = nextId;
 
@@ -122,7 +168,7 @@ export default function MerchantRulesPage() {
         ruleId,
         name: ruleName,
         ruleType: ruleTypeEnum,
-        multiplier: parseInt(multiplier),
+        multiplier: parseInt(multiplier, 10),
         minPurchase: minPurchaseCents,
         startTime,
         endTime,
@@ -138,23 +184,33 @@ export default function MerchantRulesPage() {
       queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
 
       resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
       toast.error("Failed to create reward rule", {
-        description: err.message || "Unknown error occurred",
+        description: errorMessage,
         duration: 5000,
       });
     }
   };
 
-  const handleEditRule = (rule: any) => {
+  const handleEditRule = (rule: Rule) => {
     setEditingRule(rule);
     setRuleName(rule.name);
     setRuleType(Object.keys(rule.ruleType)[0]);
     setMultiplier(rule.multiplier.toString());
     setMinPurchase((rule.minPurchase / 100).toFixed(2));
-    setStartDate(rule.startTime ? new Date(rule.startTime * 1000).toISOString().split('T')[0] : "");
-    setEndDate(rule.endTime ? new Date(rule.endTime * 1000).toISOString().split('T')[0] : "");
+    setStartDate(
+      rule.startTime
+        ? new Date(rule.startTime * 1000).toISOString().split("T")[0]
+        : "",
+    );
+    setEndDate(
+      rule.endTime
+        ? new Date(rule.endTime * 1000).toISOString().split("T")[0]
+        : "",
+    );
     setShowEditModal(true);
   };
 
@@ -166,14 +222,18 @@ export default function MerchantRulesPage() {
     try {
       const ruleTypeEnum: RuleType = { [ruleType]: {} } as RuleType;
       const minPurchaseCents = Math.round(parseFloat(minPurchase) * 100);
-      const startTime = startDate ? Math.floor(new Date(startDate).getTime() / 1000) : 0;
-      const endTime = endDate ? Math.floor(new Date(endDate).getTime() / 1000) : 0;
+      const startTime = startDate
+        ? Math.floor(new Date(startDate).getTime() / 1000)
+        : 0;
+      const endTime = endDate
+        ? Math.floor(new Date(endDate).getTime() / 1000)
+        : 0;
 
       const result = await updateRewardRule({
         ruleId: editingRule.ruleId,
         name: ruleName,
         ruleType: ruleTypeEnum,
-        multiplier: parseInt(multiplier),
+        multiplier: parseInt(multiplier, 10),
         minPurchase: minPurchaseCents,
         startTime,
         endTime,
@@ -191,21 +251,23 @@ export default function MerchantRulesPage() {
       setShowEditModal(false);
       setEditingRule(null);
       resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
       toast.error("Failed to update rule", {
-        description: err.message,
+        description: err instanceof Error ? err.message : "Unknown error",
         duration: 5000,
       });
     }
   };
 
   const handleToggleRule = async (ruleId: number, currentStatus: boolean) => {
-    const loadingToast = toast.loading(`${!currentStatus ? "Activating" : "Pausing"} rule...`);
+    const loadingToast = toast.loading(
+      `${!currentStatus ? "Activating" : "Pausing"} rule...`,
+    );
 
     try {
       // Find the rule to get its actual addresses
-      const rule = fetchedRules.find(r => r.ruleId === ruleId);
+      const _rule = fetchedRules.find((r) => r.ruleId === ruleId);
 
       await toggleRewardRule(ruleId, !currentStatus);
 
@@ -216,11 +278,11 @@ export default function MerchantRulesPage() {
 
       // Invalidate queries to refetch rules
       queryClient.invalidateQueries({ queryKey: ["merchantRewardRules"] });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Toggle error:", err);
       toast.dismiss(loadingToast);
       toast.error("Failed to toggle rule", {
-        description: err.message,
+        description: err instanceof Error ? err.message : "Unknown error",
         duration: 5000,
       });
     }
@@ -249,10 +311,10 @@ export default function MerchantRulesPage() {
 
       setShowDeleteModal(false);
       setDeletingRuleId(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
       toast.error("Failed to delete rule", {
-        description: err.message,
+        description: err instanceof Error ? err.message : "Unknown error",
         duration: 5000,
       });
     }
@@ -262,26 +324,62 @@ export default function MerchantRulesPage() {
     switch (type) {
       case "bonusMultiplier":
         return (
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            aria-label="Bonus Multiplier"
+          >
+            <title>Bonus Multiplier</title>
             <path d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         );
       case "baseReward":
         return (
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            aria-label="Base Reward"
+          >
+            <title>Base Reward</title>
             <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.407 2.646 1M12 8V7m0 11v-1m0-5V7m0 11c-1.11 0-2.08-.407-2.646-1" />
             <circle cx="12" cy="12" r="10" />
           </svg>
         );
       case "tierBonus":
         return (
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            aria-label="Tier Bonus"
+          >
+            <title>Tier Bonus</title>
             <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         );
       default:
         return (
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            aria-label="Rule Icon"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <title>Rule Icon</title>
             <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
@@ -296,7 +394,6 @@ export default function MerchantRulesPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-
         {/* Wallet Not Connected Banner */}
         {!publicKey && (
           <div className="bg-yellow-500/10 border-b border-yellow-500/30 py-4">
@@ -310,14 +407,20 @@ export default function MerchantRulesPage() {
                   stroke="currentColor"
                   strokeWidth="2"
                   className="text-yellow-500"
+                  aria-label="Warning"
                 >
+                  <title>Warning</title>
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-yellow-500">Wallet Not Connected</p>
-                  <p className="text-xs text-text-secondary">Please connect your Solana wallet to manage reward rules</p>
+                  <p className="text-sm font-semibold text-yellow-500">
+                    Wallet Not Connected
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Please connect your Solana wallet to manage reward rules
+                  </p>
                 </div>
               </div>
             </div>
@@ -335,7 +438,9 @@ export default function MerchantRulesPage() {
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-label="Alert"
                   >
+                    <title>Alert</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -344,9 +449,13 @@ export default function MerchantRulesPage() {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold mb-3">No Merchant Account Found</h2>
+                <h2 className="text-2xl font-bold mb-3">
+                  No Merchant Account Found
+                </h2>
                 <p className="text-text-secondary mb-8 max-w-md mx-auto">
-                  You need to register as a merchant before you can create reward rules. Register your business to get started with your loyalty program.
+                  You need to register as a merchant before you can create
+                  reward rules. Register your business to get started with your
+                  loyalty program.
                 </p>
                 <a
                   href="/merchant/register"
@@ -392,7 +501,9 @@ export default function MerchantRulesPage() {
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-label="No rules"
                         >
+                          <title>No rules</title>
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -400,9 +511,12 @@ export default function MerchantRulesPage() {
                             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                           />
                         </svg>
-                        <h3 className="text-lg font-medium mb-2">No rules created yet</h3>
+                        <h3 className="text-lg font-medium mb-2">
+                          No rules created yet
+                        </h3>
                         <p className="text-sm">
-                          Create your first reward rule using the builder on the right
+                          Create your first reward rule using the builder on the
+                          right
                         </p>
                       </div>
                     </Card>
@@ -417,26 +531,39 @@ export default function MerchantRulesPage() {
                             {getRuleIcon(Object.keys(rule.ruleType)[0])}
                           </div>
                           <div>
-                            <h4 className="text-base font-semibold mb-1">{rule.name}</h4>
+                            <h4 className="text-base font-semibold mb-1">
+                              {rule.name}
+                            </h4>
                             <p className="text-xs text-text-secondary">
-                              {(rule.multiplier / 100).toFixed(1)}x multiplier • Min ${(rule.minPurchase / 100).toFixed(2)}
+                              {(rule.multiplier / 100).toFixed(1)}x multiplier •
+                              Min ${(rule.minPurchase / 100).toFixed(2)}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right">
                             <span className="block text-sm font-medium">
-                              {rule.startTime === 0 ? "Active Now" : formatDate(rule.startTime)}
+                              {rule.startTime === 0
+                                ? "Active Now"
+                                : formatDate(rule.startTime)}
                             </span>
                             <span className="text-[0.7rem] text-text-secondary">
-                              {rule.endTime === 0 ? "No Expiry" : `Until ${formatDate(rule.endTime)}`}
+                              {rule.endTime === 0
+                                ? "No Expiry"
+                                : `Until ${formatDate(rule.endTime)}`}
                             </span>
                           </div>
                           <Toggle
                             checked={rule.isActive}
-                            onChange={() => handleToggleRule(rule.ruleId, rule.isActive)}
+                            onChange={() =>
+                              handleToggleRule(rule.ruleId, rule.isActive)
+                            }
                           />
-                          <Button variant="outline" size="sm" onClick={() => handleEditRule(rule)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditRule(rule)}
+                          >
                             Edit
                           </Button>
                           <Button
@@ -461,7 +588,9 @@ export default function MerchantRulesPage() {
                         height="14"
                         fill="var(--accent)"
                         viewBox="0 0 24 24"
+                        aria-label="Edit"
                       >
+                        <title>Edit</title>
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                       </svg>
                       Rule Builder
@@ -538,16 +667,27 @@ export default function MerchantRulesPage() {
                       </div>
                       <div className="flex justify-between text-xs text-text mb-2.5">
                         <span>
-                          {ruleTypeOptions.find((opt) => opt.value === ruleType)?.label} (
-                          {(parseInt(multiplier) / 100).toFixed(1)}x)
+                          {
+                            ruleTypeOptions.find(
+                              (opt) => opt.value === ruleType,
+                            )?.label
+                          }{" "}
+                          ({(parseInt(multiplier, 10) / 100).toFixed(1)}x)
                         </span>
-                        <span>+{((parseInt(multiplier) / 100 - 1) * 100).toFixed(2)} SLCY</span>
+                        <span>
+                          +
+                          {((parseInt(multiplier, 10) / 100 - 1) * 100).toFixed(
+                            2,
+                          )}{" "}
+                          SLCY
+                        </span>
                       </div>
 
                       <div className="flex justify-between text-base font-bold mt-3 pt-3 border-t border-border">
                         <span>Total Reward</span>
                         <span className="text-accent">
-                          {((parseInt(multiplier) / 100) * 100).toFixed(2)} SLCY
+                          {((parseInt(multiplier, 10) / 100) * 100).toFixed(2)}{" "}
+                          SLCY
                         </span>
                       </div>
                     </div>
@@ -560,7 +700,11 @@ export default function MerchantRulesPage() {
                       isLoading={isLoading}
                       disabled={!publicKey || !merchantAccount}
                     >
-                      {!publicKey ? "Connect Wallet" : !merchantAccount ? "Register First" : "Create Rule"}
+                      {!publicKey
+                        ? "Connect Wallet"
+                        : !merchantAccount
+                          ? "Register First"
+                          : "Create Rule"}
                     </Button>
 
                     {fetchedRules.length > 0 && (
@@ -672,7 +816,9 @@ export default function MerchantRulesPage() {
               >
                 <div className="space-y-4">
                   <p className="text-text-secondary">
-                    Are you sure you want to delete this rule? This action cannot be undone and will permanently remove the rule from the blockchain.
+                    Are you sure you want to delete this rule? This action
+                    cannot be undone and will permanently remove the rule from
+                    the blockchain.
                   </p>
                   <div className="flex gap-3 pt-4">
                     <Button

@@ -1,19 +1,46 @@
 "use client";
 
+import { useWallet } from "@solana/wallet-adapter-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";
-import { useState } from "react";
-import { useMerchantRegister } from "@/hooks/merchant/useMerchantRegister";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantRegister } from "@/hooks/merchant/useMerchantRegister";
 import { useLoyaltyProgram } from "@/hooks/program/useLoyaltyProgram";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { toast } from "sonner";
-import Link from "next/link";
 
+/**
+ * Merchant Registration Page
+ *
+ * Onboarding flow for new merchants to deploy their on-chain loyalty program.
+ *
+ * Registration Process:
+ * 1. Business Information:
+ *    - Business name (immutable after creation)
+ *    - Avatar (code or direct URL)
+ *    - Description and category
+ *    - Contact email (optional)
+ *
+ * 2. Loyalty Program Configuration:
+ *    - Reward rate (SLCY tokens per dollar spent)
+ *    - Annual interest rate (APY for token holders)
+ *    - Program name (on-chain identifier)
+ *
+ * 3. Blockchain Deployment:
+ *    - Creates merchant account on Solana
+ *    - Initializes Token-2022 interest-bearing mint
+ *    - Sets up loyalty program parameters
+ *    - Requires ~0.01 SOL for account rent
+ *
+ * After registration, merchants can immediately start issuing rewards.
+ *
+ * @returns Merchant registration form with business and program configuration
+ */
 export default function MerchantRegisterPage() {
   const { publicKey } = useWallet();
-  const { registerComplete, isLoading, error } = useMerchantRegister();
-  const { isRegistered, merchantAccount, isLoading: checkingMerchant, refetch } = useMerchantAccount();
+  const { registerComplete, isLoading } = useMerchantRegister();
+  const { isRegistered, merchantAccount, refetch } = useMerchantAccount();
   const { loyaltyProgram } = useLoyaltyProgram();
 
   const [businessName, setBusinessName] = useState("");
@@ -29,7 +56,10 @@ export default function MerchantRegisterPage() {
 
   const apyPercent = (interestRate / 100).toFixed(2);
 
-  // Generate random avatar code
+  /**
+   * Generates a random avatar code for merchant branding
+   * Creates a unique seed based on timestamp and random string
+   */
   const generateRandomAvatar = () => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 9);
@@ -38,10 +68,14 @@ export default function MerchantRegisterPage() {
     toast.success("Random avatar generated!");
   };
 
-  // Generate avatar URL from code or custom URL
+  /**
+   * Generates avatar URL from code or custom URL
+   * @param avatarCode - Avatar identifier or direct URL
+   * @returns Complete avatar URL (DiceBear or custom)
+   */
   const getAvatarUrl = (avatarCode: string) => {
     // If it's a full URL, use it directly
-    if (avatarCode.startsWith('http://') || avatarCode.startsWith('https://')) {
+    if (avatarCode.startsWith("http://") || avatarCode.startsWith("https://")) {
       return avatarCode;
     }
     // Otherwise, generate DiceBear Bottts Neutral avatar
@@ -53,52 +87,57 @@ export default function MerchantRegisterPage() {
     ? getAvatarUrl(avatarUrl)
     : getAvatarUrl(businessName || "Business");
 
+  /**
+   * Handles merchant registration and loyalty program deployment
+   * Validates all inputs, converts rates to basis points, and submits to blockchain
+   */
   const handleDeploy = async () => {
     if (!publicKey) {
       toast.error("Wallet not connected", {
-        description: "Please connect your Solana wallet to continue"
+        description: "Please connect your Solana wallet to continue",
       });
       return;
     }
 
     if (!businessName.trim()) {
       toast.error("Business name required", {
-        description: "Please enter your business name"
+        description: "Please enter your business name",
       });
       return;
     }
 
     if (businessName.length > 32) {
       toast.error("Business name too long", {
-        description: "Business name must be 32 characters or less"
+        description: "Business name must be 32 characters or less",
       });
       return;
     }
 
     if (avatarUrl && avatarUrl.length > 256) {
       toast.error("Avatar URL too long", {
-        description: "Avatar URL must be 256 characters or less. Consider using a URL shortener or an avatar code instead."
+        description:
+          "Avatar URL must be 256 characters or less. Consider using a URL shortener or an avatar code instead.",
       });
       return;
     }
 
     if (category.length > 32) {
       toast.error("Category too long", {
-        description: "Category must be 32 characters or less"
+        description: "Category must be 32 characters or less",
       });
       return;
     }
 
     if (description && description.length > 256) {
       toast.error("Description too long", {
-        description: "Description must be 256 characters or less"
+        description: "Description must be 256 characters or less",
       });
       return;
     }
 
     if (!programName.trim()) {
       toast.error("Program name required", {
-        description: "Please enter a loyalty program name"
+        description: "Please enter a loyalty program name",
       });
       return;
     }
@@ -116,7 +155,7 @@ export default function MerchantRegisterPage() {
         category,
         description,
         rewardRateBps,
-        interestRate
+        interestRate,
       );
 
       toast.dismiss(loadingToast);
@@ -129,23 +168,33 @@ export default function MerchantRegisterPage() {
 
       // Refetch merchant account to update UI
       setTimeout(() => refetch(), 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.dismiss(loadingToast);
 
       // Parse error message for better user feedback
       let errorTitle = "Failed to deploy loyalty program";
-      let errorDescription = err.message || "Unknown error occurred";
+      let errorDescription =
+        err instanceof Error ? err.message : "Unknown error occurred";
 
-      if (err.message?.includes("Attempt to debit an account but found no record of a prior credit")) {
+      const errorMessage = err instanceof Error ? err.message : "";
+
+      if (
+        errorMessage.includes(
+          "Attempt to debit an account but found no record of a prior credit",
+        )
+      ) {
         errorTitle = "Insufficient balance";
-        errorDescription = "Your wallet doesn't have enough SOL. Please add funds to continue.";
-      } else if (err.message?.includes("already in use")) {
+        errorDescription =
+          "Your wallet doesn't have enough SOL. Please add funds to continue.";
+      } else if (errorMessage.includes("already in use")) {
         errorTitle = "Account already exists";
-        errorDescription = "This merchant account is already registered. Try using a different wallet.";
-      } else if (err.message?.includes("Transaction simulation failed")) {
+        errorDescription =
+          "This merchant account is already registered. Try using a different wallet.";
+      } else if (errorMessage.includes("Transaction simulation failed")) {
         errorTitle = "Transaction failed";
-        errorDescription = "The transaction could not be processed. Please try again.";
-      } else if (err.message?.includes("User rejected")) {
+        errorDescription =
+          "The transaction could not be processed. Please try again.";
+      } else if (errorMessage.includes("User rejected")) {
         errorTitle = "Transaction cancelled";
         errorDescription = "You cancelled the transaction in your wallet.";
       }
@@ -160,7 +209,6 @@ export default function MerchantRegisterPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-bg flex flex-col">
-
         {/* Wallet Not Connected Banner */}
         {!publicKey && (
           <div className="bg-yellow-500/10 border-b border-yellow-500/30 py-4">
@@ -175,13 +223,18 @@ export default function MerchantRegisterPage() {
                   strokeWidth="2"
                   className="text-yellow-500"
                 >
+                  <title>Warning</title>
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-yellow-500">Wallet Not Connected</p>
-                  <p className="text-xs text-text-secondary">Please connect your Solana wallet to register your business</p>
+                  <p className="text-sm font-semibold text-yellow-500">
+                    Wallet Not Connected
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Please connect your Solana wallet to register your business
+                  </p>
                 </div>
               </div>
             </div>
@@ -202,21 +255,32 @@ export default function MerchantRegisterPage() {
 
               <div className="bg-panel border border-border rounded-xl p-8 mb-6">
                 <div className="flex items-start gap-6 mb-8">
+                  {/* biome-ignore lint/performance/noImgElement: Avatar from external source */}
                   <img
-                    src={merchantAccount.avatarUrl ?
-                      (merchantAccount.avatarUrl.startsWith('http') ?
-                        merchantAccount.avatarUrl :
-                        `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(merchantAccount.avatarUrl)}&backgroundColor=d0ff14`
-                      ) :
-                      `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(merchantAccount.name)}&backgroundColor=d0ff14`
+                    src={
+                      merchantAccount.avatarUrl
+                        ? merchantAccount.avatarUrl.startsWith("http")
+                          ? merchantAccount.avatarUrl
+                          : `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(merchantAccount.avatarUrl)}&backgroundColor=d0ff14`
+                        : `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${encodeURIComponent(merchantAccount.name)}&backgroundColor=d0ff14`
                     }
                     alt={merchantAccount.name}
                     className="w-24 h-24 rounded-xl object-cover border border-border"
                   />
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-2">{merchantAccount.name}</h3>
+                    <h3 className="text-2xl font-bold mb-2">
+                      {merchantAccount.name}
+                    </h3>
                     <div className="flex items-center gap-2 text-sm text-text-secondary mb-4">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <title>Verified</title>
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                         <polyline points="22 4 12 14.01 9 11.01" />
                       </svg>
@@ -224,16 +288,30 @@ export default function MerchantRegisterPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="bg-black border border-border rounded-lg p-4">
-                        <p className="text-xs text-text-secondary uppercase mb-1">Reward Rate</p>
-                        <p className="text-lg font-bold text-accent">{(merchantAccount.rewardRate / 100).toFixed(1)} SLCY / $</p>
+                        <p className="text-xs text-text-secondary uppercase mb-1">
+                          Reward Rate
+                        </p>
+                        <p className="text-lg font-bold text-accent">
+                          {(merchantAccount.rewardRate / 100).toFixed(1)} SLCY /
+                          $
+                        </p>
                       </div>
                       <div className="bg-black border border-border rounded-lg p-4">
-                        <p className="text-xs text-text-secondary uppercase mb-1">Total Issued</p>
-                        <p className="text-lg font-bold">{(merchantAccount.totalIssued / 1e9).toFixed(2)} SLCY</p>
+                        <p className="text-xs text-text-secondary uppercase mb-1">
+                          Total Issued
+                        </p>
+                        <p className="text-lg font-bold">
+                          {(merchantAccount.totalIssued / 1e9).toFixed(2)} SLCY
+                        </p>
                       </div>
                       <div className="bg-black border border-border rounded-lg p-4">
-                        <p className="text-xs text-text-secondary uppercase mb-1">Total Redeemed</p>
-                        <p className="text-lg font-bold">{(merchantAccount.totalRedeemed / 1e9).toFixed(2)} SLCY</p>
+                        <p className="text-xs text-text-secondary uppercase mb-1">
+                          Total Redeemed
+                        </p>
+                        <p className="text-lg font-bold">
+                          {(merchantAccount.totalRedeemed / 1e9).toFixed(2)}{" "}
+                          SLCY
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -241,27 +319,45 @@ export default function MerchantRegisterPage() {
 
                 <div className="border-t border-border pt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold uppercase text-text-secondary">Account Details</h4>
-                    <span className={`text-xs px-3 py-1 rounded-full ${merchantAccount.isActive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {merchantAccount.isActive ? 'Active' : 'Inactive'}
+                    <h4 className="text-sm font-semibold uppercase text-text-secondary">
+                      Account Details
+                    </h4>
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full ${merchantAccount.isActive ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}
+                    >
+                      {merchantAccount.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-text-secondary mb-1">Authority</p>
-                      <p className="font-mono text-xs">{merchantAccount.authority.toString().slice(0, 8)}...{merchantAccount.authority.toString().slice(-8)}</p>
+                      <p className="font-mono text-xs">
+                        {merchantAccount.authority.toString().slice(0, 8)}...
+                        {merchantAccount.authority.toString().slice(-8)}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-text-secondary mb-1">Loyalty Program</p>
-                      <p className="font-mono text-xs">{merchantAccount.loyaltyProgram.toString().slice(0, 8)}...{merchantAccount.loyaltyProgram.toString().slice(-8)}</p>
+                      <p className="text-text-secondary mb-1">
+                        Loyalty Program
+                      </p>
+                      <p className="font-mono text-xs">
+                        {merchantAccount.loyaltyProgram.toString().slice(0, 8)}
+                        ...{merchantAccount.loyaltyProgram.toString().slice(-8)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-text-secondary mb-1">Created At</p>
-                      <p>{new Date(merchantAccount.createdAt * 1000).toLocaleDateString()}</p>
+                      <p>
+                        {new Date(
+                          merchantAccount.createdAt * 1000,
+                        ).toLocaleDateString()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-text-secondary mb-1">Avatar</p>
-                      <p className="text-xs">{merchantAccount.avatarUrl || 'Auto-generated'}</p>
+                      <p className="text-xs">
+                        {merchantAccount.avatarUrl || "Auto-generated"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -341,17 +437,27 @@ export default function MerchantRegisterPage() {
                       <div className="flex items-start gap-3 mt-3">
                         <div className="flex-1">
                           <p className="text-xs text-text-secondary">
-                            Enter a code (e.g., "robot-1") for auto-generated avatar, or a direct image URL (must end in .jpg, .png, .gif, etc.)
+                            Enter a code (e.g., "robot-1") for auto-generated
+                            avatar, or a direct image URL (must end in .jpg,
+                            .png, .gif, etc.)
                           </p>
                           {avatarUrl && (
                             <p className="text-xs text-text-secondary mt-1">
-                              {avatarUrl.length}/256 characters {avatarUrl.length > 200 && <span className="text-yellow-500">(getting long)</span>}
+                              {avatarUrl.length}/256 characters{" "}
+                              {avatarUrl.length > 200 && (
+                                <span className="text-yellow-500">
+                                  (getting long)
+                                </span>
+                              )}
                             </p>
                           )}
                         </div>
                         {(avatarUrl || businessName) && (
                           <div className="flex items-center gap-2 bg-black border border-border rounded-lg p-2">
-                            <span className="text-xs text-text-secondary">Preview:</span>
+                            <span className="text-xs text-text-secondary">
+                              Preview:
+                            </span>
+                            {/* biome-ignore lint/performance/noImgElement: Avatar from external source */}
                             <img
                               src={displayAvatarUrl}
                               alt="Avatar preview"
@@ -359,10 +465,16 @@ export default function MerchantRegisterPage() {
                               onError={(e) => {
                                 // Fallback to generated avatar if URL fails to load
                                 const target = e.target as HTMLImageElement;
-                                if (target.src !== getAvatarUrl(businessName || "Business")) {
-                                  target.src = getAvatarUrl(businessName || "Business");
+                                if (
+                                  target.src !==
+                                  getAvatarUrl(businessName || "Business")
+                                ) {
+                                  target.src = getAvatarUrl(
+                                    businessName || "Business",
+                                  );
                                   toast.error("Invalid image URL", {
-                                    description: "Using auto-generated avatar instead. Please provide a direct image URL (ending in .jpg, .png, etc.)"
+                                    description:
+                                      "Using auto-generated avatar instead. Please provide a direct image URL (ending in .jpg, .png, etc.)",
                                   });
                                 }
                               }}
@@ -395,11 +507,17 @@ export default function MerchantRegisterPage() {
                       <Dropdown
                         label="Category"
                         options={[
-                          { value: "Food & Beverage", label: "Food & Beverage" },
+                          {
+                            value: "Food & Beverage",
+                            label: "Food & Beverage",
+                          },
                           { value: "Retail", label: "Retail" },
                           { value: "Services", label: "Services" },
                           { value: "Entertainment", label: "Entertainment" },
-                          { value: "Health & Fitness", label: "Health & Fitness" },
+                          {
+                            value: "Health & Fitness",
+                            label: "Health & Fitness",
+                          },
                           { value: "Travel", label: "Travel" },
                           { value: "Technology", label: "Technology" },
                           { value: "Other", label: "Other" },
@@ -432,8 +550,8 @@ export default function MerchantRegisterPage() {
                 <div className="mb-8">
                   <h2 className="text-2xl mb-2">Configure Loyalty Program</h2>
                   <p className="text-text-secondary text-sm">
-                    Define your token mechanics using Token-2022 Interest-Bearing
-                    extensions.
+                    Define your token mechanics using Token-2022
+                    Interest-Bearing extensions.
                   </p>
                 </div>
 
@@ -455,7 +573,9 @@ export default function MerchantRegisterPage() {
                       max="5"
                       step="0.1"
                       value={rewardRate}
-                      onChange={(e) => setRewardRate(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        setRewardRate(parseFloat(e.target.value))
+                      }
                       className="w-full h-1 bg-border rounded-full outline-none appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:rounded-full my-4"
                     />
                   </div>
@@ -493,8 +613,8 @@ export default function MerchantRegisterPage() {
                       placeholder="500"
                     />
                     <p className="text-[0.7rem] text-text-secondary mt-2">
-                      Tokens will accrue {apyPercent}% APY while held by customers.
-                      Paid from your treasury.
+                      Tokens will accrue {apyPercent}% APY while held by
+                      customers. Paid from your treasury.
                     </p>
                   </div>
 
@@ -515,7 +635,8 @@ export default function MerchantRegisterPage() {
                         placeholder="e.g. Solcity Loyalty"
                       />
                       <p className="text-[0.7rem] text-text-secondary mt-2">
-                        This will be stored on-chain as your loyalty program identifier.
+                        This will be stored on-chain as your loyalty program
+                        identifier.
                       </p>
                     </div>
                   </div>
@@ -538,7 +659,9 @@ export default function MerchantRegisterPage() {
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                     <div className="text-center">
-                      <div className="font-bold text-lg mb-2">Loyalty Program Deployed!</div>
+                      <div className="font-bold text-lg mb-2">
+                        Loyalty Program Deployed!
+                      </div>
                       <div className="text-sm text-text-secondary mb-4">
                         Your on-chain loyalty program is now live
                       </div>
@@ -580,36 +703,56 @@ export default function MerchantRegisterPage() {
                           <div className="space-y-2 text-sm text-text-secondary">
                             <div className="flex justify-between items-center">
                               <span>Registration Fee:</span>
-                              <span className="text-accent font-semibold">0.01 SOL</span>
+                              <span className="text-accent font-semibold">
+                                0.01 SOL
+                              </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span>Account Rent:</span>
-                              <span className="text-text font-semibold">~0.04 SOL</span>
+                              <span className="text-text font-semibold">
+                                ~0.04 SOL
+                              </span>
                             </div>
                             <div className="border-t border-border pt-2 mt-2 flex justify-between items-center">
-                              <span className="font-semibold text-text">Total Required:</span>
-                              <span className="text-accent font-bold">~0.05 SOL</span>
+                              <span className="font-semibold text-text">
+                                Total Required:
+                              </span>
+                              <span className="text-accent font-bold">
+                                ~0.05 SOL
+                              </span>
                             </div>
                           </div>
                           <div className="mt-4 pt-4 border-t border-border">
                             <p className="text-xs text-text-secondary mb-3">
-                              <span className="font-semibold text-text">Where fees go:</span> Registration fees are collected by the platform treasury to support development and maintenance.
-                              Account rent is required by Solana for on-chain storage and is refundable if you close your account.
+                              <span className="font-semibold text-text">
+                                Where fees go:
+                              </span>{" "}
+                              Registration fees are collected by the platform
+                              treasury to support development and maintenance.
+                              Account rent is required by Solana for on-chain
+                              storage and is refundable if you close your
+                              account.
                             </p>
                             <div className="bg-black border border-border rounded-lg p-3">
-                              <p className="text-[0.65rem] uppercase text-text-secondary mb-1">Platform Treasury</p>
+                              <p className="text-[0.65rem] uppercase text-text-secondary mb-1">
+                                Platform Treasury
+                              </p>
                               {loyaltyProgram?.treasury ? (
                                 <>
                                   <p className="font-mono text-xs text-accent break-all">
                                     {loyaltyProgram.treasury.toString()}
                                   </p>
                                   <p className="text-[0.65rem] text-text-secondary mt-2">
-                                    💡 This is the wallet that initialized the loyalty program. All fees (0.01 SOL registration + issuance fees) are sent here.
+                                    💡 This is the wallet that initialized the
+                                    loyalty program. All fees (0.01 SOL
+                                    registration + issuance fees) are sent here.
                                   </p>
                                 </>
                               ) : (
                                 <p className="text-xs text-text-secondary">
-                                  Treasury wallet will be set to whoever initializes the loyalty program (typically the platform deployer).
+                                  Treasury wallet will be set to whoever
+                                  initializes the loyalty program (typically the
+                                  platform deployer).
                                 </p>
                               )}
                             </div>
@@ -632,6 +775,7 @@ export default function MerchantRegisterPage() {
                             fill="none"
                             viewBox="0 0 24 24"
                           >
+                            <title>Loading</title>
                             <circle
                               className="opacity-25"
                               cx="12"
@@ -669,7 +813,8 @@ export default function MerchantRegisterPage() {
                   </>
                 )}
                 <p className="text-center text-text-secondary text-xs mb-20">
-                  By deploying, you agree to pay the platform registration fee. Additional small fees apply when issuing rewards.
+                  By deploying, you agree to pay the platform registration fee.
+                  Additional small fees apply when issuing rewards.
                 </p>
               </div>
 
@@ -685,6 +830,7 @@ export default function MerchantRegisterPage() {
                     </span>
                     <div className="flex items-center gap-3 mb-6">
                       {businessName ? (
+                        // biome-ignore lint/performance/noImgElement: Avatar from external source
                         <img
                           src={displayAvatarUrl}
                           alt={businessName}
@@ -702,15 +848,26 @@ export default function MerchantRegisterPage() {
                             role="img"
                             aria-label="Logo placeholder"
                           >
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <rect
+                              x="3"
+                              y="3"
+                              width="18"
+                              height="18"
+                              rx="2"
+                              ry="2"
+                            />
                             <circle cx="8.5" cy="8.5" r="1.5" />
                             <polyline points="21 15 16 10 5 21" />
                           </svg>
                         </div>
                       )}
                       <div>
-                        <h3 className="text-lg font-bold">{businessName || "Your Business"}</h3>
-                        <p className="text-xs text-text-secondary">{category}</p>
+                        <h3 className="text-lg font-bold">
+                          {businessName || "Your Business"}
+                        </h3>
+                        <p className="text-xs text-text-secondary">
+                          {category}
+                        </p>
                       </div>
                     </div>
 
@@ -747,9 +904,13 @@ export default function MerchantRegisterPage() {
                             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                             <polyline points="17 6 23 6 23 12" />
                           </svg>
-                          <span className="text-xs font-semibold">Yield Bearing</span>
+                          <span className="text-xs font-semibold">
+                            Yield Bearing
+                          </span>
                         </div>
-                        <span className="text-xs text-accent">{apyPercent}% APY</span>
+                        <span className="text-xs text-accent">
+                          {apyPercent}% APY
+                        </span>
                       </div>
                     </div>
 
@@ -765,7 +926,6 @@ export default function MerchantRegisterPage() {
             </div>
           )}
         </div>
-
       </div>
     </ProtectedRoute>
   );
