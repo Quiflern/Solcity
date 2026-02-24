@@ -1,18 +1,67 @@
+import { AnchorProvider } from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useQuery } from "@tanstack/react-query";
-import { AnchorProvider } from "@coral-xyz/anchor";
 import { getProgram } from "@/lib/anchor/setup";
 
+/**
+ * Represents a loyalty transaction (earning or redeeming tokens).
+ *
+ * Transactions are parsed from blockchain transaction logs to provide
+ * a history of customer loyalty activity.
+ */
 export interface Transaction {
+  /** Transaction signature (unique identifier) */
   signature: string;
+  /** Unix timestamp when the transaction occurred */
   timestamp: number;
+  /** Type of transaction - earning tokens or redeeming them */
   type: "earned" | "redeemed";
+  /** Name of the merchant involved in the transaction */
   merchant: string;
+  /** Public key of the merchant account */
   merchantPubkey: string;
+  /** Amount of loyalty tokens earned or redeemed */
   amount: number;
+  /** Customer tier at the time of transaction */
   tier: string;
 }
 
+/**
+ * Custom hook to fetch and parse transaction history for the connected customer.
+ *
+ * This hook retrieves all blockchain transactions for the connected wallet and
+ * parses the transaction logs to identify loyalty-related events (earning and
+ * redeeming tokens). It extracts relevant information like amounts, merchants,
+ * and tiers from the program logs.
+ *
+ * The parsing logic looks for specific log messages:
+ * - "Issued X tokens" for earning transactions
+ * - "Redeemed X tokens" for redemption transactions
+ *
+ * @returns {UseQueryResult<Transaction[]>} React Query result containing:
+ * - data: Array of transaction objects sorted by timestamp (newest first)
+ * - isLoading: Whether the query is currently loading
+ * - error: Any error that occurred during the query
+ * - refetch: Function to manually refetch transaction history
+ *
+ * @example
+ * ```tsx
+ * const { data: transactions, isLoading } = useTransactionHistory();
+ *
+ * if (isLoading) return <div>Loading history...</div>;
+ *
+ * return (
+ *   <div>
+ *     {transactions?.map(tx => (
+ *       <div key={tx.signature}>
+ *         {tx.type === 'earned' ? '+' : '-'}{tx.amount} SLCY
+ *         at {tx.merchant}
+ *       </div>
+ *     ))}
+ *   </div>
+ * );
+ * ```
+ */
 export function useTransactionHistory() {
   const { connection } = useConnection();
   const wallet = useWallet();
@@ -33,70 +82,87 @@ export function useTransactionHistory() {
       const transactions: Transaction[] = [];
 
       try {
-        console.log("Fetching transaction history for:", wallet.publicKey.toString());
+        console.log(
+          "Fetching transaction history for:",
+          wallet.publicKey.toString(),
+        );
 
-        // Fetch all program transactions for this wallet
+        // Fetch recent transaction signatures for this wallet (last 100)
         const signatures = await connection.getSignaturesForAddress(
           wallet.publicKey,
-          { limit: 100 }
+          { limit: 100 },
         );
 
         console.log(`Found ${signatures.length} total signatures for wallet`);
 
+        // Parse each transaction to extract loyalty events
         for (const sig of signatures) {
           try {
+            // Fetch full transaction details including logs
             const tx = await connection.getTransaction(sig.signature, {
               maxSupportedTransactionVersion: 0,
             });
 
             if (!tx || !tx.meta) continue;
 
-            // Parse transaction logs to identify reward/redemption events
+            // Extract program logs from transaction metadata
             const logs = tx.meta.logMessages || [];
 
-            // Log relevant messages for debugging
-            const relevantLogs = logs.filter(log =>
-              log.includes("Issued") ||
-              log.includes("Redeemed") ||
-              log.includes("Instruction:") ||
-              log.includes("Program log:")
+            // Filter for relevant loyalty program logs (for debugging)
+            const relevantLogs = logs.filter(
+              (log) =>
+                log.includes("Issued") ||
+                log.includes("Redeemed") ||
+                log.includes("Instruction:") ||
+                log.includes("Program log:"),
             );
 
             if (relevantLogs.length > 0) {
-              console.log(`Transaction ${sig.signature.slice(0, 8)} relevant logs:`, relevantLogs);
+              console.log(
+                `Transaction ${sig.signature.slice(0, 8)} relevant logs:`,
+                relevantLogs,
+              );
             }
 
-            // Check for reward issuance - look for the detailed log message
-            const rewardLog = logs.find(log => log.includes("Issued") && log.includes("tokens"));
+            // Parse reward issuance events
+            // Look for log message: "Issued X tokens (purchase: $Y, tier: Z, ...)"
+            const rewardLog = logs.find(
+              (log) => log.includes("Issued") && log.includes("tokens"),
+            );
             if (rewardLog) {
               console.log("✅ Found reward issuance:", rewardLog);
-              // Extract amount from log: "Issued X tokens (purchase: $Y, tier: Z, ...)"
+              // Extract token amount from log message
               const match = rewardLog.match(/Issued (\d+) tokens/);
               if (match) {
-                const amount = parseInt(match[1]);
+                const amount = Number.parseInt(match[1], 10);
 
-                // Try to extract tier from the log
+                // Extract customer tier from log message
                 const tierMatch = rewardLog.match(/tier: (\w+)/);
                 const tier = tierMatch ? tierMatch[1] : "Bronze";
 
-                // Try to get merchant name from account keys
+                // Attempt to identify merchant from transaction account keys
                 let merchantName = "Unknown Merchant";
                 let merchantPubkey = "";
 
                 try {
-                  // Look through all account keys to find merchant account
-                  const accountKeys = tx.transaction.message.staticAccountKeys || [];
-                  console.log(`Checking ${accountKeys.length} account keys for merchant`);
+                  // Iterate through transaction accounts to find merchant account
+                  const accountKeys =
+                    tx.transaction.message.staticAccountKeys || [];
+                  console.log(
+                    `Checking ${accountKeys.length} account keys for merchant`,
+                  );
 
                   for (const key of accountKeys) {
                     try {
-                      const merchantAccount = await program.account.merchant.fetch(key);
+                      // Try to fetch as merchant account
+                      const merchantAccount =
+                        await program.account.merchant.fetch(key);
                       merchantName = merchantAccount.name;
                       merchantPubkey = key.toString();
                       console.log(`Found merchant: ${merchantName}`);
                       break;
-                    } catch (e) {
-                      // Not a merchant account, continue
+                    } catch {
+                      // Not a merchant account, continue searching
                     }
                   }
                 } catch (e) {
@@ -113,36 +179,47 @@ export function useTransactionHistory() {
                   tier,
                 });
 
-                console.log(`Added earned transaction: ${amount} SLCY from ${merchantName}`);
+                console.log(
+                  `Added earned transaction: ${amount} SLCY from ${merchantName}`,
+                );
               }
             }
 
-            // Check for redemption - look for the log message
-            const redeemLog = logs.find(log => log.includes("Redeemed") && log.includes("tokens"));
+            // Parse redemption events
+            // Look for log message: "Redeemed X tokens for offer Y"
+            const redeemLog = logs.find(
+              (log) => log.includes("Redeemed") && log.includes("tokens"),
+            );
             if (redeemLog) {
               console.log("✅ Found redemption:", redeemLog);
+              // Extract token amount from log message
               const match = redeemLog.match(/Redeemed (\d+) tokens/);
               if (match) {
-                const amount = parseInt(match[1]);
+                const amount = Number.parseInt(match[1], 10);
 
-                // Try to get merchant name from account keys
+                // Attempt to identify merchant from transaction account keys
                 let merchantName = "Unknown Merchant";
                 let merchantPubkey = "";
 
                 try {
-                  // Look through all account keys to find merchant account
-                  const accountKeys = tx.transaction.message.staticAccountKeys || [];
-                  console.log(`Checking ${accountKeys.length} account keys for merchant`);
+                  // Iterate through transaction accounts to find merchant account
+                  const accountKeys =
+                    tx.transaction.message.staticAccountKeys || [];
+                  console.log(
+                    `Checking ${accountKeys.length} account keys for merchant`,
+                  );
 
                   for (const key of accountKeys) {
                     try {
-                      const merchantAccount = await program.account.merchant.fetch(key);
+                      // Try to fetch as merchant account
+                      const merchantAccount =
+                        await program.account.merchant.fetch(key);
                       merchantName = merchantAccount.name;
                       merchantPubkey = key.toString();
                       console.log(`Found merchant: ${merchantName}`);
                       break;
-                    } catch (e) {
-                      // Not a merchant account, continue
+                    } catch {
+                      // Not a merchant account, continue searching
                     }
                   }
                 } catch (e) {
@@ -159,7 +236,9 @@ export function useTransactionHistory() {
                   tier: "Bronze", // Tier at time of redemption
                 });
 
-                console.log(`Added redeemed transaction: ${amount} SLCY at ${merchantName}`);
+                console.log(
+                  `Added redeemed transaction: ${amount} SLCY at ${merchantName}`,
+                );
               }
             }
           } catch (err) {
@@ -167,7 +246,9 @@ export function useTransactionHistory() {
           }
         }
 
-        console.log(`Parsed ${transactions.length} reward/redemption transactions`);
+        console.log(
+          `Parsed ${transactions.length} reward/redemption transactions`,
+        );
         return transactions.sort((a, b) => b.timestamp - a.timestamp);
       } catch (error) {
         console.error("Error fetching transaction history:", error);
