@@ -97,15 +97,17 @@ export default function MerchantDetailPage() {
     const loadingToast = toast.loading("Registering as customer...");
 
     try {
-      // Fetch loyalty program from merchant account (not currently used but validates merchant exists)
-      await program.account.merchant
-        .fetch(merchant.publicKey)
-        .then((m) => m.loyaltyProgram);
+      // Get the loyalty program PDA from the merchant's loyalty program
+      const merchantData = await program.account.merchant.fetch(
+        merchant.publicKey,
+      );
+      const loyaltyProgramPubkey = merchantData.loyaltyProgram;
 
       const tx = await program.methods
         .registerCustomer()
-        .accounts({
+        .accountsPartial({
           customerAuthority: publicKey,
+          loyaltyProgram: loyaltyProgramPubkey,
         })
         .rpc();
 
@@ -374,11 +376,10 @@ export default function MerchantDetailPage() {
                       return (
                         <div
                           key={offer.publicKey.toString()}
-                          className={`bg-panel border p-6 transition-all hover:-translate-y-0.5 rounded-lg ${
-                            isAvailable
-                              ? "border-border hover:border-accent"
-                              : "border-border/50 opacity-60"
-                          }`}
+                          className={`bg-panel border p-6 transition-all hover:-translate-y-0.5 rounded-lg ${isAvailable
+                            ? "border-border hover:border-accent"
+                            : "border-border/50 opacity-60"
+                            }`}
                         >
                           <div className="flex items-start justify-between mb-4">
                             {offer.icon ? (
@@ -516,9 +517,9 @@ export default function MerchantDetailPage() {
                     <p className="text-2xl font-semibold text-accent">
                       {merchant.totalIssued > 0
                         ? (
-                            (merchant.totalRedeemed / merchant.totalIssued) *
-                            100
-                          ).toFixed(1)
+                          (merchant.totalRedeemed / merchant.totalIssued) *
+                          100
+                        ).toFixed(1)
                         : "0"}
                       %
                     </p>
@@ -540,8 +541,8 @@ export default function MerchantDetailPage() {
               <>
                 {/* CTA Widget with QR Code or Register Button */}
                 {publicKey &&
-                merchantAccount &&
-                merchant.authority.toString() === publicKey.toString() ? (
+                  merchantAccount &&
+                  merchant.authority.toString() === publicKey.toString() ? (
                   // Show QR code for the merchant owner
                   <div className="bg-accent text-black p-10 text-center relative overflow-hidden">
                     <h3 className="text-xl font-bold mb-6">
