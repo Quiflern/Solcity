@@ -1,11 +1,33 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useConnection } from "@solana/wallet-adapter-react";
 import { useSolcityProgram } from "../program/useSolcityProgram";
 
+/**
+ * Custom hook to fetch all redemption offers from all merchants.
+ *
+ * This hook retrieves all redemption offer accounts from the blockchain,
+ * regardless of which merchant created them. Useful for displaying a
+ * marketplace or catalog of all available redemption offers.
+ *
+ * @returns {UseQueryResult} React Query result containing all redemption offers
+ *
+ * @example
+ * ```tsx
+ * const { data: offers, isLoading } = useAllRedemptionOffers();
+ *
+ * if (isLoading) return <div>Loading offers...</div>;
+ *
+ * return (
+ *   <div>
+ *     {offers?.map(offer => (
+ *       <OfferCard key={offer.publicKey.toString()} offer={offer} />
+ *     ))}
+ *   </div>
+ * );
+ * ```
+ */
 export function useAllRedemptionOffers() {
-  const { connection } = useConnection();
   const { program } = useSolcityProgram();
 
   return useQuery({
