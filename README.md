@@ -60,41 +60,100 @@ Solcity revolutionizes customer loyalty programs by leveraging blockchain techno
 
 ## Architecture
 
+### System Overview
+
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        A[Customer Dashboard]
+        B[Merchant Dashboard]
+        C[Explore Merchants]
+    end
+    
+    subgraph "Integration Layer"
+        D[React Hooks]
+        E[Solana Web3.js]
+        F[Anchor Client]
+    end
+    
+    subgraph "Solana Blockchain"
+        G[Solcity Program]
+        H[Token-2022 Mint]
+        I[Program Accounts]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    D --> F
+    E --> G
+    F --> G
+    G --> H
+    G --> I
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     SOLCITY PLATFORM                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   │
-│  │  Customer     │    │  Merchant     │    │  Explore      │   │
-│  │  Dashboard    │    │  Dashboard    │    │  Merchants    │   │
-│  │  (Next.js)    │    │  (Next.js)    │    │  (Next.js)    │   │
-│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘   │
-│         │                   │                    │            │
-│  ┌──────┴───────────────────┴────────────────────┴───────┐   │
-│  │         React Hooks & Solana Web3 Integration          │   │
-│  │  ┌─────────────┐ ┌──────────────┐ ┌───────────────┐  │   │
-│  │  │ @solana/web3 │ │ @solana/spl  │ │ Anchor Client │  │   │
-│  │  └─────────────┘ └──────────────┘ └───────────────┘  │   │
-│  └──────────────────────┬────────────────────────────────┘   │
-│                         │                                     │
-├─────────────────────────┼─────────────────────────────────────┤
-│                   SOLANA BLOCKCHAIN                            │
-│  ┌──────────────────────┴────────────────────────────────┐   │
-│  │           Solcity Anchor Program (Rust)                │   │
-│  │  ┌────────────────┐  ┌─────────────────┐              │   │
-│  │  │ State Accounts │  │ Instructions     │              │   │
-│  │  │ - LoyaltyProgram│  │ - Initialize    │              │   │
-│  │  │ - Merchant     │  │ - Register       │              │   │
-│  │  │ - Customer     │  │ - Issue Rewards  │              │   │
-│  │  │ - RewardRule   │  │ - Redeem         │              │   │
-│  │  └────────────────┘  └─────────────────┘              │   │
-│  │  ┌────────────────┐  ┌─────────────────┐              │   │
-│  │  │ Token-2022     │  │ Tier System      │              │   │
-│  │  │ Extensions     │  │ & Multipliers    │              │   │
-│  │  └────────────────┘  └─────────────────┘              │   │
-│  └───────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+
+### Program Architecture
+
+```mermaid
+graph LR
+    subgraph "State Accounts"
+        LP[Loyalty Program]
+        M[Merchant]
+        C[Customer]
+        RR[Reward Rule]
+        RO[Redemption Offer]
+    end
+    
+    subgraph "Instructions"
+        I1[Initialize Program]
+        I2[Register Merchant]
+        I3[Register Customer]
+        I4[Issue Rewards]
+        I5[Redeem Rewards]
+        I6[Set Reward Rule]
+    end
+    
+    subgraph "Token Extensions"
+        T1[Interest-Bearing]
+        T2[Metadata]
+        T3[Memo Transfer]
+    end
+    
+    I1 --> LP
+    I2 --> M
+    I3 --> C
+    I4 --> C
+    I4 --> M
+    I5 --> C
+    I6 --> RR
+    LP --> T1
+    LP --> T2
+    LP --> T3
+```
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant Customer
+    participant Merchant
+    participant Program
+    participant Token2022
+    
+    Customer->>Program: Register Customer
+    Program->>Program: Create Customer Account
+    Program->>Token2022: Create Token Account
+    
+    Merchant->>Program: Issue Rewards (Purchase: $10)
+    Program->>Program: Calculate Tier Multiplier
+    Program->>Program: Apply Reward Rules
+    Program->>Token2022: Mint Tokens
+    Token2022->>Customer: Tokens + Interest
+    
+    Customer->>Program: Redeem Rewards
+    Program->>Token2022: Burn Tokens
+    Program->>Merchant: Issue Benefit
 ```
 
 ---
@@ -112,8 +171,8 @@ Solcity revolutionizes customer loyalty programs by leveraging blockchain techno
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/solcity.git
-   cd solcity
+   git clone https://github.com/Quiflern/Solcity.git
+   cd Solcity
    ```
 
 2. **Install Solana Program dependencies**
@@ -275,7 +334,7 @@ memo: "Purchase #12345 at Store Location A"
 ### For Customers
 
 1. **Connect Wallet**
-   - Visit [solcity.io](http://localhost:3000)
+   - Visit [https://solcityy.vercel.app](https://solcityy.vercel.app)
    - Click "Connect Wallet" and select your Solana wallet
 
 2. **Register as Customer**
@@ -367,9 +426,6 @@ bun run build
 
 ## Documentation
 
-- **[Program Summary](design-ref/PROGRAM_SUMMARY.md)**: Complete implementation details
-- **[Implementation Plan](design-ref/IMPLEMENTATION_PLAN.md)**: Development roadmap
-- **[Project Blueprint](design-ref/project.md)**: Full project specification
 - **[Protocol README](solcity-protocol/README.md)**: Anchor program documentation
 - **[Web App README](solcity-web/README.md)**: Frontend documentation
 
@@ -403,39 +459,12 @@ We welcome contributions! Please follow these steps:
 
 ---
 
-## Security
-
-- All PDAs are validated on-chain
-- Signer verification on all mutations
-- Overflow protection with checked math
-- Authority validation (only merchant can issue, only customer can redeem)
-- No private keys are stored or transmitted
-
-**Found a security issue?** Please email security@solcity.io
-
----
-
 ## Performance
 
 - **Transaction Cost**: ~0.0005 SOL per transaction
 - **Account Rent**: ~0.002 SOL per account
 - **Finality**: 400ms (Solana's block time)
 - **Throughput**: 65,000 TPS (Solana's capacity)
-
----
-
-## Roadmap
-
-- [x] Core protocol implementation
-- [x] Token-2022 integration
-- [x] Tier system with multipliers
-- [x] Web dashboard (customer & merchant)
-- [x] Comprehensive testing
-- [ ] Mobile app (React Native)
-- [ ] Multi-merchant marketplace
-- [ ] Cross-program composability
-- [ ] Governance token for platform decisions
-- [ ] Advanced analytics and insights
 
 ---
 
@@ -451,15 +480,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Powered by [Solana](https://solana.com)
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
 - Icons from [Lucide](https://lucide.dev/)
-
----
-
-## Contact
-
-- **Website**: [solcity.io](https://solcity.io)
-- **Twitter**: [@solcity](https://twitter.com/solcity)
-- **Discord**: [Join our community](https://discord.gg/solcity)
-- **Email**: hello@solcity.io
 
 ---
 
