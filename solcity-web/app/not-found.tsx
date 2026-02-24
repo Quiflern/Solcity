@@ -1,6 +1,34 @@
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
+/**
+ * 404 Not Found Page
+ *
+ * Custom error page displayed when users navigate to non-existent routes.
+ *
+ * Features:
+ * - Large, prominent 404 error code
+ * - Clear error message explaining the issue
+ * - Primary action buttons:
+ *   - "Go Home" - Returns to landing page
+ *   - "Explore Merchants" - Navigates to merchant discovery
+ * - Quick links section with common destinations:
+ *   - Dashboard (customer view)
+ *   - Profile settings
+ *   - Merchant portal
+ *   - Settings page
+ *
+ * Design:
+ * - Centered layout with max-width container
+ * - Accent color for 404 number (brand consistency)
+ * - Responsive grid for quick links
+ * - Hover effects on all interactive elements
+ *
+ * This page helps users recover from navigation errors and find their way
+ * back to useful parts of the application.
+ *
+ * @returns 404 error page with navigation options
+ */
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center px-8">

@@ -14,6 +14,32 @@ export const metadata: Metadata = {
   description: "Reward customers with blockchain tokens. Fast, transparent, and owned by customers.",
 };
 
+/**
+ * Root Layout Component
+ *
+ * The top-level layout for the entire Solcity application.
+ * Wraps all pages with essential providers and global configurations.
+ *
+ * Provider Hierarchy (outer to inner):
+ * 1. QueryProvider - React Query for data fetching and caching
+ * 2. WalletProvider - Solana wallet adapter for blockchain connections
+ * 3. IconPickerProvider - Icon selection context for UI components
+ * 4. WalletQueryInvalidator - Invalidates queries on wallet changes
+ * 5. Toaster - Global toast notification system
+ *
+ * Features:
+ * - Inter font family for consistent typography
+ * - Global CSS styles and Tailwind configuration
+ * - SEO metadata (title, description)
+ * - Wallet connection management
+ * - Query caching and synchronization
+ * - Toast notifications for user feedback
+ *
+ * This layout is applied to all routes in the application.
+ *
+ * @param children - Page components to render
+ * @returns Root HTML structure with all providers
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
