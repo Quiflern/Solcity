@@ -1,8 +1,33 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Check } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+/**
+ * Dropdown Component
+ *
+ * A custom dropdown/select component with animations and icon support.
+ * Provides better styling and UX than native select elements.
+ *
+ * Features:
+ * - Custom styled dropdown with animations
+ * - Optional icons for each option
+ * - Animated chevron rotation
+ * - Click-outside detection to close
+ * - Selected state with checkmark
+ * - Error state styling
+ * - Keyboard accessible
+ * - Scrollable options list (max 60vh)
+ *
+ * @param label - Optional label text
+ * @param options - Array of dropdown options with value, label, and optional icon
+ * @param value - Currently selected value
+ * @param onChange - Callback when selection changes
+ * @param placeholder - Text shown when no option selected
+ * @param error - Error message to display
+ * @param className - Additional CSS classes
+ */
 
 interface DropdownOption {
   value: string;
@@ -37,7 +62,10 @@ export default function Dropdown({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -64,10 +92,11 @@ export default function Dropdown({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full bg-panel border px-4 py-3 text-text-primary text-sm transition-colors focus:outline-none cursor-pointer flex items-center justify-between ${error
+          className={`w-full bg-panel border px-4 py-3 text-text-primary text-sm transition-colors focus:outline-none cursor-pointer flex items-center justify-between ${
+            error
               ? "border-red-500"
               : "border-border hover:border-accent focus:border-accent focus:ring-2 focus:ring-accent/50"
-            }`}
+          }`}
         >
           <span className="flex items-center gap-2">
             {selectedOption?.icon}
@@ -95,10 +124,11 @@ export default function Dropdown({
                   key={option.value}
                   type="button"
                   onClick={() => handleSelect(option.value)}
-                  className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between ${selectedValue === option.value
-                    ? "bg-accent/10 text-accent"
-                    : "text-text-primary hover:bg-white/5"
-                    }`}
+                  className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between ${
+                    selectedValue === option.value
+                      ? "bg-accent/10 text-accent"
+                      : "text-text-primary hover:bg-white/5"
+                  }`}
                 >
                   <span className="flex items-center gap-2">
                     {option.icon}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 interface Tab {
   id: string;
@@ -41,8 +41,9 @@ export default function Tabs({ tabs, defaultTab, className = "" }: TabsProps) {
             }}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`pb-4 text-sm font-medium relative transition-colors ${activeTab === tab.id ? "text-text-primary" : "text-text-secondary"
-              }`}
+            className={`pb-4 text-sm font-medium relative transition-colors ${
+              activeTab === tab.id ? "text-text-primary" : "text-text-secondary"
+            }`}
           >
             {tab.label}
           </button>

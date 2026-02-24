@@ -2,6 +2,24 @@
 
 import type { HTMLAttributes, ReactNode } from "react";
 
+/**
+ * Card Component
+ *
+ * A container component with consistent panel styling and hover effects.
+ * Used throughout the application for grouping related content.
+ *
+ * Features:
+ * - Panel background with border
+ * - Animated gradient sweep on hover
+ * - Border color change to accent on hover
+ * - Background darkening on hover
+ * - Cursor pointer for interactive cards
+ * - Extends HTMLDivElement for full div attributes support
+ *
+ * @param children - Card content
+ * @param className - Additional CSS classes
+ */
+
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }

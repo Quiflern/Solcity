@@ -1,3 +1,15 @@
+/**
+ * StatsShowcase Component
+ *
+ * Highlights key platform performance statistics on the landing page.
+ * Emphasizes reliability, speed, and support availability.
+ *
+ * Features:
+ * - 3-column centered grid of statistics
+ * - Large accent-colored numbers with hover effects
+ * - Glow and scale animations on hover
+ * - Stats: 99.9% Uptime, <1s Transaction Speed, 24/7 Support
+ */
 export default function StatsShowcase() {
   const stats = [
     { id: "uptime", number: "99.9%", label: "Uptime Guarantee" },

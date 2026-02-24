@@ -2,6 +2,31 @@
 
 import { motion } from "framer-motion";
 
+/**
+ * ProgressBar Component
+ *
+ * An animated progress bar component with customizable colors, sizes, and labels.
+ * Supports percentage display and smooth fill animations.
+ *
+ * Features:
+ * - Animated fill from 0 to target percentage
+ * - Four color options: accent (lime with glow), green, blue, red
+ * - Three size options: sm, md, lg
+ * - Optional label and percentage display
+ * - Automatic percentage calculation from value/max
+ * - Can disable animation for instant display
+ * - Smooth spring animation for percentage text
+ *
+ * @param value - Current progress value
+ * @param max - Maximum value (default: 100)
+ * @param label - Optional label text
+ * @param showPercentage - Show percentage number (default: false)
+ * @param color - Bar color (default: "accent")
+ * @param size - Bar height (default: "md")
+ * @param animated - Enable fill animation (default: true)
+ * @param className - Additional CSS classes
+ */
+
 interface ProgressBarProps {
   value: number;
   max?: number;

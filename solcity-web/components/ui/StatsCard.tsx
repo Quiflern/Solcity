@@ -1,8 +1,31 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
+
+/**
+ * StatsCard Component
+ *
+ * A card component for displaying statistics with optional icons and trend indicators.
+ * Features staggered animations and hover effects.
+ *
+ * Features:
+ * - Animated entrance with fade and slide up
+ * - Staggered animation support via delay prop
+ * - Optional icon with hover rotation
+ * - Optional trend indicator (up/down with percentage)
+ * - Hover lift effect with accent border
+ * - Spring animation for value number
+ * - Uppercase label with tracking
+ *
+ * @param label - Stat label (e.g., "Total Revenue")
+ * @param value - Stat value (string or number)
+ * @param icon - Optional icon component
+ * @param trend - Optional trend data with value and direction
+ * @param delay - Animation delay for staggered effects (default: 0)
+ * @param className - Additional CSS classes
+ */
 
 interface StatsCardProps {
   label: string;
@@ -48,7 +71,12 @@ export default function StatsCard({
       <motion.p
         initial={{ scale: 0.5 }}
         animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 15, delay: delay + 0.1 }}
+        transition={{
+          type: "spring",
+          stiffness: 200,
+          damping: 15,
+          delay: delay + 0.1,
+        }}
         className="text-2xl font-semibold"
       >
         {value}
@@ -58,8 +86,9 @@ export default function StatsCard({
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: delay + 0.2 }}
-          className={`text-xs mt-2 flex items-center gap-1 ${trend.isPositive ? "text-green-500" : "text-red-500"
-            }`}
+          className={`text-xs mt-2 flex items-center gap-1 ${
+            trend.isPositive ? "text-green-500" : "text-red-500"
+          }`}
         >
           {trend.isPositive ? (
             <TrendingUp className="w-3 h-3" />

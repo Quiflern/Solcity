@@ -1,3 +1,15 @@
+/**
+ * MetricsBar Component
+ *
+ * Displays key platform metrics in a horizontal bar on the landing page.
+ * Shows social proof through active businesses, token distribution, and user counts.
+ *
+ * Features:
+ * - 3-column grid of metric cards
+ * - Hover effects with bottom accent line animation
+ * - Real-time-style metrics display
+ * - Metrics: Active Businesses (1,247), Tokens Distributed (18.4M), Customer Wallets (342K)
+ */
 export default function MetricsBar() {
   const metrics = [
     { id: "businesses", label: "Active Businesses", value: "1,247" },

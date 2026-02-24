@@ -1,3 +1,15 @@
+/**
+ * FeaturesGrid Component
+ *
+ * Showcases the three core features of Solcity platform on the landing page.
+ * Displays features in a 3-column grid with hover animations.
+ *
+ * Features:
+ * - Token Creation: Launch custom loyalty tokens with templates
+ * - Customer Dashboard: Seamless interface for tracking and spending rewards
+ * - Business Analytics: Real-time engagement and retention data
+ * - Hover effects with accent line animation and vertical lift
+ */
 export default function FeaturesGrid() {
   const features = [
     {

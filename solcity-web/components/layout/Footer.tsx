@@ -1,5 +1,18 @@
 import Link from "next/link";
 
+/**
+ * Footer Component
+ *
+ * Site-wide footer with navigation links, branding, and legal information.
+ * Organized into four columns: Brand, Product, Resources, and Legal.
+ *
+ * Features:
+ * - Brand identity with Solcity logo and tagline
+ * - Product navigation (Explore, Merchant registration, Dashboard)
+ * - Resource links (Documentation, Help, Blog, Community)
+ * - Legal links (Privacy, Terms, Cookies)
+ * - Dynamic copyright year
+ */
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -23,7 +36,9 @@ export default function Footer() {
 
           {/* Product Column */}
           <div>
-            <h4 className="text-xs uppercase text-text-secondary mb-6">Product</h4>
+            <h4 className="text-xs uppercase text-text-secondary mb-6">
+              Product
+            </h4>
             <ul className="flex flex-col gap-3">
               <li>
                 <Link
@@ -50,7 +65,10 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   API
                 </a>
               </li>
@@ -59,25 +77,39 @@ export default function Footer() {
 
           {/* Resources Column */}
           <div>
-            <h4 className="text-xs uppercase text-text-secondary mb-6">Resources</h4>
+            <h4 className="text-xs uppercase text-text-secondary mb-6">
+              Resources
+            </h4>
             <ul className="flex flex-col gap-3">
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Documentation
                 </a>
               </li>
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Help Center
                 </a>
               </li>
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Blog
                 </a>
               </li>
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Community
                 </a>
               </li>
@@ -86,20 +118,31 @@ export default function Footer() {
 
           {/* Legal Column */}
           <div>
-            <h4 className="text-xs uppercase text-text-secondary mb-6">Legal</h4>
+            <h4 className="text-xs uppercase text-text-secondary mb-6">
+              Legal
+            </h4>
             <ul className="flex flex-col gap-3">
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Privacy Policy
                 </a>
               </li>
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Terms of Service
                 </a>
               </li>
               <li>
-                <a href="#" className="text-text-secondary text-sm hover:text-accent transition-colors">
+                <a
+                  href="/"
+                  className="text-text-secondary text-sm hover:text-accent transition-colors"
+                >
                   Cookie Policy
                 </a>
               </li>

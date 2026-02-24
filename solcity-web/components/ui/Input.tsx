@@ -4,6 +4,27 @@ import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import type { InputHTMLAttributes } from "react";
 
+/**
+ * Input Component
+ *
+ * A styled text input component with label, icon, and error state support.
+ * Features smooth animations and consistent styling.
+ *
+ * Features:
+ * - Optional label above input
+ * - Optional icon on the left side
+ * - Error state with red border and error icon
+ * - Error message display below input
+ * - Fade-in animation on mount
+ * - Focus state with accent border
+ * - Extends HTMLInputElement for full input attributes support
+ *
+ * @param label - Optional label text
+ * @param error - Error message to display
+ * @param icon - Optional icon component to show on left
+ * @param className - Additional CSS classes
+ */
+
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
@@ -36,8 +57,9 @@ export default function Input({
           </div>
         )}
         <input
-          className={`bg-panel border ${error ? "border-red-500" : "border-border"
-            } ${icon ? "pl-10" : "px-4"} py-3 text-text-primary text-sm transition-colors focus:outline-none focus:border-accent w-full ${className}`}
+          className={`bg-panel border ${
+            error ? "border-red-500" : "border-border"
+          } ${icon ? "pl-10" : "px-4"} py-3 text-text-primary text-sm transition-colors focus:outline-none focus:border-accent w-full ${className}`}
           {...props}
         />
         {error && (

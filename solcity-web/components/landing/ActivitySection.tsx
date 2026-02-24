@@ -1,3 +1,15 @@
+/**
+ * ActivitySection Component
+ *
+ * Displays recent activity examples on the landing page to showcase
+ * the types of loyalty program interactions possible on Solcity.
+ *
+ * Features:
+ * - Grid of 4 activity cards showing different transaction types
+ * - Hover effects with animated gradient sweep
+ * - Icons for visual representation of each activity type
+ * - Examples: Token earning, redemption, customer joins, referral bonuses
+ */
 export default function ActivitySection() {
   const activities = [
     {
@@ -76,7 +88,9 @@ export default function ActivitySection() {
     <section className="py-20 bg-bg-primary border-t border-border">
       <div className="max-w-[1400px] mx-auto px-8">
         <div className="flex justify-between items-center mb-10">
-          <h3 className="text-3xl font-medium tracking-tight">Recent Activity</h3>
+          <h3 className="text-3xl font-medium tracking-tight">
+            Recent Activity
+          </h3>
           <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_10px_#d0ff14]" />
         </div>
 
@@ -90,8 +104,12 @@ export default function ActivitySection() {
                 <div className="w-[18px] stroke-accent">{activity.icon}</div>
               </div>
               <div>
-                <h4 className="text-[0.95rem] font-medium mb-1">{activity.title}</h4>
-                <p className="text-[0.8rem] text-text-secondary">{activity.description}</p>
+                <h4 className="text-[0.95rem] font-medium mb-1">
+                  {activity.title}
+                </h4>
+                <p className="text-[0.8rem] text-text-secondary">
+                  {activity.description}
+                </p>
               </div>
             </div>
           ))}

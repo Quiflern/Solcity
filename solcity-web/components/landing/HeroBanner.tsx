@@ -1,8 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 
+/**
+ * HeroBanner Component
+ *
+ * Main hero section of the landing page with animated background effects.
+ * Features interactive canvas animations and call-to-action buttons.
+ *
+ * Features:
+ * - Animated data streams on canvas (simulating blockchain transactions)
+ * - Mouse tracking for interactive gradient effects
+ * - Pulsing blockchain block animations
+ * - Grid background with radial mask
+ * - CTA buttons for merchants and customers
+ * - Responsive design with gradient text effects
+ *
+ * Animation Details:
+ * - DataStream class creates falling vertical lines with gradient effects
+ * - 12 concurrent data streams animate continuously
+ * - Mouse position updates CSS custom properties for gradient following
+ */
 export default function HeroBanner() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -60,7 +79,12 @@ export default function HeroBanner() {
 
       draw() {
         if (!ctx) return;
-        const gradient = ctx.createLinearGradient(this.x, this.y - this.length, this.x, this.y);
+        const gradient = ctx.createLinearGradient(
+          this.x,
+          this.y - this.length,
+          this.x,
+          this.y,
+        );
         gradient.addColorStop(0, "rgba(208, 255, 20, 0)");
         gradient.addColorStop(0.5, `rgba(208, 255, 20, ${this.opacity})`);
         gradient.addColorStop(1, "rgba(208, 255, 20, 0)");
@@ -131,7 +155,10 @@ export default function HeroBanner() {
         ))}
       </div>
 
-      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+      <canvas
+        ref={canvasRef}
+        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+      />
 
       {/* Content Container */}
       <div className="relative z-10 max-w-[1400px] mx-auto px-8">
@@ -143,8 +170,9 @@ export default function HeroBanner() {
         </h1>
 
         <p className="text-text-secondary text-lg leading-relaxed max-w-[600px] mb-10">
-          Solcity empowers businesses to manage decentralized loyalty programs using Solana's Token Extensions.
-          Fast, transparent, and owned by customers.
+          Solcity empowers businesses to manage decentralized loyalty programs
+          using Solana's Token Extensions. Fast, transparent, and owned by
+          customers.
         </p>
 
         <div className="flex gap-4">

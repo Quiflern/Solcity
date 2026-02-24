@@ -32,7 +32,9 @@ interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
 export function Table({ children, className = "" }: TableProps) {
   return (
     <div className="w-full overflow-x-auto">
-      <table className={`w-full border-collapse ${className}`}>{children}</table>
+      <table className={`w-full border-collapse ${className}`}>
+        {children}
+      </table>
     </div>
   );
 }
@@ -59,9 +61,16 @@ export function TableHead({ children, className = "" }: TableHeadProps) {
   );
 }
 
-export function TableCell({ children, className = "", ...props }: TableCellProps) {
+export function TableCell({
+  children,
+  className = "",
+  ...props
+}: TableCellProps) {
   return (
-    <td className={`py-5 px-4 border-b border-border text-sm ${className}`} {...props}>
+    <td
+      className={`py-5 px-4 border-b border-border text-sm ${className}`}
+      {...props}
+    >
       {children}
     </td>
   );

@@ -1,5 +1,22 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
+/**
+ * Badge Component
+ *
+ * A small label component for displaying status, categories, or metadata.
+ * Supports multiple color variants for different semantic meanings.
+ *
+ * Features:
+ * - Four variants: default (gray), accent (lime), success (green), warning (yellow)
+ * - Uppercase text with tracking for better readability
+ * - Border styling matching the variant color
+ * - Extends HTMLSpanElement for full span attributes support
+ *
+ * @param variant - Color scheme (default: "default")
+ * @param children - Badge content
+ * @param className - Additional CSS classes
+ */
+
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: "default" | "accent" | "success" | "warning";
   children: ReactNode;

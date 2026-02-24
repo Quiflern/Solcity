@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes } from "react";
 
-interface SliderProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
+interface SliderProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label?: string;
   showValue?: boolean;
   valueFormatter?: (value: number) => string;

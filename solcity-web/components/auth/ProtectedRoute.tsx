@@ -1,14 +1,26 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
+/**
+ * ProtectedRoute Component
+ *
+ * A wrapper component that handles client-side hydration for wallet-protected routes.
+ * Prevents hydration mismatches by showing a loading state during SSR, then renders
+ * children on the client. The actual wallet connection check is delegated to child
+ * components for more flexible authentication flows.
+ *
+ * Features:
+ * - Client-side only rendering to avoid SSR/hydration issues
+ * - Loading spinner during initial mount
+ * - Delegates wallet connection state to child components
+ */
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { connected, connecting } = useWallet();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {

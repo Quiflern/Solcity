@@ -1,7 +1,30 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { type ReactNode, useEffect } from "react";
+
+/**
+ * Modal Component
+ *
+ * A centered modal dialog with backdrop, animations, and keyboard support.
+ * Provides a consistent modal experience across the application.
+ *
+ * Features:
+ * - Animated backdrop with blur effect
+ * - Scale and fade animations for modal content
+ * - Three size options: sm (max-w-md), md (max-w-lg), lg (max-w-2xl)
+ * - Optional title with close button
+ * - Escape key to close
+ * - Click outside to close
+ * - Prevents body scroll when open
+ * - Click inside modal doesn't close it
+ *
+ * @param isOpen - Controls modal visibility
+ * @param onClose - Callback when modal should close
+ * @param children - Modal content
+ * @param title - Optional title shown in header
+ * @param size - Modal width (default: "md")
+ */
 
 interface ModalProps {
   isOpen: boolean;
@@ -71,6 +94,7 @@ export default function Modal({
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
+                    <title>Close</title>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"

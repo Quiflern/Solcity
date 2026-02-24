@@ -174,19 +174,20 @@ export const IconPicker: React.FC<IconPickerProps> = ({
       <div className="border-b border-border mt-2 px-3 pb-2 shrink-0">
         <div className="relative">
           <Search
-            className={`absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 ${isDark ? "text-text-secondary" : "text-gray-500"
-              }`}
+            className={`absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 ${
+              isDark ? "text-text-secondary" : "text-gray-500"
+            }`}
           />
           <input
             type="text"
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             placeholder="Search icons..."
-            autoFocus
-            className={`w-full pl-8 pr-3 py-1.5 text-xs rounded border transition-colors focus:outline-none focus:ring-2 ${isDark
-              ? "bg-panel border-border text-white placeholder-text-secondary focus:border-accent focus:ring-accent/50"
-              : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-accent focus:ring-accent/50"
-              }`}
+            className={`w-full pl-8 pr-3 py-1.5 text-xs rounded border transition-colors focus:outline-none focus:ring-2 ${
+              isDark
+                ? "bg-panel border-border text-white placeholder-text-secondary focus:border-accent focus:ring-accent/50"
+                : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-accent focus:ring-accent/50"
+            }`}
           />
         </div>
       </div>
@@ -194,8 +195,9 @@ export const IconPicker: React.FC<IconPickerProps> = ({
       <div className="flex-1 min-h-0 pt-2">
         {icons.length === 0 ? (
           <div
-            className={`py-12 text-center ${isDark ? "text-text-secondary" : "text-gray-500"
-              }`}
+            className={`py-12 text-center ${
+              isDark ? "text-text-secondary" : "text-gray-500"
+            }`}
           >
             <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No icons found</p>
@@ -243,26 +245,28 @@ export const IconPicker: React.FC<IconPickerProps> = ({
                           }}
                           onMouseEnter={(e) => handleIconHover(e, icon)}
                           onMouseLeave={handleIconLeave}
-                          className={`group w-full h-full flex items-center justify-center rounded border transition-transform duration-200 hover:scale-110 hover:z-10 relative cursor-pointer focus:outline-none focus:ring-2 pointer-events-auto ${value === icon.name
-                            ? isDark
-                              ? "bg-accent/20 border-accent/50 focus:ring-accent/50"
-                              : "bg-accent/10 border-accent/50 focus:ring-accent/50"
-                            : isDark
-                              ? "border-border hover:bg-panel hover:border-border focus:ring-accent/20"
-                              : "border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus:ring-accent/50"
-                            }`}
+                          className={`group w-full h-full flex items-center justify-center rounded border transition-transform duration-200 hover:scale-110 hover:z-10 relative cursor-pointer focus:outline-none focus:ring-2 pointer-events-auto ${
+                            value === icon.name
+                              ? isDark
+                                ? "bg-accent/20 border-accent/50 focus:ring-accent/50"
+                                : "bg-accent/10 border-accent/50 focus:ring-accent/50"
+                              : isDark
+                                ? "border-border hover:bg-panel hover:border-border focus:ring-accent/20"
+                                : "border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus:ring-accent/50"
+                          }`}
                         >
                           {React.createElement(
                             icon.Component as React.ComponentType<{
                               className?: string;
                             }>,
                             {
-                              className: `w-3 h-3 md:w-4 md:h-4 ${value === icon.name
-                                ? "text-accent"
-                                : isDark
-                                  ? "text-text-secondary group-hover:text-white"
-                                  : "text-gray-600 group-hover:text-gray-900"
-                                }`,
+                              className: `w-3 h-3 md:w-4 md:h-4 ${
+                                value === icon.name
+                                  ? "text-accent"
+                                  : isDark
+                                    ? "text-text-secondary group-hover:text-white"
+                                    : "text-gray-600 group-hover:text-gray-900"
+                              }`,
                             },
                           )}
                         </button>
@@ -282,8 +286,9 @@ export const IconPicker: React.FC<IconPickerProps> = ({
     <div className="w-full">
       {label && (
         <label
-          className={`block text-xs md:text-sm font-medium mb-1.5 md:mb-2 ${isDark ? "text-white" : "text-gray-700"
-            }`}
+          className={`block text-xs md:text-sm font-medium mb-1.5 md:mb-2 ${
+            isDark ? "text-white" : "text-gray-700"
+          }`}
         >
           {label}
         </label>
@@ -306,24 +311,28 @@ export const IconPicker: React.FC<IconPickerProps> = ({
             placeholder={placeholder}
             onClick={handleOpen}
             disabled={disabled}
-            className={`w-full px-4 py-3 rounded border transition-colors cursor-pointer focus:outline-none focus:ring-2 ${disabled
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:border-opacity-80"
-              } ${selectedIcon ? "pl-10" : ""} ${isDark
+            className={`w-full px-4 py-3 rounded border transition-colors cursor-pointer focus:outline-none focus:ring-2 ${
+              disabled
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:border-opacity-80"
+            } ${selectedIcon ? "pl-10" : ""} ${
+              isDark
                 ? "bg-panel border-border text-white placeholder-text-secondary focus:border-accent focus:ring-accent/50"
                 : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-accent focus:ring-accent/50"
-              }`}
+            }`}
           />
           {value && !disabled && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange("");
               }}
-              className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${isDark
-                ? "hover:bg-border text-text-secondary hover:text-white"
-                : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                }`}
+              className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${
+                isDark
+                  ? "hover:bg-border text-text-secondary hover:text-white"
+                  : "hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              }`}
             >
               <X className="w-4 h-4" />
             </button>
@@ -335,18 +344,19 @@ export const IconPicker: React.FC<IconPickerProps> = ({
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetContent
             side="bottom"
-            className={`h-[80vh] p-0 flex flex-col rounded-t-2xl ${isDark
-              ? "bg-panel border-border"
-              : "bg-white border-gray-200"
-              }`}
+            className={`h-[80vh] p-0 flex flex-col rounded-t-2xl ${
+              isDark ? "bg-panel border-border" : "bg-white border-gray-200"
+            }`}
           >
             <div
-              className={`p-4 border-b ${isDark ? "border-border" : "border-gray-200"
-                }`}
+              className={`p-4 border-b ${
+                isDark ? "border-border" : "border-gray-200"
+              }`}
             >
               <SheetTitle
-                className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"
-                  }`}
+                className={`text-lg font-semibold ${
+                  isDark ? "text-white" : "text-gray-900"
+                }`}
               >
                 Select Icon
               </SheetTitle>
@@ -388,10 +398,11 @@ export const IconPicker: React.FC<IconPickerProps> = ({
                   pointerEvents: "auto",
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className={`rounded border shadow-xl overflow-hidden flex flex-col ${isDark
-                  ? "bg-panel border-border backdrop-blur-xl"
-                  : "bg-white border-gray-200"
-                  }`}
+                className={`rounded border shadow-xl overflow-hidden flex flex-col ${
+                  isDark
+                    ? "bg-panel border-border backdrop-blur-xl"
+                    : "bg-white border-gray-200"
+                }`}
               >
                 {renderPickerContent()}
               </motion.div>
@@ -404,8 +415,11 @@ export const IconPicker: React.FC<IconPickerProps> = ({
         isOpen &&
         createPortal(
           <div
-            className={`fixed z-10004 px-2 py-1 rounded text-[10px] whitespace-nowrap pointer-events-none transition-opacity shadow-lg animate-in fade-in-0 zoom-in-95 duration-200 ${isDark ? "bg-border text-white border border-border" : "bg-gray-900 text-white"
-              }`}
+            className={`fixed z-10004 px-2 py-1 rounded text-[10px] whitespace-nowrap pointer-events-none transition-opacity shadow-lg animate-in fade-in-0 zoom-in-95 duration-200 ${
+              isDark
+                ? "bg-border text-white border border-border"
+                : "bg-gray-900 text-white"
+            }`}
             style={{
               top: dropdownPosition.showAbove
                 ? hoveredIcon.rect.top + hoveredIcon.rect.height + 8
@@ -418,8 +432,9 @@ export const IconPicker: React.FC<IconPickerProps> = ({
           >
             {hoveredIcon.friendlyName}
             <div
-              className={`absolute w-2 h-2 rotate-45 left-1/2 -translate-x-1/2 ${isDark ? "bg-border" : "bg-gray-900"
-                } ${dropdownPosition.showAbove ? "-top-1" : "-bottom-1"}`}
+              className={`absolute w-2 h-2 rotate-45 left-1/2 -translate-x-1/2 ${
+                isDark ? "bg-border" : "bg-gray-900"
+              } ${dropdownPosition.showAbove ? "-top-1" : "-bottom-1"}`}
             />
           </div>,
           document.body,
