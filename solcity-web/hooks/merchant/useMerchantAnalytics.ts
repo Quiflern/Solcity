@@ -1,116 +1,246 @@
 "use client";
 
+import type { PublicKey } from "@solana/web3.js";
 import { useMemo } from "react";
-import { useMerchantIssuanceEvents } from "./useMerchantIssuanceEvents";
-import { useMerchantRedemptions } from "./useMerchantRedemptions";
-import { useMerchantCustomers } from "./useMerchantCustomers";
-import { PublicKey } from "@solana/web3.js";
+import {
+  type CustomerData,
+  useMerchantCustomers,
+} from "./useMerchantCustomers";
+import {
+  type IssuanceEvent,
+  useMerchantIssuanceEvents,
+} from "./useMerchantIssuanceEvents";
+import {
+  type RedemptionEvent,
+  useMerchantRedemptions,
+} from "./useMerchantRedemptions";
 
+/**
+ * Key performance metrics for merchant analytics.
+ */
 export interface AnalyticsMetrics {
+  /** Average reward tokens issued per transaction */
   avgRewardPerTx: number;
+  /** Percentage of issued tokens that have been redeemed */
   redemptionRate: number;
+  /** Percentage of customers who made multiple purchases */
   retentionRate: number;
+  /** Number of new customers in the selected period */
   newCustomers: number;
+  /** Total number of customers */
   totalCustomers: number;
 }
 
+/**
+ * Time series data point for charts.
+ */
 export interface TimeSeriesData {
+  /** Date in ISO format (YYYY-MM-DD) */
   date: string;
+  /** Tokens issued on this date */
   issued: number;
+  /** Tokens redeemed on this date */
   redeemed: number;
 }
 
+/**
+ * Distribution of customers across loyalty tiers.
+ */
 export interface TierDistribution {
+  /** Number of Bronze tier customers */
   bronze: number;
+  /** Number of Silver tier customers */
   silver: number;
+  /** Number of Gold tier customers */
   gold: number;
+  /** Number of Platinum tier customers */
   platinum: number;
 }
 
+/**
+ * Breakdown of redemptions by offer type.
+ */
 export interface RedemptionBreakdown {
+  /** Name of the redemption offer */
   offerName: string;
+  /** Number of times this offer was redeemed */
   count: number;
+  /** Percentage of total redemptions */
   percentage: number;
 }
 
+/**
+ * Extended customer data with calculated metrics.
+ */
+interface TopCustomer extends CustomerData {
+  /** Total tokens earned (calculated from events) */
+  earned: number;
+  /** Total tokens redeemed (calculated from events) */
+  redeemed: number;
+  /** Unix timestamp of last activity */
+  lastActivity: number;
+}
+
+/**
+ * Custom hook to calculate comprehensive analytics for a merchant.
+ *
+ * This hook aggregates data from issuance events, redemptions, and customer
+ * accounts to provide actionable insights including:
+ * - Key performance metrics (avg reward, redemption rate, retention)
+ * - Time series data for charts
+ * - Customer tier distribution
+ * - Top redemption offers
+ * - Top customers by earned tokens
+ *
+ * All metrics are calculated based on the selected date range.
+ *
+ * @param merchantPubkey - Public key of the merchant (currently unused)
+ * @param dateRange - Time period for analytics ("7d", "30d", "90d", "custom")
+ * @returns Comprehensive analytics data and loading state
+ *
+ * @example
+ * ```tsx
+ * const { metrics, timeSeriesData, topCustomers, isLoading } =
+ *   useMerchantAnalytics(merchantPubkey, "30d");
+ *
+ * if (isLoading) return <div>Loading analytics...</div>;
+ *
+ * return (
+ *   <div>
+ *     <MetricsCards metrics={metrics} />
+ *     <Chart data={timeSeriesData} />
+ *     <TopCustomersTable customers={topCustomers} />
+ *   </div>
+ * );
+ * ```
+ */
 export function useMerchantAnalytics(
   merchantPubkey: PublicKey | null,
-  dateRange: "7d" | "30d" | "90d" | "custom" = "30d"
+  dateRange: "7d" | "30d" | "90d" | "custom" = "30d",
 ) {
-  const { data: issuanceEvents = [], isLoading: issuanceLoading } = useMerchantIssuanceEvents(merchantPubkey);
-  const { data: redemptions = [], isLoading: redemptionsLoading } = useMerchantRedemptions(merchantPubkey);
-  const { data: customers = [], isLoading: customersLoading } = useMerchantCustomers(merchantPubkey);
+  const { data, isLoading: issuanceLoading } =
+    useMerchantIssuanceEvents(merchantPubkey);
+  const issuanceEvents: IssuanceEvent[] =
+    (data as IssuanceEvent[] | undefined) ?? [];
+
+  const { data: redemptionsData, isLoading: redemptionsLoading } =
+    useMerchantRedemptions(merchantPubkey);
+  const redemptions: RedemptionEvent[] =
+    (redemptionsData as RedemptionEvent[] | undefined) ?? [];
+
+  const { data: customersData, isLoading: customersLoading } =
+    useMerchantCustomers(merchantPubkey);
+  const customers: CustomerData[] =
+    (customersData as CustomerData[] | undefined) ?? [];
 
   const isLoading = issuanceLoading || redemptionsLoading || customersLoading;
 
   // Filter data by date range
-  const filteredData = useMemo(() => {
+  const filteredData = useMemo((): {
+    issuanceEvents: IssuanceEvent[];
+    redemptions: RedemptionEvent[];
+    customers: CustomerData[];
+  } => {
     const now = Date.now() / 1000;
-    const daysMap = { "7d": 7, "30d": 30, "90d": 90, "custom": 365 };
+    const daysMap = { "7d": 7, "30d": 30, "90d": 90, custom: 365 };
     const days = daysMap[dateRange];
     const cutoffTime = now - days * 24 * 60 * 60;
 
     return {
-      issuanceEvents: issuanceEvents.filter((e) => e.timestamp >= cutoffTime),
-      redemptions: redemptions.filter((r) => r.timestamp >= cutoffTime),
+      issuanceEvents: issuanceEvents.filter(
+        (e: IssuanceEvent) => e.timestamp >= cutoffTime,
+      ),
+      redemptions: redemptions.filter(
+        (r: RedemptionEvent) => r.timestamp >= cutoffTime,
+      ),
       customers: customers,
     };
   }, [issuanceEvents, redemptions, customers, dateRange]);
 
   // Calculate key metrics
   const metrics = useMemo((): AnalyticsMetrics => {
-    const { issuanceEvents, redemptions, customers } = filteredData;
+    const {
+      issuanceEvents: filteredIssuance,
+      redemptions: filteredRedemptions,
+      customers: filteredCustomers,
+    } = filteredData;
 
     // Average reward per transaction
-    const totalIssued = issuanceEvents.reduce((sum, e) => sum + e.amount, 0);
-    const avgRewardPerTx = issuanceEvents.length > 0 ? totalIssued / issuanceEvents.length : 0;
+    const totalIssued = filteredIssuance.reduce(
+      (sum: number, e: IssuanceEvent) => sum + e.amount,
+      0,
+    );
+    const avgRewardPerTx =
+      filteredIssuance.length > 0 ? totalIssued / filteredIssuance.length : 0;
 
     // Redemption rate (redeemed / issued)
-    const totalRedeemed = redemptions.reduce((sum, r) => sum + r.amount, 0);
-    const redemptionRate = totalIssued > 0 ? (totalRedeemed / totalIssued) * 100 : 0;
+    const totalRedeemed = filteredRedemptions.reduce(
+      (sum: number, r: RedemptionEvent) => sum + r.amount,
+      0,
+    );
+    const redemptionRate =
+      totalIssued > 0 ? (totalRedeemed / totalIssued) * 100 : 0;
 
     // Retention rate (customers with multiple transactions)
     const customerTxCount = new Map<string, number>();
-    issuanceEvents.forEach((e) => {
+    filteredIssuance.forEach((e: IssuanceEvent) => {
       const count = customerTxCount.get(e.customerWallet) || 0;
       customerTxCount.set(e.customerWallet, count + 1);
     });
-    const returningCustomers = Array.from(customerTxCount.values()).filter((count) => count > 1).length;
-    const retentionRate = customerTxCount.size > 0 ? (returningCustomers / customerTxCount.size) * 100 : 0;
+    const returningCustomers = Array.from(customerTxCount.values()).filter(
+      (count: number) => count > 1,
+    ).length;
+    const retentionRate =
+      customerTxCount.size > 0
+        ? (returningCustomers / customerTxCount.size) * 100
+        : 0;
 
     // New customers in this period
     const now = Date.now() / 1000;
-    const daysMap = { "7d": 7, "30d": 30, "90d": 90, "custom": 365 };
+    const daysMap = { "7d": 7, "30d": 30, "90d": 90, custom: 365 };
     const days = daysMap[dateRange];
     const cutoffTime = now - days * 24 * 60 * 60;
-    const newCustomers = customers.filter((c) => c.registeredAt >= cutoffTime).length;
+    const newCustomers = filteredCustomers.filter(
+      (c: CustomerData) => c.registeredAt >= cutoffTime,
+    ).length;
 
     return {
       avgRewardPerTx,
       redemptionRate,
       retentionRate,
       newCustomers,
-      totalCustomers: customers.length,
+      totalCustomers: filteredCustomers.length,
     };
   }, [filteredData, dateRange]);
 
   // Time series data for chart
   const timeSeriesData = useMemo((): TimeSeriesData[] => {
-    const { issuanceEvents, redemptions } = filteredData;
+    const {
+      issuanceEvents: filteredIssuance,
+      redemptions: filteredRedemptions,
+    } = filteredData;
     const dataMap = new Map<string, { issued: number; redeemed: number }>();
 
     // Group issuance by date
-    issuanceEvents.forEach((event) => {
+    filteredIssuance.forEach((event: IssuanceEvent) => {
       const date = new Date(event.timestamp * 1000).toISOString().split("T")[0];
       const existing = dataMap.get(date) || { issued: 0, redeemed: 0 };
-      dataMap.set(date, { ...existing, issued: existing.issued + event.amount });
+      dataMap.set(date, {
+        ...existing,
+        issued: existing.issued + event.amount,
+      });
     });
 
     // Group redemptions by date
-    redemptions.forEach((redemption) => {
-      const date = new Date(redemption.timestamp * 1000).toISOString().split("T")[0];
+    filteredRedemptions.forEach((redemption: RedemptionEvent) => {
+      const date = new Date(redemption.timestamp * 1000)
+        .toISOString()
+        .split("T")[0];
       const existing = dataMap.get(date) || { issued: 0, redeemed: 0 };
-      dataMap.set(date, { ...existing, redeemed: existing.redeemed + redemption.amount });
+      dataMap.set(date, {
+        ...existing,
+        redeemed: existing.redeemed + redemption.amount,
+      });
     });
 
     // Convert to array and sort by date
@@ -123,7 +253,7 @@ export function useMerchantAnalytics(
   const tierDistribution = useMemo((): TierDistribution => {
     const distribution = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
 
-    customers.forEach((customer) => {
+    customers.forEach((customer: CustomerData) => {
       const tier = customer.tier.toLowerCase();
       if (tier in distribution) {
         distribution[tier as keyof TierDistribution]++;
@@ -135,15 +265,15 @@ export function useMerchantAnalytics(
 
   // Redemption breakdown by offer
   const redemptionBreakdown = useMemo((): RedemptionBreakdown[] => {
-    const { redemptions } = filteredData;
+    const { redemptions: filteredRedemptions } = filteredData;
     const offerCounts = new Map<string, number>();
 
-    redemptions.forEach((r) => {
+    filteredRedemptions.forEach((r: RedemptionEvent) => {
       const count = offerCounts.get(r.offerName) || 0;
       offerCounts.set(r.offerName, count + 1);
     });
 
-    const total = redemptions.length;
+    const total = filteredRedemptions.length;
     return Array.from(offerCounts.entries())
       .map(([offerName, count]) => ({
         offerName,
@@ -154,32 +284,37 @@ export function useMerchantAnalytics(
       .slice(0, 5); // Top 5
   }, [filteredData]);
 
-  // Top customers
-  const topCustomers = useMemo(() => {
+  // Top customers by earned tokens
+  const topCustomers = useMemo((): TopCustomer[] => {
     return customers
-      .map((customer) => {
+      .map((customer: CustomerData): TopCustomer => {
         // Calculate total earned from issuance events
         const earned = issuanceEvents
-          .filter((e) => e.customerWallet === customer.wallet)
-          .reduce((sum, e) => sum + e.amount, 0);
+          .filter((e: IssuanceEvent) => e.customerWallet === customer.wallet)
+          .reduce((sum: number, e: IssuanceEvent) => sum + e.amount, 0);
 
-        // Calculate total redeemed
+        // Calculate total redeemed from redemption events
         const redeemed = redemptions
-          .filter((r) => r.customerWallet === customer.wallet)
-          .reduce((sum, r) => sum + r.amount, 0);
+          .filter((r: RedemptionEvent) => r.customerWallet === customer.wallet)
+          .reduce((sum: number, r: RedemptionEvent) => sum + r.amount, 0);
 
-        // Find last activity
+        // Find last activity timestamp
         const lastIssuance = issuanceEvents
-          .filter((e) => e.customerWallet === customer.wallet)
-          .sort((a, b) => b.timestamp - a.timestamp)[0];
+          .filter((e: IssuanceEvent) => e.customerWallet === customer.wallet)
+          .sort(
+            (a: IssuanceEvent, b: IssuanceEvent) => b.timestamp - a.timestamp,
+          )[0];
 
         const lastRedemption = redemptions
-          .filter((r) => r.customerWallet === customer.wallet)
-          .sort((a, b) => b.timestamp - a.timestamp)[0];
+          .filter((r: RedemptionEvent) => r.customerWallet === customer.wallet)
+          .sort(
+            (a: RedemptionEvent, b: RedemptionEvent) =>
+              b.timestamp - a.timestamp,
+          )[0];
 
         const lastActivity = Math.max(
           lastIssuance?.timestamp || 0,
-          lastRedemption?.timestamp || 0
+          lastRedemption?.timestamp || 0,
         );
 
         return {
@@ -189,7 +324,7 @@ export function useMerchantAnalytics(
           lastActivity,
         };
       })
-      .sort((a, b) => b.earned - a.earned)
+      .sort((a: TopCustomer, b: TopCustomer) => b.earned - a.earned)
       .slice(0, 10); // Top 10
   }, [customers, issuanceEvents, redemptions]);
 

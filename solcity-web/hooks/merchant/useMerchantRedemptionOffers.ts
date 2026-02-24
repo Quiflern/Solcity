@@ -1,13 +1,35 @@
 "use client";
 
+import type { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
 import { useSolcityProgram } from "../program/useSolcityProgram";
 
+/**
+ * Custom hook to fetch all redemption offers for a merchant.
+ *
+ * This hook queries the blockchain for all redemption offer accounts
+ * created by the specified merchant. Redemption offers are rewards that
+ * customers can redeem using their loyalty points.
+ *
+ * @param merchantPubkey - Public key of the merchant account
+ * @returns {UseQueryResult} React Query result containing redemption offers
+ *
+ * @example
+ * ```tsx
+ * const { data: offers, isLoading } = useMerchantRedemptionOffers(merchantPubkey);
+ *
+ * if (isLoading) return <div>Loading offers...</div>;
+ *
+ * return (
+ *   <div>
+ *     {offers?.map(offer => (
+ *       <OfferCard key={offer.publicKey.toString()} offer={offer} />
+ *     ))}
+ *   </div>
+ * );
+ * ```
+ */
 export function useMerchantRedemptionOffers(merchantPubkey: PublicKey | null) {
-  const { connection } = useConnection();
-  const { publicKey } = useWallet();
   const { program } = useSolcityProgram();
 
   return useQuery({
@@ -19,6 +41,7 @@ export function useMerchantRedemptionOffers(merchantPubkey: PublicKey | null) {
 
       try {
         // Fetch all redemption offer accounts for this merchant
+        // Uses memcmp to filter by merchant field (offset 8 after discriminator)
         const offers = await program.account.redemptionOffer.all([
           {
             memcmp: {
@@ -33,7 +56,6 @@ export function useMerchantRedemptionOffers(merchantPubkey: PublicKey | null) {
           ...offer.account,
         }));
       } catch (err) {
-        console.error("Error fetching redemption offers:", err);
         return [];
       }
     },

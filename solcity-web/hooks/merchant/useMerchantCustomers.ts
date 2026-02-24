@@ -1,22 +1,61 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { useSolcityProgram } from "../program/useSolcityProgram";
-import { PublicKey } from "@solana/web3.js";
+import type { PublicKey } from "@solana/web3.js";
+import { useQuery } from "@tanstack/react-query";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
+import { useSolcityProgram } from "../program/useSolcityProgram";
 
+/**
+ * Represents a customer in the merchant's loyalty program.
+ *
+ * Contains customer activity statistics and tier information.
+ */
 export interface CustomerData {
+  /** Public key of the customer account */
   publicKey: string;
+  /** Customer's wallet address */
   wallet: string;
+  /** Current loyalty tier (Bronze, Silver, Gold, Platinum) */
   tier: string;
+  /** Total loyalty tokens earned by this customer */
   totalEarned: number;
+  /** Total loyalty tokens redeemed by this customer */
   totalRedeemed: number;
+  /** Number of transactions this customer has made */
   transactionCount: number;
+  /** Unix timestamp when customer registered */
   registeredAt: number;
+  /** Unix timestamp of customer's last activity */
   lastActivity: number;
 }
 
+/**
+ * Custom hook to fetch all customers for a merchant's loyalty program.
+ *
+ * This hook queries the blockchain for all customer accounts associated with
+ * the merchant's loyalty program. Customers are sorted by total earned tokens
+ * (highest first). The hook automatically refetches data every minute to keep
+ * customer information up to date.
+ *
+ * @param merchantPubkey - Public key of the merchant (currently unused, uses wallet)
+ * @returns {UseQueryResult<CustomerData[]>} React Query result containing customer data
+ *
+ * @example
+ * ```tsx
+ * const { data: customers, isLoading } = useMerchantCustomers(merchantPubkey);
+ *
+ * if (isLoading) return <div>Loading customers...</div>;
+ *
+ * return (
+ *   <div>
+ *     {customers?.map(customer => (
+ *       <CustomerRow key={customer.publicKey} customer={customer} />
+ *     ))}
+ *   </div>
+ * );
+ * ```
+ */
 export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
   const { connection } = useConnection();
   const { program } = useSolcityProgram();
@@ -30,8 +69,6 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
       }
 
       try {
-        console.log("=== Fetching Merchant Customers ===");
-
         // Get loyalty program PDA
         const [loyaltyProgram] = getLoyaltyProgramPDA(merchantAuthority);
         const [merchant] = getMerchantPDA(merchantAuthority, loyaltyProgram);
@@ -39,8 +76,6 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
         // Fetch merchant account to get the actual loyalty program
         const merchantAccount = await program.account.merchant.fetch(merchant);
         const actualLoyaltyProgram = merchantAccount.loyaltyProgram;
-
-        console.log("Loyalty program:", actualLoyaltyProgram.toString());
 
         // Fetch all customer accounts for this loyalty program
         // We use getProgramAccounts with a filter for the loyalty program
@@ -53,8 +88,6 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
           },
         ]);
 
-        console.log(`Found ${customerAccounts.length} customers`);
-
         const customers: CustomerData[] = customerAccounts.map((account) => {
           const customer = account.account;
 
@@ -63,7 +96,8 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
           if (customer.tier) {
             const tierKeys = Object.keys(customer.tier);
             if (tierKeys.length > 0) {
-              tierName = tierKeys[0].charAt(0).toUpperCase() + tierKeys[0].slice(1);
+              tierName =
+                tierKeys[0].charAt(0).toUpperCase() + tierKeys[0].slice(1);
             }
           }
 
@@ -81,7 +115,6 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
 
         return customers.sort((a, b) => b.totalEarned - a.totalEarned);
       } catch (error) {
-        console.error("Error fetching customers:", error);
         return [];
       }
     },

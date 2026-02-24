@@ -1,29 +1,76 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import type { PublicKey } from "@solana/web3.js";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useSolcityProgram } from "../program/useSolcityProgram";
-import { PublicKey } from "@solana/web3.js";
 
+/**
+ * Represents a loyalty transaction.
+ */
 interface Transaction {
+  /** Transaction signature (unique identifier) */
   signature: string;
+  /** Unix timestamp when the transaction occurred */
   timestamp: number;
+  /** Public key of the customer involved */
   customerWallet: string;
+  /** Amount of loyalty tokens */
   amount: number;
+  /** Type of transaction */
   type: "issue" | "redeem";
 }
 
 const TRANSACTIONS_PER_PAGE = 10;
 
-export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
+/**
+ * Custom hook to fetch paginated transaction history for a merchant.
+ *
+ * This hook uses infinite query to load transactions in pages, allowing
+ * for efficient loading of large transaction histories. It parses blockchain
+ * transactions to extract reward issuance events.
+ *
+ * The hook automatically refetches data every 30 seconds to stay up to date.
+ *
+ * @param _merchantPubkey - Public key of the merchant (currently unused, uses wallet)
+ * @returns {Object} Transaction data and pagination controls
+ * @returns {Transaction[]} transactions - Flattened array of all loaded transactions
+ * @returns {boolean} isLoading - Whether initial data is loading
+ * @returns {Error|null} error - Any error that occurred
+ * @returns {boolean} hasMore - Whether more pages are available
+ * @returns {Function} loadMore - Function to load the next page
+ * @returns {boolean} isLoadingMore - Whether next page is loading
+ *
+ * @example
+ * ```tsx
+ * const { transactions, isLoading, hasMore, loadMore, isLoadingMore } =
+ *   useMerchantTransactions(merchantPubkey);
+ *
+ * if (isLoading) return <div>Loading...</div>;
+ *
+ * return (
+ *   <div>
+ *     {transactions.map(tx => (
+ *       <TransactionRow key={tx.signature} transaction={tx} />
+ *     ))}
+ *     {hasMore && (
+ *       <button onClick={() => loadMore()} disabled={isLoadingMore}>
+ *         {isLoadingMore ? 'Loading...' : 'Load More'}
+ *       </button>
+ *     )}
+ *   </div>
+ * );
+ * ```
+ */
+export function useMerchantTransactions(_merchantPubkey: PublicKey | null) {
   const { connection } = useConnection();
   const { program } = useSolcityProgram();
   const { publicKey } = useWallet(); // Get the merchant authority wallet
 
   const query = useInfiniteQuery({
-    queryKey: ["merchantTransactions", merchantPubkey?.toString()],
-    queryFn: async ({ pageParam = undefined }) => {
-      if (!program || !merchantPubkey || !publicKey) {
+    queryKey: ["merchantTransactions", _merchantPubkey?.toString()],
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      if (!program || !_merchantPubkey || !publicKey) {
         return { transactions: [], hasMore: false, lastSignature: undefined };
       }
 
@@ -34,10 +81,8 @@ export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
           {
             limit: TRANSACTIONS_PER_PAGE,
             before: pageParam, // For pagination
-          }
+          },
         );
-
-        console.log(`Fetched ${signatures.length} signatures for merchant authority`);
 
         const transactions: Transaction[] = [];
 
@@ -49,35 +94,30 @@ export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
             });
 
             if (!tx || !tx.meta || !tx.meta.logMessages) {
-              console.log(`Skipping tx ${sig.signature.slice(0, 8)}: no logs`);
               continue;
             }
 
-            console.log(`Parsing tx ${sig.signature.slice(0, 8)}, logs:`, tx.meta.logMessages);
-
             // Check if this transaction involves our program and the issueRewards instruction
-            const programInvoked = tx.meta.logMessages.some(log =>
-              log.includes(program.programId.toString()) && log.includes("invoke")
+            const programInvoked = tx.meta.logMessages.some(
+              (log) =>
+                log.includes(program.programId.toString()) &&
+                log.includes("invoke"),
             );
 
-            const isIssueRewards = tx.meta.logMessages.some(log =>
-              log.includes("Instruction: IssueRewards")
+            const isIssueRewards = tx.meta.logMessages.some((log) =>
+              log.includes("Instruction: IssueRewards"),
             );
 
             if (!programInvoked || !isIssueRewards) {
               continue;
             }
 
-            console.log(`Found issueRewards tx ${sig.signature.slice(0, 8)}`);
-
             // Look for "Issued" log messages from our program
-            const issuedLog = tx.meta.logMessages.find((log) =>
-              log.includes("Issued") && log.includes("tokens")
+            const issuedLog = tx.meta.logMessages.find(
+              (log) => log.includes("Issued") && log.includes("tokens"),
             );
 
             if (issuedLog) {
-              console.log(`Found issued log: ${issuedLog}`);
-
               // Parse the log message to extract token amount
               const match = issuedLog.match(/Issued (\d+) tokens/);
               const amount = match ? parseInt(match[1]) : 0;
@@ -86,10 +126,10 @@ export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
               let customerWallet = "Unknown";
               if (tx.transaction.message.accountKeys.length > 3) {
                 // Customer is typically the 4th account (index 3)
-                customerWallet = tx.transaction.message.accountKeys[3]?.pubkey?.toString() || "Unknown";
+                customerWallet =
+                  tx.transaction.message.accountKeys[3]?.pubkey?.toString() ||
+                  "Unknown";
               }
-
-              console.log(`Adding transaction: amount=${amount}, customer=${customerWallet.slice(0, 8)}`);
 
               transactions.push({
                 signature: sig.signature,
@@ -98,18 +138,17 @@ export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
                 amount,
                 type: "issue",
               });
-            } else {
-              console.log(`No issued log found in tx ${sig.signature.slice(0, 8)}`);
             }
           } catch (err) {
-            console.error("Error parsing transaction:", err);
+            // Silently skip failed transactions
           }
         }
 
-        console.log(`Parsed ${transactions.length} transactions from ${signatures.length} signatures`);
-
         const hasMore = signatures.length === TRANSACTIONS_PER_PAGE;
-        const lastSignature = signatures.length > 0 ? signatures[signatures.length - 1].signature : undefined;
+        const lastSignature =
+          signatures.length > 0
+            ? signatures[signatures.length - 1].signature
+            : undefined;
 
         return {
           transactions,
@@ -117,14 +156,17 @@ export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
           lastSignature,
         };
       } catch (err) {
-        console.error("Error fetching transactions:", err);
         return { transactions: [], hasMore: false, lastSignature: undefined };
       }
     },
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage: {
+      transactions: Transaction[];
+      hasMore: boolean;
+      lastSignature: string | undefined;
+    }) => {
       return lastPage.hasMore ? lastPage.lastSignature : undefined;
     },
-    enabled: !!program && !!merchantPubkey && !!publicKey,
+    enabled: !!program && !!_merchantPubkey && !!publicKey,
     refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 5000, // Consider data stale after 5 seconds
     gcTime: 60000, // Keep unused data in cache for 1 minute
@@ -132,7 +174,8 @@ export function useMerchantTransactions(merchantPubkey: PublicKey | null) {
   });
 
   // Flatten all pages into a single array
-  const allTransactions = query.data?.pages.flatMap(page => page.transactions) || [];
+  const allTransactions =
+    query.data?.pages.flatMap((page) => page.transactions) || [];
 
   return {
     transactions: allTransactions,

@@ -1,9 +1,40 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useState } from "react";
+import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 import { useSolcityProgram } from "../program/useSolcityProgram";
 import { useMerchantAccount } from "./useMerchantAccount";
-import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
-import { useState } from "react";
 
+/**
+ * Custom hook to close a merchant account and reclaim rent.
+ *
+ * This hook provides functionality to close a merchant account on the blockchain,
+ * which returns the rent-exempt SOL to the merchant's wallet. This is typically
+ * used when a merchant wants to permanently leave the loyalty program.
+ *
+ * @returns {Object} Close merchant functionality and state
+ * @returns {Function} closeMerchant - Async function to close the merchant account
+ * @returns {boolean} isClosing - Whether the close operation is in progress
+ *
+ * @example
+ * ```tsx
+ * const { closeMerchant, isClosing } = useMerchantClose();
+ *
+ * const handleClose = async () => {
+ *   try {
+ *     const result = await closeMerchant();
+ *     console.log('Account closed:', result.signature);
+ *   } catch (error) {
+ *     console.error('Failed to close account:', error);
+ *   }
+ * };
+ *
+ * return (
+ *   <button onClick={handleClose} disabled={isClosing}>
+ *     {isClosing ? 'Closing...' : 'Close Merchant Account'}
+ *   </button>
+ * );
+ * ```
+ */
 export function useMerchantClose() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
@@ -18,9 +49,11 @@ export function useMerchantClose() {
 
     setIsClosing(true);
     try {
+      // Derive PDAs for the close operation
       const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
       const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
 
+      // Execute close merchant transaction
       const tx = await program.methods
         .closeMerchant()
         .accounts({
@@ -30,6 +63,7 @@ export function useMerchantClose() {
         } as any)
         .rpc();
 
+      // Wait for transaction confirmation
       const latestBlockhash = await connection.getLatestBlockhash();
       await connection.confirmTransaction({
         signature: tx,
