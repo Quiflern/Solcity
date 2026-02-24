@@ -17,16 +17,6 @@ export default function Toaster() {
         },
         className: "sonner-toast",
         descriptionClassName: "sonner-toast-description",
-        error: {
-          style: {
-            border: "1px solid rgba(239, 68, 68, 0.3)",
-          },
-        },
-        warning: {
-          style: {
-            border: "1px solid rgba(234, 179, 8, 0.3)",
-          },
-        },
       }}
       theme="dark"
       richColors={false}
