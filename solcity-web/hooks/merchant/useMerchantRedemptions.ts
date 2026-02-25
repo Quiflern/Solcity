@@ -71,10 +71,11 @@ export function useMerchantRedemptions(_merchantPubkey: PublicKey | null) {
       }
 
       try {
+        // Reduced to 10 to avoid rate limiting on public RPC
         const signatures = await connection.getSignaturesForAddress(
           merchantAuthority,
           {
-            limit: 100,
+            limit: 10,
           },
         );
 
@@ -137,8 +138,9 @@ export function useMerchantRedemptions(_merchantPubkey: PublicKey | null) {
       }
     },
     enabled: !!program && !!merchantAuthority,
-    staleTime: 30000,
-    refetchInterval: 30000,
+    retry: false, // Disable retries on rate limit errors
+    staleTime: Infinity, // Never consider data stale
+    refetchInterval: false, // Disable auto-refetch
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,

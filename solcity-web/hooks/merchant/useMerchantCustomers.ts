@@ -119,8 +119,11 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
       }
     },
     enabled: !!program && !!merchantAuthority,
-    staleTime: 60000, // 1 minute
-    refetchInterval: 60000,
+    retry: false, // Disable retries on rate limit errors
+    staleTime: Infinity, // Never consider data stale
+    refetchInterval: false, // Disable auto-refetch
     gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }

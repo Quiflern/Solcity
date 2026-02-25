@@ -167,9 +167,12 @@ export function useMerchantTransactions(_merchantPubkey: PublicKey | null) {
       return lastPage.hasMore ? lastPage.lastSignature : undefined;
     },
     enabled: !!program && !!_merchantPubkey && !!publicKey,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 5000, // Consider data stale after 5 seconds
-    gcTime: 60000, // Keep unused data in cache for 1 minute
+    retry: false, // Disable retries on rate limit errors
+    refetchInterval: false, // Disable auto-refetch
+    staleTime: Infinity, // Never consider data stale
+    gcTime: Infinity, // Keep data forever
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     initialPageParam: undefined,
   });
 

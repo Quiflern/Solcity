@@ -21,9 +21,10 @@ export default function WalletQueryInvalidator() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    queryClient.invalidateQueries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicKey]);
+    // Only invalidate queries, don't refetch immediately
+    // This prevents the spam of requests
+    queryClient.invalidateQueries({ refetchType: 'none' });
+  }, [publicKey?.toString(), queryClient]); // Use toString() to avoid reference changes
 
   return null;
 }

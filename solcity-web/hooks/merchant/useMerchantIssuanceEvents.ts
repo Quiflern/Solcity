@@ -64,10 +64,11 @@ export function useMerchantIssuanceEvents(_merchantPubkey: PublicKey | null) {
 
       try {
         // Fetch transaction signatures from the merchant's wallet
+        // Reduced to 10 to avoid rate limiting on public RPC
         const signatures = await connection.getSignaturesForAddress(
           merchantAuthority,
           {
-            limit: 100,
+            limit: 10,
           },
         );
 
@@ -168,8 +169,9 @@ export function useMerchantIssuanceEvents(_merchantPubkey: PublicKey | null) {
       }
     },
     enabled: !!program && !!merchantAuthority,
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    refetchInterval: 30000, // Refetch every 30 seconds
+    retry: false, // Disable retries on rate limit errors
+    staleTime: Infinity, // Never consider data stale
+    refetchInterval: false, // Disable auto-refetch
     gcTime: Infinity, // Never garbage collect - keep data forever
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
     refetchOnMount: false, // Don't refetch on component mount if data exists
