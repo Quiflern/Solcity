@@ -2,15 +2,9 @@
 
 import type { PublicKey } from "@solana/web3.js";
 import { useMemo } from "react";
-import {
-  type CustomerData,
-  useMerchantCustomers,
-} from "./useMerchantCustomers";
-import {
-  type IssuanceEvent,
-  type RedemptionEvent,
-  useMerchantEvents,
-} from "./useMerchantEvents";
+import { useMerchantCustomers, type CustomerData } from "./useMerchantCustomers";
+import { useMerchantCustomerRecords } from "./useMerchantCustomerRecords";
+import { useMerchantTransactionRecords } from "./useMerchantTransactionRecords";
 
 /**
  * Key performance metrics for merchant analytics.
@@ -81,17 +75,14 @@ interface TopCustomer extends CustomerData {
 /**
  * Custom hook to calculate comprehensive analytics for a merchant.
  *
- * This hook aggregates data from issuance events, redemptions, and customer
- * accounts to provide actionable insights including:
- * - Key performance metrics (avg reward, redemption rate, retention)
- * - Time series data for charts
- * - Customer tier distribution
- * - Top redemption offers
- * - Top customers by earned tokens
+ * This hook uses FAST on-chain record accounts instead of slow event parsing:
+ * - MerchantCustomerRecords for aggregated customer stats
+ * - TransactionRecords for individual transactions
+ * - Customer accounts for tier distribution
  *
  * All metrics are calculated based on the selected date range.
  *
- * @param merchantPubkey - Public key of the merchant (currently unused)
+ * @param merchantPubkey - Public key of the merchant PDA
  * @param dateRange - Time period for analytics ("7d", "30d", "90d", "custom")
  * @returns Comprehensive analytics data and loading state
  *
@@ -115,72 +106,55 @@ export function useMerchantAnalytics(
   merchantPubkey: PublicKey | null,
   dateRange: "7d" | "30d" | "90d" | "custom" = "30d",
 ) {
-  const { data: eventsData, isLoading: eventsLoading, isFetching: eventsFetching, dataUpdatedAt, refetch } = useMerchantEvents(merchantPubkey);
-  const issuanceEvents: IssuanceEvent[] = eventsData?.issuances ?? [];
-  const redemptions: RedemptionEvent[] = eventsData?.redemptions ?? [];
-
+  // Use FAST record-based hooks instead of slow event parsing
+  const { data: customerRecords = [], isLoading: recordsLoading, refetch: refetchRecords } =
+    useMerchantCustomerRecords(merchantPubkey);
+  const { data: transactions = [], isLoading: transactionsLoading, refetch: refetchTransactions } =
+    useMerchantTransactionRecords(merchantPubkey);
   const { data: customersData, isLoading: customersLoading } =
     useMerchantCustomers(merchantPubkey);
   const customers: CustomerData[] =
     (customersData as CustomerData[] | undefined) ?? [];
 
-  const isLoading = eventsLoading || customersLoading;
-  const isFetching = eventsFetching;
+  const isLoading = recordsLoading || transactionsLoading || customersLoading;
+  const isFetching = false; // Records are always fresh
+  const dataUpdatedAt = Date.now();
 
-  // Filter data by date range
-  const filteredData = useMemo((): {
-    issuanceEvents: IssuanceEvent[];
-    redemptions: RedemptionEvent[];
-    customers: CustomerData[];
-  } => {
+  const refetch = async () => {
+    await Promise.all([refetchRecords(), refetchTransactions()]);
+  };
+
+  // Filter transactions by date range
+  const filteredTransactions = useMemo(() => {
     const now = Date.now() / 1000;
     const daysMap = { "7d": 7, "30d": 30, "90d": 90, custom: 365 };
     const days = daysMap[dateRange];
     const cutoffTime = now - days * 24 * 60 * 60;
 
-    return {
-      issuanceEvents: issuanceEvents.filter(
-        (e: IssuanceEvent) => e.timestamp >= cutoffTime,
-      ),
-      redemptions: redemptions.filter(
-        (r: RedemptionEvent) => r.timestamp >= cutoffTime,
-      ),
-      customers: customers,
-    };
-  }, [issuanceEvents, redemptions, customers, dateRange]);
+    return transactions.filter(tx => tx.timestamp >= cutoffTime);
+  }, [transactions, dateRange]);
 
   // Calculate key metrics
   const metrics = useMemo((): AnalyticsMetrics => {
-    const {
-      issuanceEvents: filteredIssuance,
-      redemptions: filteredRedemptions,
-      customers: filteredCustomers,
-    } = filteredData;
+    const issuedTxs = filteredTransactions.filter(tx => tx.transactionType === "issue");
+    const redeemedTxs = filteredTransactions.filter(tx => tx.transactionType === "redeem");
 
     // Average reward per transaction
-    const totalIssued = filteredIssuance.reduce(
-      (sum: number, e: IssuanceEvent) => sum + e.amount,
-      0,
-    );
-    const avgRewardPerTx =
-      filteredIssuance.length > 0 ? totalIssued / filteredIssuance.length : 0;
+    const totalIssued = issuedTxs.reduce((sum, tx) => sum + tx.amount, 0);
+    const avgRewardPerTx = issuedTxs.length > 0 ? totalIssued / issuedTxs.length : 0;
 
     // Redemption rate (redeemed / issued)
-    const totalRedeemed = filteredRedemptions.reduce(
-      (sum: number, r: RedemptionEvent) => sum + r.amount,
-      0,
-    );
-    const redemptionRate =
-      totalIssued > 0 ? (totalRedeemed / totalIssued) * 100 : 0;
+    const totalRedeemed = redeemedTxs.reduce((sum, tx) => sum + tx.amount, 0);
+    const redemptionRate = totalIssued > 0 ? (totalRedeemed / totalIssued) * 100 : 0;
 
     // Retention rate (customers with multiple transactions)
     const customerTxCount = new Map<string, number>();
-    filteredIssuance.forEach((e: IssuanceEvent) => {
-      const count = customerTxCount.get(e.customerWallet) || 0;
-      customerTxCount.set(e.customerWallet, count + 1);
+    issuedTxs.forEach(tx => {
+      const count = customerTxCount.get(tx.customer) || 0;
+      customerTxCount.set(tx.customer, count + 1);
     });
     const returningCustomers = Array.from(customerTxCount.values()).filter(
-      (count: number) => count > 1,
+      count => count > 1,
     ).length;
     const retentionRate =
       customerTxCount.size > 0
@@ -192,8 +166,8 @@ export function useMerchantAnalytics(
     const daysMap = { "7d": 7, "30d": 30, "90d": 90, custom: 365 };
     const days = daysMap[dateRange];
     const cutoffTime = now - days * 24 * 60 * 60;
-    const newCustomers = filteredCustomers.filter(
-      (c: CustomerData) => c.registeredAt >= cutoffTime,
+    const newCustomers = customerRecords.filter(
+      record => record.firstTransaction >= cutoffTime,
     ).length;
 
     return {
@@ -201,38 +175,29 @@ export function useMerchantAnalytics(
       redemptionRate,
       retentionRate,
       newCustomers,
-      totalCustomers: filteredCustomers.length,
+      totalCustomers: customerRecords.length,
     };
-  }, [filteredData, dateRange]);
+  }, [filteredTransactions, customerRecords, dateRange]);
 
   // Time series data for chart
   const timeSeriesData = useMemo((): TimeSeriesData[] => {
-    const {
-      issuanceEvents: filteredIssuance,
-      redemptions: filteredRedemptions,
-    } = filteredData;
-
-    if (filteredIssuance.length === 0 && filteredRedemptions.length === 0) {
+    if (filteredTransactions.length === 0) {
       return [];
     }
 
     const dataMap = new Map<string, { issued: number; redeemed: number }>();
 
-    // Group issuance by date
-    for (const event of filteredIssuance) {
-      const date = new Date(event.timestamp * 1000).toISOString().split("T")[0];
+    // Group transactions by date
+    for (const tx of filteredTransactions) {
+      const date = new Date(tx.timestamp * 1000).toISOString().split("T")[0];
       const existing = dataMap.get(date) || { issued: 0, redeemed: 0 };
-      existing.issued += event.amount;
-      dataMap.set(date, existing);
-    }
 
-    // Group redemptions by date
-    for (const redemption of filteredRedemptions) {
-      const date = new Date(redemption.timestamp * 1000)
-        .toISOString()
-        .split("T")[0];
-      const existing = dataMap.get(date) || { issued: 0, redeemed: 0 };
-      existing.redeemed += redemption.amount;
+      if (tx.transactionType === "issue") {
+        existing.issued += tx.amount;
+      } else {
+        existing.redeemed += tx.amount;
+      }
+
       dataMap.set(date, existing);
     }
 
@@ -240,7 +205,7 @@ export function useMerchantAnalytics(
     return Array.from(dataMap.entries())
       .map(([date, data]) => ({ date, ...data }))
       .sort((a, b) => a.date.localeCompare(b.date));
-  }, [filteredData]);
+  }, [filteredTransactions]);
 
   // Tier distribution
   const tierDistribution = useMemo((): TierDistribution => {
@@ -256,83 +221,58 @@ export function useMerchantAnalytics(
     return distribution;
   }, [customers]);
 
-  // Redemption breakdown by offer
+  // Redemption breakdown - simplified since TransactionRecord doesn't store offer names
   const redemptionBreakdown = useMemo((): RedemptionBreakdown[] => {
-    const { redemptions: filteredRedemptions } = filteredData;
+    const redeemedTxs = filteredTransactions.filter(tx => tx.transactionType === "redeem");
 
-    if (filteredRedemptions.length === 0) {
+    if (redeemedTxs.length === 0) {
       return [];
     }
 
-    const offerCounts = new Map<string, number>();
+    // Group by tier since we don't have offer names in TransactionRecord
+    const tierCounts = new Map<string, number>();
 
-    for (const r of filteredRedemptions) {
-      offerCounts.set(r.offerName, (offerCounts.get(r.offerName) || 0) + 1);
+    for (const tx of redeemedTxs) {
+      const tierName = tx.tier || "unknown";
+      tierCounts.set(tierName, (tierCounts.get(tierName) || 0) + 1);
     }
 
-    const total = filteredRedemptions.length;
-    return Array.from(offerCounts.entries())
+    const total = redeemedTxs.length;
+    return Array.from(tierCounts.entries())
       .map(([offerName, count]) => ({
-        offerName,
+        offerName: `${offerName.charAt(0).toUpperCase()}${offerName.slice(1)} Tier Redemptions`,
         count,
         percentage: (count / total) * 100,
       }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5); // Top 5
-  }, [filteredData]);
+      .sort((a, b) => b.count - a.count);
+  }, [filteredTransactions]);
 
   // Top customers by earned tokens
   const topCustomers = useMemo((): TopCustomer[] => {
-    if (customers.length === 0) {
+    if (customers.length === 0 || customerRecords.length === 0) {
       return [];
     }
 
-    // Build lookup maps for faster access
-    const customerEarnings = new Map<string, number>();
-    const customerRedemptions = new Map<string, number>();
-    const customerLastActivity = new Map<string, number>();
-
-    for (const event of issuanceEvents) {
-      const current = customerEarnings.get(event.customerWallet) || 0;
-      customerEarnings.set(event.customerWallet, current + event.amount);
-
-      const lastActivity = customerLastActivity.get(event.customerWallet) || 0;
-      if (event.timestamp > lastActivity) {
-        customerLastActivity.set(event.customerWallet, event.timestamp);
-      }
-    }
-
-    for (const redemption of redemptions) {
-      const current = customerRedemptions.get(redemption.customerWallet) || 0;
-      customerRedemptions.set(redemption.customerWallet, current + redemption.amount);
-
-      const lastActivity = customerLastActivity.get(redemption.customerWallet) || 0;
-      if (redemption.timestamp > lastActivity) {
-        customerLastActivity.set(redemption.customerWallet, redemption.timestamp);
-      }
-    }
+    // Create a map of customer records for quick lookup
+    const recordMap = new Map(
+      customerRecords.map(record => [record.customer, record])
+    );
 
     return customers
       .map((customer: CustomerData): TopCustomer => {
-        const earnedFromEvents = customerEarnings.get(customer.wallet) || 0;
-        const redeemedFromEvents = customerRedemptions.get(customer.wallet) || 0;
-        const lastActivityFromEvents = customerLastActivity.get(customer.wallet) || 0;
-
-        // Use on-chain lastActivity if available, otherwise fall back to events
-        const lastActivity = customer.lastActivity > 0
-          ? customer.lastActivity
-          : lastActivityFromEvents;
+        const record = recordMap.get(customer.wallet);
 
         return {
           ...customer,
-          earned: earnedFromEvents,
-          redeemed: redeemedFromEvents,
-          lastActivity,
+          earned: record?.totalIssued || 0,
+          redeemed: record?.totalRedeemed || 0,
+          lastActivity: record?.lastTransaction || customer.lastActivity || 0,
         };
       })
-      .sort((a: TopCustomer, b: TopCustomer) => b.totalEarned - a.totalEarned)
+      .filter(c => c.earned > 0) // Only show customers with activity
+      .sort((a: TopCustomer, b: TopCustomer) => b.earned - a.earned)
       .slice(0, 10); // Top 10
-  }, [customers, issuanceEvents, redemptions]);
+  }, [customers, customerRecords]);
 
   return {
     isLoading,
