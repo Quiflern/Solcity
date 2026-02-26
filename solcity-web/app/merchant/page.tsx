@@ -497,7 +497,7 @@ export default function MerchantDashboard() {
                                 </div>
                               </div>
                               <a
-                                href={`https://explorer.solana.com/tx/${event.signature}?cluster=custom&customUrl=http://localhost:8899`}
+                                href={`https://explorer.solana.com/tx/${event.signature}?cluster=devnet`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-accent hover:underline shrink-0 ml-4 flex items-center gap-1"

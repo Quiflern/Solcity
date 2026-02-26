@@ -68,7 +68,7 @@ export default function RedeemPage() {
   // Calculate current balance (earned - redeemed)
   const currentBalance = customerAccount
     ? Number(customerAccount.totalEarned) -
-      Number(customerAccount.totalRedeemed)
+    Number(customerAccount.totalRedeemed)
     : 0;
 
   /**
@@ -293,9 +293,8 @@ export default function RedeemPage() {
           <button
             type="button"
             onClick={() => setActiveTab("marketplace")}
-            className={`py-4 text-sm font-medium relative ${
-              activeTab === "marketplace" ? "text-text" : "text-text-secondary"
-            }`}
+            className={`py-4 text-sm font-medium relative ${activeTab === "marketplace" ? "text-text" : "text-text-secondary"
+              }`}
           >
             Marketplace
             {activeTab === "marketplace" && (
@@ -305,9 +304,8 @@ export default function RedeemPage() {
           <button
             type="button"
             onClick={() => setActiveTab("history")}
-            className={`py-4 text-sm font-medium relative ${
-              activeTab === "history" ? "text-text" : "text-text-secondary"
-            }`}
+            className={`py-4 text-sm font-medium relative ${activeTab === "history" ? "text-text" : "text-text-secondary"
+              }`}
           >
             Redemption History
             {activeTab === "history" && (
@@ -338,15 +336,14 @@ export default function RedeemPage() {
                       <div className="p-6 pb-4 border-b border-border/50">
                         <div className="flex items-center justify-between mb-3">
                           <span
-                            className={`text-[0.65rem] uppercase font-bold px-3 py-1.5 rounded-full ${
-                              reward.type === "discount"
+                            className={`text-[0.65rem] uppercase font-bold px-3 py-1.5 rounded-full ${reward.type === "discount"
                                 ? "bg-accent/10 text-accent"
                                 : reward.type === "product"
                                   ? "bg-blue-500/10 text-blue-400"
                                   : reward.type === "cashback"
                                     ? "bg-green-500/10 text-green-400"
                                     : "bg-purple-500/10 text-purple-400"
-                            }`}
+                              }`}
                           >
                             {reward.type === "discount"
                               ? "Discount"
@@ -400,7 +397,7 @@ export default function RedeemPage() {
 
                         {/* Quantity indicator */}
                         {reward.quantityLimit !== undefined &&
-                        reward.quantityLimit !== null ? (
+                          reward.quantityLimit !== null ? (
                           <div className="mb-4 flex items-center justify-between text-xs">
                             <span className="text-text-secondary">
                               Available
@@ -521,11 +518,10 @@ export default function RedeemPage() {
                         </td>
                         <td className="py-5 px-4 border-b border-border text-sm">
                           <span
-                            className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${
-                              item.status === "used"
+                            className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "used"
                                 ? "bg-[rgba(128,128,128,0.1)] text-gray-400"
                                 : "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
-                            }`}
+                              }`}
                           >
                             {item.status}
                           </span>
@@ -623,7 +619,7 @@ export default function RedeemPage() {
               </div>
             </div>
             <a
-              href={`https://explorer.solana.com/tx/${redeemSignature}?cluster=custom&customUrl=http://localhost:8899`}
+              href={`https://explorer.solana.com/tx/${redeemSignature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-accent text-sm block text-center hover:underline"

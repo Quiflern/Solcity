@@ -36,7 +36,7 @@ export function getExplorerUrl(
 
   // For localnet/custom, use custom URL
   if (cluster === "localnet" || cluster === "localhost") {
-    return `${baseUrl}/${type}/${identifier}?cluster=custom&customUrl=http://localhost:8899`;
+    return `${baseUrl}/${type}/${identifier}?cluster=devnet`;
   }
 
   // Default to devnet

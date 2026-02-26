@@ -663,7 +663,7 @@ export default function MerchantDetailPage() {
                   </div>
 
                   <a
-                    href={`https://explorer.solana.com/address/${merchant.publicKey.toString()}?cluster=custom&customUrl=http://localhost:8899`}
+                    href={`https://explorer.solana.com/address/${merchant.publicKey.toString()}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent text-xs flex items-center gap-1.5 mt-4 hover:underline"
