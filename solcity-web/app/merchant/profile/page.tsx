@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { AlertTriangle, ChevronRight, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dropdown from "@/components/ui/Dropdown";
@@ -66,7 +66,7 @@ export default function MerchantProfilePage() {
   const [showCloseModal, setShowCloseModal] = useState(false);
 
   // Initialize form when merchant account loads
-  useState(() => {
+  useEffect(() => {
     if (merchantAccount) {
       setBusinessName(merchantAccount.name);
       setDescription(merchantAccount.description || "");
@@ -75,7 +75,7 @@ export default function MerchantProfilePage() {
       setRewardRate(merchantAccount.rewardRate / 100);
       setIsActive(merchantAccount.isActive);
     }
-  });
+  }, [merchantAccount]);
 
   const getAvatarUrl = (avatarCode: string, businessName: string) => {
     if (!avatarCode) {
@@ -432,13 +432,13 @@ export default function MerchantProfilePage() {
               <div>
                 <p className="text-text-secondary mb-1">Total Issued</p>
                 <p className="text-accent">
-                  {(merchantAccount.totalIssued / 1e9).toFixed(2)} SLCY
+                  {merchantAccount.totalIssued.toLocaleString()} SLCY
                 </p>
               </div>
               <div>
                 <p className="text-text-secondary mb-1">Total Redeemed</p>
                 <p className="text-accent">
-                  {(merchantAccount.totalRedeemed / 1e9).toFixed(2)} SLCY
+                  {merchantAccount.totalRedeemed.toLocaleString()} SLCY
                 </p>
               </div>
             </div>
