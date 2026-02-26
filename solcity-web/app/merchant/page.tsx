@@ -20,6 +20,7 @@ import Dropdown from "@/components/ui/Dropdown";
 import Modal from "@/components/ui/Modal";
 import { useIssueRewards } from "@/hooks/merchant/useIssueRewards";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
+import { useMerchantCustomerRecords } from "@/hooks/merchant/useMerchantCustomerRecords";
 import { useMerchantIssuanceEvents } from "@/hooks/merchant/useMerchantEvents";
 import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
@@ -59,7 +60,7 @@ export default function MerchantDashboard() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
-  // Get merchant PDA for fetching rules
+  // Get merchant PDA for fetching rules and customer records
   const merchantPDA = publicKey
     ? getMerchantPDA(publicKey, getLoyaltyProgramPDA(publicKey)[0])[0]
     : null;
@@ -67,9 +68,16 @@ export default function MerchantDashboard() {
     useMerchantRewardRules(merchantPDA);
   const { data: issuanceEvents = [], isLoading: eventsLoading } =
     useMerchantIssuanceEvents(merchantPDA);
+  const { data: customerRecords = [], isLoading: recordsLoading } =
+    useMerchantCustomerRecords(merchantPDA);
 
   // Get active rules count
   const activeRulesCount = rules.filter((rule) => rule.isActive).length;
+
+  // Calculate totals from customer records (faster and more accurate)
+  const totalIssued = customerRecords.reduce((sum, record) => sum + record.totalIssued, 0);
+  const totalRedeemed = customerRecords.reduce((sum, record) => sum + record.totalRedeemed, 0);
+  const activeCustomers = customerRecords.length;
 
   // Get selected rule details
   const selectedRule =
@@ -107,31 +115,27 @@ export default function MerchantDashboard() {
   }
 
   /**
-   * Aggregates issuance events by week for the trend chart
-   * @returns Array of weekly data points with week label and total issued
+   * Generate chart data from customer records
+   * Shows issued vs redeemed comparison
    */
-  const getWeeklyData = () => {
-    if (issuanceEvents.length === 0) {
-      return [{ week: "No data", issued: 0 }];
+  const getChartData = () => {
+    if (customerRecords.length === 0) {
+      return [
+        { category: "Issued", amount: 0 },
+        { category: "Redeemed", amount: 0 },
+      ];
     }
 
-    const weeklyTotals: { [key: string]: number } = {};
-    const now = Date.now() / 1000;
-    const oneWeek = 7 * 24 * 60 * 60;
+    const totalIssued = customerRecords.reduce((sum, record) => sum + record.totalIssued, 0);
+    const totalRedeemed = customerRecords.reduce((sum, record) => sum + record.totalRedeemed, 0);
 
-    issuanceEvents.forEach((event) => {
-      const weeksAgo = Math.floor((now - event.timestamp) / oneWeek);
-      const weekLabel = weeksAgo === 0 ? "This week" : `${weeksAgo}w ago`;
-      weeklyTotals[weekLabel] = (weeklyTotals[weekLabel] || 0) + event.amount;
-    });
-
-    return Object.entries(weeklyTotals)
-      .map(([week, issued]) => ({ week, issued }))
-      .reverse()
-      .slice(-12); // Last 12 weeks
+    return [
+      { category: "Issued", amount: totalIssued },
+      { category: "Redeemed", amount: totalRedeemed },
+    ];
   };
 
-  const chartData = getWeeklyData();
+  const chartData = getChartData();
 
   /**
    * Handles reward issuance to a customer
@@ -300,9 +304,7 @@ export default function MerchantDashboard() {
                       Tokens Issued
                     </h4>
                     <p className="text-2xl font-semibold text-accent">
-                      {merchantAccount.totalIssued
-                        ? Number(merchantAccount.totalIssued).toLocaleString()
-                        : "0"}{" "}
+                      {totalIssued.toLocaleString()}{" "}
                       <span className="text-text">SLCY</span>
                     </p>
                   </div>
@@ -311,27 +313,25 @@ export default function MerchantDashboard() {
                       Tokens Redeemed
                     </h4>
                     <p className="text-2xl font-semibold text-accent">
-                      {merchantAccount.totalRedeemed
-                        ? Number(merchantAccount.totalRedeemed).toLocaleString()
-                        : "0"}{" "}
+                      {totalRedeemed.toLocaleString()}{" "}
                       <span className="text-text">SLCY</span>
                     </p>
                   </div>
                   <div className="bg-panel border border-border p-6 rounded-xl">
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
-                      Active Rules
+                      Active Customers
                     </h4>
-                    <p className="text-2xl font-semibold text-accent">{activeRulesCount}</p>
+                    <p className="text-2xl font-semibold text-accent">{activeCustomers}</p>
                   </div>
                 </div>
 
                 {/* Chart Section */}
                 <div className="bg-panel border border-border rounded-xl p-8 mb-10">
                   <div className="flex justify-between mb-6">
-                    <h3 className="text-lg font-semibold">Issuance Trend</h3>
+                    <h3 className="text-lg font-semibold">Token Overview</h3>
                     <div className="flex gap-4 text-xs">
                       <span className="text-text-secondary">
-                        Weekly SLCY Issued
+                        Issued vs Redeemed
                       </span>
                     </div>
                   </div>
@@ -363,7 +363,7 @@ export default function MerchantDashboard() {
                         vertical={false}
                       />
                       <XAxis
-                        dataKey="week"
+                        dataKey="category"
                         stroke="#888"
                         style={{ fontSize: "0.7rem" }}
                         axisLine={false}
@@ -386,7 +386,7 @@ export default function MerchantDashboard() {
                         cursor={{ fill: "rgba(192, 255, 0, 0.05)" }}
                       />
                       <Bar
-                        dataKey="issued"
+                        dataKey="amount"
                         fill="url(#barGradient)"
                         radius={[4, 4, 0, 0]}
                       />

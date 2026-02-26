@@ -534,7 +534,7 @@ export default function ProfilePage() {
                   View on Explorer
                 </div>
                 <a
-                  href={`https://explorer.solana.com/address/${publicKey?.toString()}?cluster=custom&customUrl=http://localhost:8899`}
+                  href={`https://explorer.solana.com/address/${publicKey?.toString()}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-accent hover:text-accent/80 transition-colors font-mono text-sm flex items-center gap-1.5"

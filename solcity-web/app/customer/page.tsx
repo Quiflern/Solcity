@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
+import { useTransactionHistory } from "@/hooks/customer/useTransactionHistory";
 import { calculateTierProgress, getTierInfo } from "@/lib/tiers";
 
 /**
@@ -29,6 +30,7 @@ import { calculateTierProgress, getTierInfo } from "@/lib/tiers";
 export default function CustomerDashboard() {
   const { publicKey } = useWallet();
   const { customerAccount, isRegistered, isLoading } = useCustomerAccount();
+  const { data: transactions = [], isLoading: transactionsLoading } = useTransactionHistory({ enabled: isRegistered });
 
   const totalEarned = customerAccount?.totalEarned
     ? Number(customerAccount.totalEarned)
@@ -309,40 +311,96 @@ export default function CustomerDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        <TableRow>
-                          <TableCell
-                            colSpan={5}
-                            className="text-center text-text-secondary py-12"
-                          >
-                            <div className="flex flex-col items-center">
-                              <div className="w-12 h-12 mb-3 rounded-full bg-accent/10 flex items-center justify-center">
-                                <svg
-                                  className="w-6 h-6 text-accent"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                        {transactionsLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-12">
+                              <div className="w-8 h-8 border-4 border-border border-t-accent rounded-full animate-spin mx-auto" />
+                            </TableCell>
+                          </TableRow>
+                        ) : transactions.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={5}
+                              className="text-center text-text-secondary py-12"
+                            >
+                              <div className="flex flex-col items-center">
+                                <div className="w-12 h-12 mb-3 rounded-full bg-accent/10 flex items-center justify-center">
+                                  <svg
+                                    className="w-6 h-6 text-accent"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                  </svg>
+                                </div>
+                                <p className="mb-2 font-medium">No transactions yet</p>
+                                <p className="text-xs mb-4 max-w-sm">
+                                  Start earning rewards by making purchases at participating merchants
+                                </p>
+                                <Link
+                                  href="/explore"
+                                  className="inline-block bg-accent text-black px-5 py-2 rounded-lg font-semibold hover:bg-accent/90 transition-colors text-sm"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                  />
-                                </svg>
+                                  Explore Merchants
+                                </Link>
                               </div>
-                              <p className="mb-2 font-medium">View Full Transaction History</p>
-                              <p className="text-xs mb-4 max-w-sm">
-                                See all your earned and redeemed rewards with detailed information
-                              </p>
-                              <Link
-                                href="/customer/history"
-                                className="inline-block bg-accent text-black px-5 py-2 rounded-lg font-semibold hover:bg-accent/90 transition-colors text-sm"
-                              >
-                                View History
-                              </Link>
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          <>
+                            {transactions.slice(0, 5).map((tx) => (
+                              <TableRow key={tx.signature}>
+                                <TableCell className="font-mono text-xs">
+                                  {tx.merchant || 'Unknown'}
+                                </TableCell>
+                                <TableCell>
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded ${tx.type === 'earned'
+                                        ? 'bg-accent/10 text-accent'
+                                        : 'bg-red-500/10 text-red-500'
+                                      }`}
+                                  >
+                                    {tx.type === 'earned' ? 'Earned' : 'Redeemed'}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="font-semibold">
+                                  {tx.amount.toLocaleString()} SLCY
+                                </TableCell>
+                                <TableCell className="text-text-secondary text-sm">
+                                  {new Date(tx.timestamp * 1000).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  <a
+                                    href={`https://explorer.solana.com/address/${tx.signature}?cluster=devnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-accent hover:text-accent/80 text-sm"
+                                  >
+                                    View →
+                                  </a>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {transactions.length > 5 && (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-4">
+                                  <Link
+                                    href="/customer/history"
+                                    className="text-accent hover:text-accent/80 text-sm font-semibold"
+                                  >
+                                    View All {transactions.length} Transactions →
+                                  </Link>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        )}
                       </TableBody>
                     </Table>
                   </div>

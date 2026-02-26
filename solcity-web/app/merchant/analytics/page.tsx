@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
 import { useMerchantAnalytics } from "@/hooks/merchant/useMerchantAnalytics";
+import { useMerchantCustomerRecords } from "@/hooks/merchant/useMerchantCustomerRecords";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
 /**
@@ -95,6 +96,13 @@ export default function MerchantAnalyticsPage() {
     dataUpdatedAt,
     refetch,
   } = useMerchantAnalytics(merchantPDA, "30d");
+
+  // Fetch on-chain merchant-customer records for fast analytics
+  const {
+    data: customerRecords,
+    isLoading: recordsLoading,
+    refetch: refetchRecords,
+  } = useMerchantCustomerRecords(merchantPDA);
 
   const isLoading = merchantLoading || analyticsLoading;
 
@@ -541,26 +549,141 @@ export default function MerchantAnalyticsPage() {
                     </div>
                   </div>
 
-                  {/* Top Performing Customers */}
+                  {/* Active Customer Relationships (On-Chain Records) */}
                   <div className="mt-4">
-                    <h3 className="text-lg mb-6">Top Performing Customers</h3>
-                    {isLoading ? (
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-lg">Active Customers</h3>
+                        <p className="text-xs text-text-secondary mt-1">
+                          Customers who have transacted with your business
+                        </p>
+                      </div>
+                      {customerRecords && customerRecords.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm text-accent font-semibold">
+                            {customerRecords.length} active {customerRecords.length === 1 ? 'customer' : 'customers'}
+                          </div>
+                          <div className="px-2 py-1 bg-accent/10 rounded text-xs text-accent">
+                            ⚡ Fast
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {recordsLoading ? (
                       <div className="bg-panel border border-border rounded-xl p-12 text-center">
                         <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-3" />
                         <p className="text-text-secondary text-sm">
-                          Loading customers...
+                          Loading customer records...
                         </p>
                       </div>
-                    ) : topCustomers.length === 0 ? (
+                    ) : !customerRecords || customerRecords.length === 0 ? (
                       <div className="bg-panel border border-border rounded-xl p-12 text-center">
                         <p className="text-text-secondary text-sm">
-                          No customers yet
+                          No active customers yet
                         </p>
                         <p className="text-text-secondary text-xs mt-2">
-                          Customers will appear here once they register
+                          Customer records are created when they earn or redeem tokens
                         </p>
                       </div>
                     ) : (
+                      <div className="bg-panel border border-border rounded-xl overflow-hidden">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-white/2">
+                              <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                                Customer
+                              </th>
+                              <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                                Tokens Issued
+                              </th>
+                              <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                                Tokens Redeemed
+                              </th>
+                              <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                                Transactions
+                              </th>
+                              <th className="text-left text-[0.7rem] uppercase text-text-secondary py-5 px-6 border-b border-border">
+                                First / Last Activity
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {customerRecords.slice(0, 10).map((record) => {
+                              const firstDate = new Date(record.firstTransaction * 1000);
+                              const lastDate = new Date(record.lastTransaction * 1000);
+                              const daysSinceFirst = Math.floor((Date.now() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
+                              const daysSinceLast = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                              return (
+                                <tr key={record.publicKey} className="hover:bg-white/5 transition-colors">
+                                  <td className="py-5 px-6 border-b border-border text-sm">
+                                    <div className="flex items-center gap-2">
+                                      <code className="text-xs font-mono">
+                                        {record.customer.slice(0, 4)}...{record.customer.slice(-4)}
+                                      </code>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyToClipboard(record.customer)}
+                                        className="text-text-secondary hover:text-accent transition-colors"
+                                        title="Copy address"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </td>
+                                  <td className="py-5 px-6 border-b border-border text-sm">
+                                    <span className="text-accent font-semibold">{record.totalIssued.toLocaleString()}</span> SLCY
+                                  </td>
+                                  <td className="py-5 px-6 border-b border-border text-sm">
+                                    <span className="font-semibold">{record.totalRedeemed.toLocaleString()}</span> SLCY
+                                  </td>
+                                  <td className="py-5 px-6 border-b border-border text-sm">
+                                    {record.transactionCount}
+                                  </td>
+                                  <td className="py-5 px-6 border-b border-border text-sm text-text-secondary">
+                                    <div className="text-xs">
+                                      <div>{daysSinceFirst === 0 ? 'Today' : `${daysSinceFirst}d ago`}</div>
+                                      <div className="text-[0.65rem] text-text-secondary/70">
+                                        Last: {daysSinceLast === 0 ? 'Today' : `${daysSinceLast}d ago`}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        <div className="p-4 bg-black/20 border-t border-border flex items-center justify-between">
+                          <p className="text-xs text-text-secondary">
+                            <span className="text-accent">⚡ Fast:</span> Data fetched directly from on-chain analytics records
+                          </p>
+                          {customerRecords.length > 10 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowCustomerList(true)}
+                              className="text-xs text-accent hover:text-accent/80 transition-colors"
+                            >
+                              View all {customerRecords.length} customers →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* All Registered Customers (includes non-transacting) */}
+                  {topCustomers.length > 0 && (
+                    <div className="mt-8">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-lg">All Registered Customers</h3>
+                          <p className="text-xs text-text-secondary mt-1">
+                            Everyone registered in the loyalty program (including those who haven't transacted yet)
+                          </p>
+                        </div>
+                      </div>
                       <div className="bg-panel border border-border rounded-xl overflow-hidden">
                         <table className="w-full border-collapse">
                           <thead>
@@ -583,7 +706,7 @@ export default function MerchantAnalyticsPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {topCustomers.map((customer: TopCustomer) => {
+                            {topCustomers.slice(0, 5).map((customer: TopCustomer) => {
                               const lastActivityDate = new Date(
                                 customer.lastActivity * 1000,
                               );
@@ -613,7 +736,7 @@ export default function MerchantAnalyticsPage() {
                                   <td className="py-5 px-6 border-b border-border text-sm">
                                     <div className="flex items-center gap-2">
                                       <code className="text-xs font-mono">
-                                        {customer.wallet}
+                                        {customer.wallet.slice(0, 4)}...{customer.wallet.slice(-4)}
                                       </code>
                                       <button
                                         type="button"
@@ -657,13 +780,12 @@ export default function MerchantAnalyticsPage() {
                         </table>
                         <div className="p-4 bg-black/20 border-t border-border">
                           <p className="text-xs text-text-secondary">
-                            <span className="text-accent">Note:</span> &quot;Events&quot; columns show data from recent transactions (limited by RPC).
-                            &quot;On-Chain&quot; columns show lifetime totals stored in customer accounts.
+                            Showing top 5 customers. Click "View All Customers" above to see everyone.
                           </p>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </>
               )}
 
