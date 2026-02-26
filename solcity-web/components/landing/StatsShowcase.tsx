@@ -29,7 +29,7 @@ export default function StatsShowcase() {
               key={stat.id}
               className="flex flex-col gap-2 transition-all duration-300 cursor-pointer hover:-translate-y-2.5"
             >
-              <span className="text-5xl font-semibold text-accent tracking-tight transition-all duration-300 inline-block hover:drop-shadow-[0_0_30px_#d0ff14] hover:scale-110">
+              <span className="text-5xl font-semibold text-accent tracking-tight transition-all duration-300 inline-block">
                 {stat.number}
               </span>
               <span className="text-sm text-text-secondary">{stat.label}</span>

@@ -1,8 +1,11 @@
 import ActivitySection from "@/components/landing/ActivitySection";
+import CTASection from "@/components/landing/CTASection";
 import FeaturesGrid from "@/components/landing/FeaturesGrid";
 import HeroBanner from "@/components/landing/HeroBanner";
+import HowItWorks from "@/components/landing/HowItWorks";
 import MetricsBar from "@/components/landing/MetricsBar";
 import StatsShowcase from "@/components/landing/StatsShowcase";
+import UseCases from "@/components/landing/UseCases";
 import Footer from "@/components/layout/Footer";
 import LandingNavbar from "@/components/layout/LandingNavbar";
 
@@ -14,40 +17,16 @@ import LandingNavbar from "@/components/layout/LandingNavbar";
  *
  * Page Structure (top to bottom):
  *
- * 1. LandingNavbar
- *    - Logo and branding
- *    - Navigation links (Explore, For Merchants)
- *    - Wallet connection button
- *
- * 2. HeroBanner
- *    - Main headline and value proposition
- *    - Call-to-action buttons (Get Started, Learn More)
- *    - Hero image or animation
- *
- * 3. MetricsBar
- *    - Key platform statistics (merchants, customers, rewards issued)
- *    - Real-time or aggregated metrics
- *    - Social proof and credibility
- *
- * 4. FeaturesGrid
- *    - Core platform features and benefits
- *    - Icon-based feature cards
- *    - For both merchants and customers
- *
- * 5. StatsShowcase
- *    - Detailed statistics and charts
- *    - Platform growth and engagement metrics
- *    - Visual data representation
- *
- * 6. ActivitySection
- *    - Recent platform activity feed
- *    - Live transactions or events
- *    - Community engagement showcase
- *
- * 7. Footer
- *    - Links to important pages
- *    - Social media connections
- *    - Legal information
+ * 1. LandingNavbar - Logo, navigation, wallet connection
+ * 2. HeroBanner - Main headline, value proposition, CTAs
+ * 3. MetricsBar - Key platform statistics and social proof
+ * 4. FeaturesGrid - Core platform features for merchants and customers
+ * 5. HowItWorks - Three-step process explanation
+ * 6. UseCases - Real-world business use cases and benefits
+ * 7. StatsShowcase - Platform reliability and performance stats
+ * 8. ActivitySection - Real-time blockchain activity feed
+ * 9. CTASection - Final call-to-action before footer
+ * 10. Footer - Links, social media, legal information
  *
  * This page is optimized for conversion, guiding visitors to either:
  * - Register as a merchant (business owners)
@@ -64,8 +43,11 @@ export default function Home() {
         <HeroBanner />
         <MetricsBar />
         <FeaturesGrid />
+        <HowItWorks />
+        <UseCases />
         <StatsShowcase />
         <ActivitySection />
+        <CTASection />
       </main>
       <Footer />
     </>

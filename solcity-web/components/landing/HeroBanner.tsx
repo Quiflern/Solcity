@@ -164,7 +164,7 @@ export default function HeroBanner() {
       <div className="relative z-10 max-w-[1400px] mx-auto px-8">
         <h1 className="text-[3.5rem] font-medium tracking-tight mb-6 max-w-[700px]">
           Reward customers with{" "}
-          <span className="bg-linear-to-br from-accent to-white bg-clip-text text-transparent">
+          <span className="bg-gradient-to-br from-accent to-white bg-clip-text text-transparent">
             blockchain tokens.
           </span>
         </h1>
