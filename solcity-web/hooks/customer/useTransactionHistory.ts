@@ -5,64 +5,24 @@ import { getProgram } from "@/lib/anchor/setup";
 
 /**
  * Represents a loyalty transaction (earning or redeeming tokens).
- *
- * Transactions are parsed from blockchain transaction logs to provide
- * a history of customer loyalty activity.
  */
 export interface Transaction {
-  /** Transaction signature (unique identifier) */
   signature: string;
-  /** Unix timestamp when the transaction occurred */
   timestamp: number;
-  /** Type of transaction - earning tokens or redeeming them */
   type: "earned" | "redeemed";
-  /** Name of the merchant involved in the transaction */
   merchant: string;
-  /** Public key of the merchant account */
   merchantPubkey: string;
-  /** Amount of loyalty tokens earned or redeemed */
   amount: number;
-  /** Customer tier at the time of transaction */
   tier: string;
 }
 
 /**
- * Custom hook to fetch and parse transaction history for the connected customer.
- *
- * This hook retrieves all blockchain transactions for the connected wallet and
- * parses the transaction logs to identify loyalty-related events (earning and
- * redeeming tokens). It extracts relevant information like amounts, merchants,
- * and tiers from the program logs.
- *
- * The parsing logic looks for specific log messages:
- * - "Issued X tokens" for earning transactions
- * - "Redeemed X tokens" for redemption transactions
- *
- * @returns {UseQueryResult<Transaction[]>} React Query result containing:
- * - data: Array of transaction objects sorted by timestamp (newest first)
- * - isLoading: Whether the query is currently loading
- * - error: Any error that occurred during the query
- * - refetch: Function to manually refetch transaction history
- *
- * @example
- * ```tsx
- * const { data: transactions, isLoading } = useTransactionHistory();
- *
- * if (isLoading) return <div>Loading history...</div>;
- *
- * return (
- *   <div>
- *     {transactions?.map(tx => (
- *       <div key={tx.signature}>
- *         {tx.type === 'earned' ? '+' : '-'}{tx.amount} SLCY
- *         at {tx.merchant}
- *       </div>
- *     ))}
- *   </div>
- * );
- * ```
+ * Custom hook to fetch transaction history for the connected customer.
+ * 
+ * NOTE: This is an expensive operation that parses blockchain logs.
+ * Reduced to 50 transactions for faster loading.
  */
-export function useTransactionHistory() {
+export function useTransactionHistory(options?: { enabled?: boolean }) {
   const { connection } = useConnection();
   const wallet = useWallet();
 
@@ -81,79 +41,70 @@ export function useTransactionHistory() {
       const transactions: Transaction[] = [];
 
       try {
-        // Fetch transaction signatures for the PROGRAM, not just the wallet
-        // This ensures we get all loyalty program interactions
+        // Fetch signatures for customer's wallet (much faster than all program txs)
         const signatures = await connection.getSignaturesForAddress(
-          program.programId,
-          { limit: 1000 }, // Fetch more since we're filtering
+          wallet.publicKey,
+          { limit: 50 },
         );
 
-        // Parse each transaction to extract loyalty events
-        // Add delay to avoid rate limiting
-        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-        let processedCount = 0;
+        // Cache merchant accounts to avoid duplicate fetches
+        const merchantCache = new Map<string, { name: string }>();
 
         for (const sig of signatures) {
           try {
-            // Fetch full transaction details including logs
             const tx = await connection.getTransaction(sig.signature, {
               maxSupportedTransactionVersion: 0,
             });
 
             if (!tx || !tx.meta) continue;
 
-            // Check if this transaction involves the customer's wallet
-            const accountKeys = tx.transaction.message.getAccountKeys();
-            const customerPubkey = wallet.publicKey;
-            if (!customerPubkey) continue;
-
-            const involvesCustomer = accountKeys.staticAccountKeys.some(
-              (key) => key.equals(customerPubkey)
-            );
-
-            if (!involvesCustomer) continue;
-
-            // Extract program logs from transaction metadata
             const logs = tx.meta.logMessages || [];
 
+            // Check if this is a loyalty program transaction
+            const isLoyaltyTx = logs.some(log =>
+              log.includes(program.programId.toString())
+            );
+
+            if (!isLoyaltyTx) continue;
+
             // Parse reward issuance events
-            // Look for log message: "Issued X tokens (purchase: $Y, tier: Z, ...)"
             const rewardLog = logs.find(
               (log) => log.includes("Issued") && log.includes("tokens"),
             );
             if (rewardLog) {
-              // Extract token amount from log message
               const match = rewardLog.match(/Issued (\d+) tokens/);
               if (match) {
                 const amount = Number.parseInt(match[1], 10);
-
-                // Extract customer tier from log message
                 const tierMatch = rewardLog.match(/tier: (\w+)/);
                 const tier = tierMatch ? tierMatch[1] : "Bronze";
 
-                // Attempt to identify merchant from transaction account keys
                 let merchantName = "Unknown Merchant";
                 let merchantPubkey = "";
 
                 try {
-                  // Iterate through transaction accounts to find merchant account
-                  const accountKeys =
-                    tx.transaction.message.staticAccountKeys || [];
+                  const accountKeys = tx.transaction.message.staticAccountKeys || [];
 
                   for (const key of accountKeys) {
+                    const keyStr = key.toString();
+
+                    if (merchantCache.has(keyStr)) {
+                      merchantName = merchantCache.get(keyStr)!.name;
+                      merchantPubkey = keyStr;
+                      break;
+                    }
+
                     try {
-                      // Try to fetch as merchant account
-                      const merchantAccount =
-                        await program.account.merchant.fetch(key);
+                      const merchantAccount = await program.account.merchant.fetch(key);
                       merchantName = merchantAccount.name;
-                      merchantPubkey = key.toString();
+                      merchantPubkey = keyStr;
+                      merchantCache.set(keyStr, { name: merchantName });
                       break;
                     } catch {
-                      // Not a merchant account, continue searching
+                      // Not a merchant account
                     }
                   }
                 } catch (e) {
-                  console.error("Error fetching merchant:", e);
+                  console.debug("Error fetching merchant:", e);
                 }
 
                 transactions.push({
@@ -169,39 +120,41 @@ export function useTransactionHistory() {
             }
 
             // Parse redemption events
-            // Look for log message: "Redeemed X tokens for offer Y"
             const redeemLog = logs.find(
               (log) => log.includes("Redeemed") && log.includes("tokens"),
             );
             if (redeemLog) {
-              // Extract token amount from log message
               const match = redeemLog.match(/Redeemed (\d+) tokens/);
               if (match) {
                 const amount = Number.parseInt(match[1], 10);
 
-                // Attempt to identify merchant from transaction account keys
                 let merchantName = "Unknown Merchant";
                 let merchantPubkey = "";
 
                 try {
-                  // Iterate through transaction accounts to find merchant account
-                  const accountKeys =
-                    tx.transaction.message.staticAccountKeys || [];
+                  const accountKeys = tx.transaction.message.staticAccountKeys || [];
 
                   for (const key of accountKeys) {
+                    const keyStr = key.toString();
+
+                    if (merchantCache.has(keyStr)) {
+                      merchantName = merchantCache.get(keyStr)!.name;
+                      merchantPubkey = keyStr;
+                      break;
+                    }
+
                     try {
-                      // Try to fetch as merchant account
-                      const merchantAccount =
-                        await program.account.merchant.fetch(key);
+                      const merchantAccount = await program.account.merchant.fetch(key);
                       merchantName = merchantAccount.name;
-                      merchantPubkey = key.toString();
+                      merchantPubkey = keyStr;
+                      merchantCache.set(keyStr, { name: merchantName });
                       break;
                     } catch {
-                      // Not a merchant account, continue searching
+                      // Not a merchant account
                     }
                   }
                 } catch (e) {
-                  console.error("Error fetching merchant:", e);
+                  console.debug("Error fetching merchant:", e);
                 }
 
                 transactions.push({
@@ -211,15 +164,9 @@ export function useTransactionHistory() {
                   merchant: merchantName,
                   merchantPubkey,
                   amount,
-                  tier: "Bronze", // Tier at time of redemption
+                  tier: "Bronze",
                 });
               }
-            }
-
-            processedCount++;
-            // Add delay every 10 transactions to avoid rate limiting
-            if (processedCount % 10 === 0) {
-              await delay(100);
             }
           } catch (err) {
             console.debug("Error parsing transaction:", err);
@@ -232,12 +179,12 @@ export function useTransactionHistory() {
         return [];
       }
     },
-    enabled: !!wallet.publicKey,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 60 * 60 * 1000, // 1 hour
+    enabled: options?.enabled !== false && !!wallet.publicKey,
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    refetchInterval: false, // Disable automatic refetching
+    refetchInterval: false,
     retry: 1,
   });
 }

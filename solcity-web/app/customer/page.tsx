@@ -33,11 +33,14 @@ export default function CustomerDashboard() {
   const { data: transactions = [], isLoading: txLoading } =
     useTransactionHistory();
 
-  // Get recent transactions (last 5)
+  // Get recent transactions (last 5) - only fetch when needed
   const recentTransactions = transactions.slice(0, 5);
 
   const totalEarned = customerAccount?.totalEarned
     ? Number(customerAccount.totalEarned)
+    : 0;
+  const totalRedeemed = customerAccount?.totalRedeemed
+    ? Number(customerAccount.totalRedeemed)
     : 0;
   const transactionCount = customerAccount?.transactionCount
     ? Number(customerAccount.transactionCount)
@@ -164,7 +167,7 @@ export default function CustomerDashboard() {
                           </div>
                           <div className="w-full h-2 bg-border rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-accent/50 to-accent rounded-full transition-all duration-500"
+                              className="h-full bg-linear-to-r from-accent/50 to-accent rounded-full transition-all duration-500"
                               style={{ width: `${progressToNextTier}%` }}
                             />
                           </div>
@@ -214,7 +217,7 @@ export default function CustomerDashboard() {
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
                       Total Redeemed
                     </h4>
-                    <p className="text-2xl font-semibold">0</p>
+                    <p className="text-2xl font-semibold">{totalRedeemed.toLocaleString()}</p>
                   </div>
                   <div className="bg-panel border border-border p-6 rounded-lg">
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
@@ -232,51 +235,86 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
 
-                {/* Chart Section - Visual representation of balance growth */}
-                <div className="bg-panel border border-border rounded-xl p-8 mb-10 h-[320px] flex flex-col">
-                  <div className="flex justify-between mb-8">
-                    <h3 className="text-lg font-semibold">Balance Growth</h3>
+                {/* Balance Overview Chart */}
+                <div className="bg-panel border border-border rounded-xl p-8 mb-10">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-lg font-semibold">Balance Overview</h3>
                     <div className="flex gap-4 text-sm">
                       <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-text-secondary" />
-                        <span className="text-text-secondary">Historical</span>
+                        <span className="w-2 h-2 rounded-full bg-accent" />
+                        <span className="text-accent">Earned</span>
                       </span>
                       <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-accent" />
-                        <span className="text-accent">Projected (30d)</span>
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-red-500">Redeemed</span>
                       </span>
                     </div>
                   </div>
-                  {/* Bar chart showing historical and projected earnings */}
-                  <div className="grow flex items-end gap-3 pb-5 border-b border-border">
-                    {/* Historical bars with gradient */}
-                    {[40, 45, 42, 50, 60, 68, 75].map((height) => (
-                      <div
-                        key={`hist-${height}`}
-                        className="flex-1 rounded-t-lg transition-all duration-1000"
-                        style={{
-                          height: `${height}%`,
-                          background:
-                            "linear-gradient(to top, #4a5a1a, #8ba832, #c0ff00)",
-                        }}
-                      />
-                    ))}
-                    {/* Projected bars with dashed pattern */}
-                    {[78, 82, 88].map((height) => (
-                      <div
-                        key={`proj-${height}`}
-                        className="flex-1 rounded-t-lg border-2 border-dashed border-text-secondary/50 relative overflow-hidden"
-                        style={{ height: `${height}%` }}
-                      >
+
+                  <div className="flex items-end justify-center gap-20 h-64 pb-6 border-b border-border">
+                    {/* Earned Bar */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative h-48 w-20 flex items-end">
                         <div
-                          className="absolute inset-0 opacity-30"
+                          className="w-full rounded-t-lg"
                           style={{
-                            background:
-                              "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px)",
+                            height: totalEarned > 0 ? '100%' : '8px',
+                            background: "linear-gradient(to top, #4a5a1a, #8ba832, #c0ff00)",
+                            transition: 'height 1s ease-in-out',
                           }}
                         />
                       </div>
-                    ))}
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-accent mb-1">
+                          {totalEarned.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-text-secondary">Total Earned</div>
+                      </div>
+                    </div>
+
+                    {/* Redeemed Bar */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative h-48 w-20 flex items-end">
+                        <div
+                          className="w-full rounded-t-lg"
+                          style={{
+                            height: totalEarned > 0
+                              ? `${Math.max((totalRedeemed / totalEarned) * 100, 2)}%`
+                              : '8px',
+                            background: "linear-gradient(to top, #7f1d1d, #dc2626, #ef4444)",
+                            transition: 'height 1s ease-in-out',
+                          }}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-red-500 mb-1">
+                          {totalRedeemed.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-text-secondary">Total Redeemed</div>
+                      </div>
+                    </div>
+
+                    {/* Available Bar */}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="relative h-48 w-20 flex items-end">
+                        <div
+                          className="w-full rounded-t-lg"
+                          style={{
+                            height: totalEarned > 0
+                              ? `${Math.max(((totalEarned - totalRedeemed) / totalEarned) * 100, 2)}%`
+                              : '8px',
+                            background: "linear-gradient(to top, #1e3a8a, #3b82f6, #60a5fa)",
+                            transition: 'height 1s ease-in-out',
+                          }}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-blue-400 mb-1">
+                          {(totalEarned - totalRedeemed).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-text-secondary">Available</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -324,21 +362,19 @@ export default function CustomerDashboard() {
                               <TableCell>{tx.merchant}</TableCell>
                               <TableCell>
                                 <span
-                                  className={`text-xs px-2 py-0.5 rounded ${
-                                    tx.type === "earned"
-                                      ? "bg-accent/10 text-accent"
-                                      : "bg-red-500/10 text-red-500"
-                                  }`}
+                                  className={`text-xs px-2 py-0.5 rounded ${tx.type === "earned"
+                                    ? "bg-accent/10 text-accent"
+                                    : "bg-red-500/10 text-red-500"
+                                    }`}
                                 >
                                   {tx.type === "earned" ? "Earned" : "Redeemed"}
                                 </span>
                               </TableCell>
                               <TableCell
-                                className={`font-semibold ${
-                                  tx.type === "earned"
-                                    ? "text-accent"
-                                    : "text-red-500"
-                                }`}
+                                className={`font-semibold ${tx.type === "earned"
+                                  ? "text-accent"
+                                  : "text-red-500"
+                                  }`}
                               >
                                 {tx.type === "earned" ? "+" : "-"}
                                 {tx.amount.toLocaleString()} SLCY
@@ -348,7 +384,7 @@ export default function CustomerDashboard() {
                               </TableCell>
                               <TableCell>
                                 <a
-                                  href={`https://explorer.solana.com/tx/${tx.signature}?cluster=custom&customUrl=http://localhost:8899`}
+                                  href={`https://explorer.solana.com/tx/${tx.signature}?cluster=devnet`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-text-secondary text-xs flex items-center gap-1 hover:text-accent transition-colors"
