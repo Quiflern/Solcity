@@ -1,6 +1,7 @@
-import { AnchorProvider } from "@coral-xyz/anchor";
+import { AnchorProvider, BN } from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useQuery } from "@tanstack/react-query";
+import { PublicKey } from "@solana/web3.js";
 import { getProgram } from "@/lib/anchor/setup";
 
 /**
@@ -19,8 +20,7 @@ export interface Transaction {
 /**
  * Custom hook to fetch transaction history for the connected customer.
  * 
- * NOTE: This is an expensive operation that parses blockchain logs.
- * Reduced to 50 transactions for faster loading.
+ * Fetches from on-chain TransactionRecord accounts for fast, reliable data.
  */
 export function useTransactionHistory(options?: { enabled?: boolean }) {
   const { connection } = useConnection();
@@ -38,141 +38,68 @@ export function useTransactionHistory(options?: { enabled?: boolean }) {
       });
       const program = getProgram(provider);
 
-      const transactions: Transaction[] = [];
-
       try {
-        // Fetch signatures for customer's wallet (much faster than all program txs)
-        const signatures = await connection.getSignaturesForAddress(
-          wallet.publicKey,
-          { limit: 50 },
-        );
+        // Fetch all TransactionRecord accounts for this customer
+        const transactionRecords = await program.account.transactionRecord.all([
+          {
+            memcmp: {
+              offset: 8, // Skip discriminator
+              bytes: wallet.publicKey.toBase58(),
+            },
+          },
+        ]);
 
         // Cache merchant accounts to avoid duplicate fetches
         const merchantCache = new Map<string, { name: string }>();
 
-        for (const sig of signatures) {
-          try {
-            const tx = await connection.getTransaction(sig.signature, {
-              maxSupportedTransactionVersion: 0,
-            });
+        const transactions: Transaction[] = await Promise.all(
+          transactionRecords.map(async (record) => {
+            const data = record.account;
 
-            if (!tx || !tx.meta) continue;
+            // Get merchant name
+            let merchantName = "Unknown Merchant";
+            const merchantKey = data.merchant.toString();
 
-            const logs = tx.meta.logMessages || [];
-
-            // Check if this is a loyalty program transaction
-            const isLoyaltyTx = logs.some(log =>
-              log.includes(program.programId.toString())
-            );
-
-            if (!isLoyaltyTx) continue;
-
-            // Parse reward issuance events
-            const rewardLog = logs.find(
-              (log) => log.includes("Issued") && log.includes("tokens"),
-            );
-            if (rewardLog) {
-              const match = rewardLog.match(/Issued (\d+) tokens/);
-              if (match) {
-                const amount = Number.parseInt(match[1], 10);
-                const tierMatch = rewardLog.match(/tier: (\w+)/);
-                const tier = tierMatch ? tierMatch[1] : "Bronze";
-
-                let merchantName = "Unknown Merchant";
-                let merchantPubkey = "";
-
-                try {
-                  const accountKeys = tx.transaction.message.staticAccountKeys || [];
-
-                  for (const key of accountKeys) {
-                    const keyStr = key.toString();
-
-                    if (merchantCache.has(keyStr)) {
-                      merchantName = merchantCache.get(keyStr)!.name;
-                      merchantPubkey = keyStr;
-                      break;
-                    }
-
-                    try {
-                      const merchantAccount = await program.account.merchant.fetch(key);
-                      merchantName = merchantAccount.name;
-                      merchantPubkey = keyStr;
-                      merchantCache.set(keyStr, { name: merchantName });
-                      break;
-                    } catch {
-                      // Not a merchant account
-                    }
-                  }
-                } catch (e) {
-                  console.debug("Error fetching merchant:", e);
-                }
-
-                transactions.push({
-                  signature: sig.signature,
-                  timestamp: sig.blockTime || Date.now() / 1000,
-                  type: "earned",
-                  merchant: merchantName,
-                  merchantPubkey,
-                  amount,
-                  tier,
-                });
+            if (merchantCache.has(merchantKey)) {
+              merchantName = merchantCache.get(merchantKey)!.name;
+            } else {
+              try {
+                const merchantAccount = await program.account.merchant.fetch(
+                  data.merchant
+                );
+                merchantName = merchantAccount.name;
+                merchantCache.set(merchantKey, { name: merchantName });
+              } catch (e) {
+                console.debug("Error fetching merchant:", e);
               }
             }
 
-            // Parse redemption events
-            const redeemLog = logs.find(
-              (log) => log.includes("Redeemed") && log.includes("tokens"),
-            );
-            if (redeemLog) {
-              const match = redeemLog.match(/Redeemed (\d+) tokens/);
-              if (match) {
-                const amount = Number.parseInt(match[1], 10);
+            // Convert tier number to string
+            const tierNames = ["Bronze", "Silver", "Gold", "Platinum"];
+            const tierName = tierNames[data.tier] || "Bronze";
 
-                let merchantName = "Unknown Merchant";
-                let merchantPubkey = "";
+            // Convert BN to number
+            const amount = typeof data.amount === "number"
+              ? data.amount
+              : Number(data.amount.toString());
 
-                try {
-                  const accountKeys = tx.transaction.message.staticAccountKeys || [];
+            const timestamp = typeof data.timestamp === "number"
+              ? data.timestamp
+              : Number(data.timestamp.toString());
 
-                  for (const key of accountKeys) {
-                    const keyStr = key.toString();
+            return {
+              signature: record.publicKey.toString(), // Use PDA as signature
+              timestamp,
+              type: data.transactionType === 0 ? "earned" : "redeemed",
+              merchant: merchantName,
+              merchantPubkey: merchantKey,
+              amount,
+              tier: tierName,
+            } as Transaction;
+          })
+        );
 
-                    if (merchantCache.has(keyStr)) {
-                      merchantName = merchantCache.get(keyStr)!.name;
-                      merchantPubkey = keyStr;
-                      break;
-                    }
-
-                    try {
-                      const merchantAccount = await program.account.merchant.fetch(key);
-                      merchantName = merchantAccount.name;
-                      merchantPubkey = keyStr;
-                      merchantCache.set(keyStr, { name: merchantName });
-                      break;
-                    } catch {
-                      // Not a merchant account
-                    }
-                  }
-                } catch (e) {
-                  console.debug("Error fetching merchant:", e);
-                }
-
-                transactions.push({
-                  signature: sig.signature,
-                  timestamp: sig.blockTime || Date.now() / 1000,
-                  type: "redeemed",
-                  merchant: merchantName,
-                  merchantPubkey,
-                  amount,
-                  tier: "Bronze",
-                });
-              }
-            }
-          } catch (err) {
-            console.debug("Error parsing transaction:", err);
-          }
-        }
-
+        // Sort by timestamp descending (newest first)
         return transactions.sort((a, b) => b.timestamp - a.timestamp);
       } catch (error) {
         console.error("Error fetching transaction history:", error);
@@ -180,7 +107,7 @@ export function useTransactionHistory(options?: { enabled?: boolean }) {
       }
     },
     enabled: options?.enabled !== false && !!wallet.publicKey,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,

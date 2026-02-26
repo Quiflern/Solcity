@@ -714,6 +714,85 @@
           "writable": true
         },
         {
+          "name": "transaction_record",
+          "docs": [
+            "Transaction record to store this transaction"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  97,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer.wallet",
+                "account": "Customer"
+              },
+              {
+                "kind": "account",
+                "path": "customer.transaction_count",
+                "account": "Customer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_customer_record",
+          "docs": [
+            "Merchant-Customer relationship record"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "customer.wallet",
+                "account": "Customer"
+              }
+            ]
+          }
+        },
+        {
           "name": "reward_rule",
           "docs": [
             "Optional reward rule to apply"
@@ -949,6 +1028,127 @@
               {
                 "kind": "account",
                 "path": "redemption_offer"
+              },
+              {
+                "kind": "arg",
+                "path": "voucher_seed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transaction_record",
+          "docs": [
+            "Transaction record to store this redemption"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  97,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer_authority"
+              },
+              {
+                "kind": "account",
+                "path": "customer.transaction_count",
+                "account": "Customer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant_customer_record",
+          "docs": [
+            "Merchant-Customer relationship record"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "customer_authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "offer_redemption_record",
+          "docs": [
+            "Offer redemption record for analytics"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "redemption_offer"
+              },
+              {
+                "kind": "account",
+                "path": "customer_authority"
               },
               {
                 "kind": "arg",
@@ -2054,6 +2254,32 @@
       ]
     },
     {
+      "name": "MerchantCustomerRecord",
+      "discriminator": [
+        88,
+        10,
+        55,
+        158,
+        244,
+        235,
+        195,
+        95
+      ]
+    },
+    {
+      "name": "OfferRedemptionRecord",
+      "discriminator": [
+        208,
+        32,
+        155,
+        183,
+        75,
+        239,
+        84,
+        206
+      ]
+    },
+    {
       "name": "RedemptionOffer",
       "discriminator": [
         170,
@@ -2090,6 +2316,19 @@
         95,
         251,
         83
+      ]
+    },
+    {
+      "name": "TransactionRecord",
+      "discriminator": [
+        206,
+        23,
+        5,
+        97,
+        161,
+        157,
+        25,
+        107
       ]
     }
   ],
@@ -2604,6 +2843,74 @@
       }
     },
     {
+      "name": "MerchantCustomerRecord",
+      "docs": [
+        "Tracks relationship between merchant and customer",
+        "One record per merchant-customer pair"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "docs": [
+              "Merchant pubkey"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "docs": [
+              "Customer wallet"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "total_issued",
+            "docs": [
+              "Total tokens issued to this customer by this merchant"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_redeemed",
+            "docs": [
+              "Total tokens redeemed by this customer at this merchant"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "transaction_count",
+            "docs": [
+              "Number of transactions (earn + redeem)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "first_transaction",
+            "docs": [
+              "First transaction timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "last_transaction",
+            "docs": [
+              "Last transaction timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "MerchantRegisteredEvent",
       "docs": [
         "Event emitted when a merchant registers"
@@ -2661,6 +2968,83 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OfferRedemptionRecord",
+      "docs": [
+        "Tracks individual redemptions of offers",
+        "Allows merchants to see who redeemed what and when"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "docs": [
+              "Redemption offer that was redeemed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "docs": [
+              "Merchant who owns the offer"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "docs": [
+              "Customer who redeemed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "docs": [
+              "Voucher created"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of tokens spent"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Timestamp of redemption"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "is_used",
+            "docs": [
+              "Whether voucher has been used"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "used_at",
+            "docs": [
+              "When voucher was used (if applicable)"
+            ],
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
           }
         ]
       }
@@ -3227,6 +3611,74 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TransactionRecord",
+      "docs": [
+        "Stores individual transaction records for customers",
+        "Each transaction (earn or redeem) creates a new record"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "docs": [
+              "Customer wallet"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "docs": [
+              "Merchant involved"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "transaction_type",
+            "docs": [
+              "Transaction type: 0 = Earned, 1 = Redeemed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of tokens"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "tier",
+            "docs": [
+              "Customer tier at time of transaction"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Transaction index for this customer (for ordering)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
           }
         ]
       }

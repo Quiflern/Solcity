@@ -720,6 +720,85 @@ export type SolcityProtocol = {
           "writable": true
         },
         {
+          "name": "transactionRecord",
+          "docs": [
+            "Transaction record to store this transaction"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  97,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customer.wallet",
+                "account": "customer"
+              },
+              {
+                "kind": "account",
+                "path": "customer.transaction_count",
+                "account": "customer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchantCustomerRecord",
+          "docs": [
+            "Merchant-Customer relationship record"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "customer.wallet",
+                "account": "customer"
+              }
+            ]
+          }
+        },
+        {
           "name": "rewardRule",
           "docs": [
             "Optional reward rule to apply"
@@ -955,6 +1034,127 @@ export type SolcityProtocol = {
               {
                 "kind": "account",
                 "path": "redemptionOffer"
+              },
+              {
+                "kind": "arg",
+                "path": "voucherSeed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transactionRecord",
+          "docs": [
+            "Transaction record to store this redemption"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  97,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "customerAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "customer.transaction_count",
+                "account": "customer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchantCustomerRecord",
+          "docs": [
+            "Merchant-Customer relationship record"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116,
+                  95,
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  109,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant"
+              },
+              {
+                "kind": "account",
+                "path": "customerAuthority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "offerRedemptionRecord",
+          "docs": [
+            "Offer redemption record for analytics"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114,
+                  95,
+                  114,
+                  101,
+                  100,
+                  101,
+                  109,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "redemptionOffer"
+              },
+              {
+                "kind": "account",
+                "path": "customerAuthority"
               },
               {
                 "kind": "arg",
@@ -2060,6 +2260,32 @@ export type SolcityProtocol = {
       ]
     },
     {
+      "name": "merchantCustomerRecord",
+      "discriminator": [
+        88,
+        10,
+        55,
+        158,
+        244,
+        235,
+        195,
+        95
+      ]
+    },
+    {
+      "name": "offerRedemptionRecord",
+      "discriminator": [
+        208,
+        32,
+        155,
+        183,
+        75,
+        239,
+        84,
+        206
+      ]
+    },
+    {
       "name": "redemptionOffer",
       "discriminator": [
         170,
@@ -2096,6 +2322,19 @@ export type SolcityProtocol = {
         95,
         251,
         83
+      ]
+    },
+    {
+      "name": "transactionRecord",
+      "discriminator": [
+        206,
+        23,
+        5,
+        97,
+        161,
+        157,
+        25,
+        107
       ]
     }
   ],
@@ -2610,6 +2849,74 @@ export type SolcityProtocol = {
       }
     },
     {
+      "name": "merchantCustomerRecord",
+      "docs": [
+        "Tracks relationship between merchant and customer",
+        "One record per merchant-customer pair"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "merchant",
+            "docs": [
+              "Merchant pubkey"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "docs": [
+              "Customer wallet"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "totalIssued",
+            "docs": [
+              "Total tokens issued to this customer by this merchant"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalRedeemed",
+            "docs": [
+              "Total tokens redeemed by this customer at this merchant"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "transactionCount",
+            "docs": [
+              "Number of transactions (earn + redeem)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "firstTransaction",
+            "docs": [
+              "First transaction timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "lastTransaction",
+            "docs": [
+              "Last transaction timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "merchantRegisteredEvent",
       "docs": [
         "Event emitted when a merchant registers"
@@ -2667,6 +2974,83 @@ export type SolcityProtocol = {
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "offerRedemptionRecord",
+      "docs": [
+        "Tracks individual redemptions of offers",
+        "Allows merchants to see who redeemed what and when"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "docs": [
+              "Redemption offer that was redeemed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "docs": [
+              "Merchant who owns the offer"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "customer",
+            "docs": [
+              "Customer who redeemed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "voucher",
+            "docs": [
+              "Voucher created"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of tokens spent"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Timestamp of redemption"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "isUsed",
+            "docs": [
+              "Whether voucher has been used"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "usedAt",
+            "docs": [
+              "When voucher was used (if applicable)"
+            ],
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
           }
         ]
       }
@@ -3233,6 +3617,74 @@ export type SolcityProtocol = {
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "transactionRecord",
+      "docs": [
+        "Stores individual transaction records for customers",
+        "Each transaction (earn or redeem) creates a new record"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "customer",
+            "docs": [
+              "Customer wallet"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "docs": [
+              "Merchant involved"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "transactionType",
+            "docs": [
+              "Transaction type: 0 = Earned, 1 = Redeemed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of tokens"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "tier",
+            "docs": [
+              "Customer tier at time of transaction"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Transaction index for this customer (for ordering)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
           }
         ]
       }

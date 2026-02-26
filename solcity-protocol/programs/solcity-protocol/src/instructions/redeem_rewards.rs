@@ -1,4 +1,7 @@
-use crate::{Customer, LoyaltyProgram, Merchant, RedemptionOffer, RedemptionVoucher, RewardsRedeemedEvent, SolcityError};
+use crate::{
+    Customer, LoyaltyProgram, Merchant, MerchantCustomerRecord, OfferRedemptionRecord, 
+    RedemptionOffer, RedemptionVoucher, TransactionRecord, RewardsRedeemedEvent, SolcityError
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::{self, Token2022};
 use anchor_spl::token_interface::{Mint, TokenAccount};
@@ -78,6 +81,49 @@ pub struct RedeemRewards<'info> {
         bump
     )]
     pub voucher: Account<'info, RedemptionVoucher>,
+
+    /// Transaction record to store this redemption
+    #[account(
+        init,
+        payer = customer_authority,
+        space = TransactionRecord::SPACE,
+        seeds = [
+            TransactionRecord::SEED_PREFIX,
+            customer_authority.key().as_ref(),
+            &customer.transaction_count.to_le_bytes()
+        ],
+        bump
+    )]
+    pub transaction_record: Account<'info, TransactionRecord>,
+
+    /// Merchant-Customer relationship record
+    #[account(
+        init_if_needed,
+        payer = customer_authority,
+        space = MerchantCustomerRecord::SPACE,
+        seeds = [
+            MerchantCustomerRecord::SEED_PREFIX,
+            merchant.key().as_ref(),
+            customer_authority.key().as_ref()
+        ],
+        bump
+    )]
+    pub merchant_customer_record: Account<'info, MerchantCustomerRecord>,
+
+    /// Offer redemption record for analytics
+    #[account(
+        init,
+        payer = customer_authority,
+        space = OfferRedemptionRecord::SPACE,
+        seeds = [
+            OfferRedemptionRecord::SEED_PREFIX,
+            redemption_offer.key().as_ref(),
+            customer_authority.key().as_ref(),
+            voucher_seed.to_le_bytes().as_ref()
+        ],
+        bump
+    )]
+    pub offer_redemption_record: Account<'info, OfferRedemptionRecord>,
 
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
@@ -164,6 +210,64 @@ pub fn handler(ctx: Context<RedeemRewards>, voucher_seed: u64) -> Result<()> {
         .ok_or(SolcityError::Overflow)?;
 
     customer.last_activity = clock.unix_timestamp;
+
+    customer.transaction_count = customer
+        .transaction_count
+        .checked_add(1)
+        .ok_or(SolcityError::Overflow)?;
+
+    // Store transaction record
+    let transaction_record = &mut ctx.accounts.transaction_record;
+    transaction_record.customer = ctx.accounts.customer_authority.key();
+    transaction_record.merchant = merchant.key();
+    transaction_record.transaction_type = 1; // 1 = Redeemed
+    transaction_record.amount = offer_cost;
+    transaction_record.tier = match customer.tier {
+        crate::state::CustomerTier::Bronze => 0,
+        crate::state::CustomerTier::Silver => 1,
+        crate::state::CustomerTier::Gold => 2,
+        crate::state::CustomerTier::Platinum => 3,
+    };
+    transaction_record.timestamp = clock.unix_timestamp;
+    transaction_record.index = customer.transaction_count - 1; // Already incremented above
+    transaction_record.bump = ctx.bumps.transaction_record;
+
+    // Update merchant-customer record
+    let merchant_customer_record = &mut ctx.accounts.merchant_customer_record;
+    if merchant_customer_record.merchant == Pubkey::default() {
+        // First time initialization (customer redeemed before earning)
+        merchant_customer_record.merchant = merchant.key();
+        merchant_customer_record.customer = ctx.accounts.customer_authority.key();
+        merchant_customer_record.total_issued = 0;
+        merchant_customer_record.total_redeemed = offer_cost;
+        merchant_customer_record.transaction_count = 1;
+        merchant_customer_record.first_transaction = clock.unix_timestamp;
+        merchant_customer_record.last_transaction = clock.unix_timestamp;
+        merchant_customer_record.bump = ctx.bumps.merchant_customer_record;
+    } else {
+        // Update existing record
+        merchant_customer_record.total_redeemed = merchant_customer_record
+            .total_redeemed
+            .checked_add(offer_cost)
+            .ok_or(SolcityError::Overflow)?;
+        merchant_customer_record.transaction_count = merchant_customer_record
+            .transaction_count
+            .checked_add(1)
+            .ok_or(SolcityError::Overflow)?;
+        merchant_customer_record.last_transaction = clock.unix_timestamp;
+    }
+
+    // Store offer redemption record
+    let offer_redemption_record = &mut ctx.accounts.offer_redemption_record;
+    offer_redemption_record.offer = ctx.accounts.redemption_offer.key();
+    offer_redemption_record.merchant = merchant.key();
+    offer_redemption_record.customer = ctx.accounts.customer_authority.key();
+    offer_redemption_record.voucher = voucher.key();
+    offer_redemption_record.amount = offer_cost;
+    offer_redemption_record.timestamp = clock.unix_timestamp;
+    offer_redemption_record.is_used = false;
+    offer_redemption_record.used_at = None;
+    offer_redemption_record.bump = ctx.bumps.offer_redemption_record;
 
     // Emit event for off-chain processing
     emit!(RewardsRedeemedEvent {

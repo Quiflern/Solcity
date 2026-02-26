@@ -1,6 +1,6 @@
 use crate::{
-    Customer, LoyaltyProgram, Merchant, RewardRule, RewardsIssuedEvent, TierUpgradeEvent,
-    SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
+    Customer, LoyaltyProgram, Merchant, MerchantCustomerRecord, RewardRule, RewardsIssuedEvent, 
+    TierUpgradeEvent, TransactionRecord, SolcityError, ISSUANCE_FEE_PER_TOKEN, PERCENTAGE_DIVISOR,
 };
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
@@ -56,6 +56,34 @@ pub struct IssueRewards<'info> {
         constraint = customer_token_account.mint == mint.key() @ SolcityError::InvalidMint,
     )]
     pub customer_token_account: InterfaceAccount<'info, TokenAccount>,
+
+    /// Transaction record to store this transaction
+    #[account(
+        init,
+        payer = merchant_authority,
+        space = TransactionRecord::SPACE,
+        seeds = [
+            TransactionRecord::SEED_PREFIX,
+            customer.wallet.as_ref(),
+            &customer.transaction_count.to_le_bytes()
+        ],
+        bump
+    )]
+    pub transaction_record: Account<'info, TransactionRecord>,
+
+    /// Merchant-Customer relationship record
+    #[account(
+        init_if_needed,
+        payer = merchant_authority,
+        space = MerchantCustomerRecord::SPACE,
+        seeds = [
+            MerchantCustomerRecord::SEED_PREFIX,
+            merchant.key().as_ref(),
+            customer.wallet.as_ref()
+        ],
+        bump
+    )]
+    pub merchant_customer_record: Account<'info, MerchantCustomerRecord>,
 
     /// Optional reward rule to apply
     /// CHECK: Optional account, validated in handler if provided
@@ -263,6 +291,47 @@ pub fn handler(
             total_earned: customer.total_earned,
             timestamp: clock.unix_timestamp,
         });
+    }
+
+    // Store transaction record
+    let transaction_record = &mut ctx.accounts.transaction_record;
+    transaction_record.customer = customer_wallet;
+    transaction_record.merchant = merchant_key;
+    transaction_record.transaction_type = 0; // 0 = Earned
+    transaction_record.amount = final_reward;
+    transaction_record.tier = match customer.tier {
+        crate::state::CustomerTier::Bronze => 0,
+        crate::state::CustomerTier::Silver => 1,
+        crate::state::CustomerTier::Gold => 2,
+        crate::state::CustomerTier::Platinum => 3,
+    };
+    transaction_record.timestamp = clock.unix_timestamp;
+    transaction_record.index = customer.transaction_count - 1; // Already incremented above
+    transaction_record.bump = ctx.bumps.transaction_record;
+
+    // Update merchant-customer record
+    let merchant_customer_record = &mut ctx.accounts.merchant_customer_record;
+    if merchant_customer_record.merchant == Pubkey::default() {
+        // First time initialization
+        merchant_customer_record.merchant = merchant_key;
+        merchant_customer_record.customer = customer_wallet;
+        merchant_customer_record.total_issued = final_reward;
+        merchant_customer_record.total_redeemed = 0;
+        merchant_customer_record.transaction_count = 1;
+        merchant_customer_record.first_transaction = clock.unix_timestamp;
+        merchant_customer_record.last_transaction = clock.unix_timestamp;
+        merchant_customer_record.bump = ctx.bumps.merchant_customer_record;
+    } else {
+        // Update existing record
+        merchant_customer_record.total_issued = merchant_customer_record
+            .total_issued
+            .checked_add(final_reward)
+            .ok_or(SolcityError::Overflow)?;
+        merchant_customer_record.transaction_count = merchant_customer_record
+            .transaction_count
+            .checked_add(1)
+            .ok_or(SolcityError::Overflow)?;
+        merchant_customer_record.last_transaction = clock.unix_timestamp;
     }
 
     // Emit rewards issued event

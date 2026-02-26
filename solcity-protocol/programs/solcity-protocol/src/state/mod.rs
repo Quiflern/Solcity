@@ -1,13 +1,19 @@
 pub mod customer;
 pub mod loyalty_program;
 pub mod merchant;
+pub mod merchant_customer_record;
+pub mod offer_redemption_record;
 pub mod redemption_offer;
 pub mod redemption_voucher;
 pub mod reward_rule;
+pub mod transaction_record;
 
 pub use customer::*;
 pub use loyalty_program::*;
 pub use merchant::*;
+pub use merchant_customer_record::*;
+pub use offer_redemption_record::*;
 pub use redemption_offer::*;
 pub use redemption_voucher::*;
 pub use reward_rule::*;
+pub use transaction_record::*;
