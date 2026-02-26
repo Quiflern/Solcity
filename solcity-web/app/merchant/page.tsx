@@ -291,7 +291,7 @@ export default function MerchantDashboard() {
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
                       Reward Rate
                     </h4>
-                    <p className="text-2xl font-semibold">
+                    <p className="text-2xl font-semibold text-accent">
                       {rewardRate.toFixed(2)} SLCY/$
                     </p>
                   </div>
@@ -299,29 +299,29 @@ export default function MerchantDashboard() {
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
                       Tokens Issued
                     </h4>
-                    <p className="text-2xl font-semibold">
+                    <p className="text-2xl font-semibold text-accent">
                       {merchantAccount.totalIssued
                         ? Number(merchantAccount.totalIssued).toLocaleString()
                         : "0"}{" "}
-                      SLCY
+                      <span className="text-text">SLCY</span>
                     </p>
                   </div>
                   <div className="bg-panel border border-border p-6 rounded-xl">
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
                       Tokens Redeemed
                     </h4>
-                    <p className="text-2xl font-semibold">
+                    <p className="text-2xl font-semibold text-accent">
                       {merchantAccount.totalRedeemed
                         ? Number(merchantAccount.totalRedeemed).toLocaleString()
                         : "0"}{" "}
-                      SLCY
+                      <span className="text-text">SLCY</span>
                     </p>
                   </div>
                   <div className="bg-panel border border-border p-6 rounded-xl">
                     <h4 className="text-[0.7rem] uppercase text-text-secondary mb-3 tracking-wider">
                       Active Rules
                     </h4>
-                    <p className="text-2xl font-semibold">{activeRulesCount}</p>
+                    <p className="text-2xl font-semibold text-accent">{activeRulesCount}</p>
                   </div>
                 </div>
 
@@ -451,8 +451,8 @@ export default function MerchantDashboard() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <p className="text-sm font-semibold">
-                                      Issued {event.amount.toLocaleString()}{" "}
-                                      SLCY
+                                      Issued <span className="text-accent">{event.amount.toLocaleString()}{" "}
+                                        SLCY</span>
                                     </p>
                                     <span className="text-xs text-text-secondary">
                                       •
@@ -599,7 +599,7 @@ export default function MerchantDashboard() {
                   <div className="bg-black border border-dashed border-border rounded-lg p-5 mb-6">
                     <div className="flex justify-between text-sm text-text-secondary mb-2">
                       <span>Base Reward ({rewardRate.toFixed(2)} SLCY/$)</span>
-                      <span>{baseReward.toFixed(2)} SLCY</span>
+                      <span className="text-accent font-semibold">{baseReward.toFixed(2)} SLCY</span>
                     </div>
                     {selectedRule &&
                       purchaseAmount &&
@@ -607,16 +607,16 @@ export default function MerchantDashboard() {
                       selectedRule.minPurchase / 100 && (
                         <div className="flex justify-between text-sm text-accent mb-2">
                           <span>{selectedRule.name}</span>
-                          <span>{ruleMultiplier.toFixed(2)}x</span>
+                          <span className="font-semibold">{ruleMultiplier.toFixed(2)}x</span>
                         </div>
                       )}
                     <div className="flex justify-between text-sm text-text-secondary mb-2">
                       <span>Customer Tier Multiplier</span>
                       <span>Applied on-chain</span>
                     </div>
-                    <div className="flex justify-between text-sm text-text font-semibold mt-3 pt-3 border-t border-border">
-                      <span>Estimated Issuance</span>
-                      <span className="text-accent">
+                    <div className="flex justify-between text-base font-bold mt-3 pt-3 border-t border-border">
+                      <span className="text-text">Estimated Issuance</span>
+                      <span className="text-accent text-lg">
                         ~{estimatedIssuance.toFixed(2)} SLCY
                       </span>
                     </div>
