@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
-import { useTransactionHistory } from "@/hooks/customer/useTransactionHistory";
 import { calculateTierProgress, getTierInfo } from "@/lib/tiers";
 
 /**
@@ -30,11 +29,6 @@ import { calculateTierProgress, getTierInfo } from "@/lib/tiers";
 export default function CustomerDashboard() {
   const { publicKey } = useWallet();
   const { customerAccount, isRegistered, isLoading } = useCustomerAccount();
-  const { data: transactions = [], isLoading: txLoading } =
-    useTransactionHistory();
-
-  // Get recent transactions (last 5) - only fetch when needed
-  const recentTransactions = transactions.slice(0, 5);
 
   const totalEarned = customerAccount?.totalEarned
     ? Number(customerAccount.totalEarned)
@@ -60,27 +54,7 @@ export default function CustomerDashboard() {
   const copyToClipboard = () => {
     if (publicKey) {
       navigator.clipboard.writeText(publicKey.toString());
-      // You can add a toast notification here
     }
-  };
-
-  /**
-   * Formats a Unix timestamp into a human-readable relative time string
-   * @param timestamp - Unix timestamp in seconds
-   * @returns Formatted time string (e.g., "2h ago", "Yesterday")
-   */
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
   };
 
   return (
@@ -335,66 +309,40 @@ export default function CustomerDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {txLoading ? (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8">
-                              <div className="w-8 h-8 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-2" />
-                              <p className="text-text-secondary text-sm">
-                                Loading transactions...
-                              </p>
-                            </TableCell>
-                          </TableRow>
-                        ) : recentTransactions.length === 0 ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={5}
-                              className="text-center text-text-secondary py-8"
-                            >
-                              <p className="mb-2">No transactions yet</p>
-                              <p className="text-xs">
-                                Make a purchase at a merchant to earn rewards
-                              </p>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          recentTransactions.map((tx) => (
-                            <TableRow key={tx.signature}>
-                              <TableCell>{tx.merchant}</TableCell>
-                              <TableCell>
-                                <span
-                                  className={`text-xs px-2 py-0.5 rounded ${tx.type === "earned"
-                                    ? "bg-accent/10 text-accent"
-                                    : "bg-red-500/10 text-red-500"
-                                    }`}
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center text-text-secondary py-12"
+                          >
+                            <div className="flex flex-col items-center">
+                              <div className="w-12 h-12 mb-3 rounded-full bg-accent/10 flex items-center justify-center">
+                                <svg
+                                  className="w-6 h-6 text-accent"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
                                 >
-                                  {tx.type === "earned" ? "Earned" : "Redeemed"}
-                                </span>
-                              </TableCell>
-                              <TableCell
-                                className={`font-semibold ${tx.type === "earned"
-                                  ? "text-accent"
-                                  : "text-red-500"
-                                  }`}
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                  />
+                                </svg>
+                              </div>
+                              <p className="mb-2 font-medium">View Full Transaction History</p>
+                              <p className="text-xs mb-4 max-w-sm">
+                                See all your earned and redeemed rewards with detailed information
+                              </p>
+                              <Link
+                                href="/customer/history"
+                                className="inline-block bg-accent text-black px-5 py-2 rounded-lg font-semibold hover:bg-accent/90 transition-colors text-sm"
                               >
-                                {tx.type === "earned" ? "+" : "-"}
-                                {tx.amount.toLocaleString()} SLCY
-                              </TableCell>
-                              <TableCell className="text-text-secondary">
-                                {formatDate(tx.timestamp)}
-                              </TableCell>
-                              <TableCell>
-                                <a
-                                  href={`https://explorer.solana.com/tx/${tx.signature}?cluster=devnet`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-text-secondary text-xs flex items-center gap-1 hover:text-accent transition-colors"
-                                >
-                                  View Tx ↗
-                                </a>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
+                                View History
+                              </Link>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
