@@ -119,10 +119,9 @@ export function useMerchantCustomers(merchantPubkey: PublicKey | null) {
       }
     },
     enabled: !!program && !!merchantAuthority,
-    retry: false, // Disable retries on rate limit errors
-    staleTime: Infinity, // Never consider data stale
-    refetchInterval: false, // Disable auto-refetch
-    gcTime: Infinity,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });

@@ -8,12 +8,9 @@ import {
 } from "./useMerchantCustomers";
 import {
   type IssuanceEvent,
-  useMerchantIssuanceEvents,
-} from "./useMerchantIssuanceEvents";
-import {
   type RedemptionEvent,
-  useMerchantRedemptions,
-} from "./useMerchantRedemptions";
+  useMerchantEvents,
+} from "./useMerchantEvents";
 
 /**
  * Key performance metrics for merchant analytics.
@@ -118,22 +115,17 @@ export function useMerchantAnalytics(
   merchantPubkey: PublicKey | null,
   dateRange: "7d" | "30d" | "90d" | "custom" = "30d",
 ) {
-  const { data, isLoading: issuanceLoading } =
-    useMerchantIssuanceEvents(merchantPubkey);
-  const issuanceEvents: IssuanceEvent[] =
-    (data as IssuanceEvent[] | undefined) ?? [];
-
-  const { data: redemptionsData, isLoading: redemptionsLoading } =
-    useMerchantRedemptions(merchantPubkey);
-  const redemptions: RedemptionEvent[] =
-    (redemptionsData as RedemptionEvent[] | undefined) ?? [];
+  const { data: eventsData, isLoading: eventsLoading, isFetching: eventsFetching, dataUpdatedAt, refetch } = useMerchantEvents(merchantPubkey);
+  const issuanceEvents: IssuanceEvent[] = eventsData?.issuances ?? [];
+  const redemptions: RedemptionEvent[] = eventsData?.redemptions ?? [];
 
   const { data: customersData, isLoading: customersLoading } =
     useMerchantCustomers(merchantPubkey);
   const customers: CustomerData[] =
     (customersData as CustomerData[] | undefined) ?? [];
 
-  const isLoading = issuanceLoading || redemptionsLoading || customersLoading;
+  const isLoading = eventsLoading || customersLoading;
+  const isFetching = eventsFetching;
 
   // Filter data by date range
   const filteredData = useMemo((): {
@@ -219,29 +211,30 @@ export function useMerchantAnalytics(
       issuanceEvents: filteredIssuance,
       redemptions: filteredRedemptions,
     } = filteredData;
+
+    if (filteredIssuance.length === 0 && filteredRedemptions.length === 0) {
+      return [];
+    }
+
     const dataMap = new Map<string, { issued: number; redeemed: number }>();
 
     // Group issuance by date
-    filteredIssuance.forEach((event: IssuanceEvent) => {
+    for (const event of filteredIssuance) {
       const date = new Date(event.timestamp * 1000).toISOString().split("T")[0];
       const existing = dataMap.get(date) || { issued: 0, redeemed: 0 };
-      dataMap.set(date, {
-        ...existing,
-        issued: existing.issued + event.amount,
-      });
-    });
+      existing.issued += event.amount;
+      dataMap.set(date, existing);
+    }
 
     // Group redemptions by date
-    filteredRedemptions.forEach((redemption: RedemptionEvent) => {
+    for (const redemption of filteredRedemptions) {
       const date = new Date(redemption.timestamp * 1000)
         .toISOString()
         .split("T")[0];
       const existing = dataMap.get(date) || { issued: 0, redeemed: 0 };
-      dataMap.set(date, {
-        ...existing,
-        redeemed: existing.redeemed + redemption.amount,
-      });
-    });
+      existing.redeemed += redemption.amount;
+      dataMap.set(date, existing);
+    }
 
     // Convert to array and sort by date
     return Array.from(dataMap.entries())
@@ -266,19 +259,23 @@ export function useMerchantAnalytics(
   // Redemption breakdown by offer
   const redemptionBreakdown = useMemo((): RedemptionBreakdown[] => {
     const { redemptions: filteredRedemptions } = filteredData;
+
+    if (filteredRedemptions.length === 0) {
+      return [];
+    }
+
     const offerCounts = new Map<string, number>();
 
-    filteredRedemptions.forEach((r: RedemptionEvent) => {
-      const count = offerCounts.get(r.offerName) || 0;
-      offerCounts.set(r.offerName, count + 1);
-    });
+    for (const r of filteredRedemptions) {
+      offerCounts.set(r.offerName, (offerCounts.get(r.offerName) || 0) + 1);
+    }
 
     const total = filteredRedemptions.length;
     return Array.from(offerCounts.entries())
       .map(([offerName, count]) => ({
         offerName,
         count,
-        percentage: total > 0 ? (count / total) * 100 : 0,
+        percentage: (count / total) * 100,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5); // Top 5
@@ -286,54 +283,66 @@ export function useMerchantAnalytics(
 
   // Top customers by earned tokens
   const topCustomers = useMemo((): TopCustomer[] => {
+    if (customers.length === 0) {
+      return [];
+    }
+
+    // Build lookup maps for faster access
+    const customerEarnings = new Map<string, number>();
+    const customerRedemptions = new Map<string, number>();
+    const customerLastActivity = new Map<string, number>();
+
+    for (const event of issuanceEvents) {
+      const current = customerEarnings.get(event.customerWallet) || 0;
+      customerEarnings.set(event.customerWallet, current + event.amount);
+
+      const lastActivity = customerLastActivity.get(event.customerWallet) || 0;
+      if (event.timestamp > lastActivity) {
+        customerLastActivity.set(event.customerWallet, event.timestamp);
+      }
+    }
+
+    for (const redemption of redemptions) {
+      const current = customerRedemptions.get(redemption.customerWallet) || 0;
+      customerRedemptions.set(redemption.customerWallet, current + redemption.amount);
+
+      const lastActivity = customerLastActivity.get(redemption.customerWallet) || 0;
+      if (redemption.timestamp > lastActivity) {
+        customerLastActivity.set(redemption.customerWallet, redemption.timestamp);
+      }
+    }
+
     return customers
       .map((customer: CustomerData): TopCustomer => {
-        // Calculate total earned from issuance events
-        const earned = issuanceEvents
-          .filter((e: IssuanceEvent) => e.customerWallet === customer.wallet)
-          .reduce((sum: number, e: IssuanceEvent) => sum + e.amount, 0);
+        const earnedFromEvents = customerEarnings.get(customer.wallet) || 0;
+        const redeemedFromEvents = customerRedemptions.get(customer.wallet) || 0;
+        const lastActivityFromEvents = customerLastActivity.get(customer.wallet) || 0;
 
-        // Calculate total redeemed from redemption events
-        const redeemed = redemptions
-          .filter((r: RedemptionEvent) => r.customerWallet === customer.wallet)
-          .reduce((sum: number, r: RedemptionEvent) => sum + r.amount, 0);
-
-        // Find last activity timestamp
-        const lastIssuance = issuanceEvents
-          .filter((e: IssuanceEvent) => e.customerWallet === customer.wallet)
-          .sort(
-            (a: IssuanceEvent, b: IssuanceEvent) => b.timestamp - a.timestamp,
-          )[0];
-
-        const lastRedemption = redemptions
-          .filter((r: RedemptionEvent) => r.customerWallet === customer.wallet)
-          .sort(
-            (a: RedemptionEvent, b: RedemptionEvent) =>
-              b.timestamp - a.timestamp,
-          )[0];
-
-        const lastActivity = Math.max(
-          lastIssuance?.timestamp || 0,
-          lastRedemption?.timestamp || 0,
-        );
+        // Use on-chain lastActivity if available, otherwise fall back to events
+        const lastActivity = customer.lastActivity > 0
+          ? customer.lastActivity
+          : lastActivityFromEvents;
 
         return {
           ...customer,
-          earned,
-          redeemed,
+          earned: earnedFromEvents,
+          redeemed: redeemedFromEvents,
           lastActivity,
         };
       })
-      .sort((a: TopCustomer, b: TopCustomer) => b.earned - a.earned)
+      .sort((a: TopCustomer, b: TopCustomer) => b.totalEarned - a.totalEarned)
       .slice(0, 10); // Top 10
   }, [customers, issuanceEvents, redemptions]);
 
   return {
     isLoading,
+    isFetching,
     metrics,
     timeSeriesData,
     tierDistribution,
     redemptionBreakdown,
     topCustomers,
+    dataUpdatedAt,
+    refetch,
   };
 }

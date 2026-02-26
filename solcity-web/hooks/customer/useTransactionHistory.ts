@@ -81,13 +81,18 @@ export function useTransactionHistory() {
       const transactions: Transaction[] = [];
 
       try {
-        // Fetch recent transaction signatures for this wallet (last 100)
+        // Fetch transaction signatures for the PROGRAM, not just the wallet
+        // This ensures we get all loyalty program interactions
         const signatures = await connection.getSignaturesForAddress(
-          wallet.publicKey,
-          { limit: 100 },
+          program.programId,
+          { limit: 1000 }, // Fetch more since we're filtering
         );
 
         // Parse each transaction to extract loyalty events
+        // Add delay to avoid rate limiting
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        let processedCount = 0;
+
         for (const sig of signatures) {
           try {
             // Fetch full transaction details including logs
@@ -96,6 +101,17 @@ export function useTransactionHistory() {
             });
 
             if (!tx || !tx.meta) continue;
+
+            // Check if this transaction involves the customer's wallet
+            const accountKeys = tx.transaction.message.getAccountKeys();
+            const customerPubkey = wallet.publicKey;
+            if (!customerPubkey) continue;
+
+            const involvesCustomer = accountKeys.staticAccountKeys.some(
+              (key) => key.equals(customerPubkey)
+            );
+
+            if (!involvesCustomer) continue;
 
             // Extract program logs from transaction metadata
             const logs = tx.meta.logMessages || [];
@@ -199,8 +215,14 @@ export function useTransactionHistory() {
                 });
               }
             }
+
+            processedCount++;
+            // Add delay every 10 transactions to avoid rate limiting
+            if (processedCount % 10 === 0) {
+              await delay(100);
+            }
           } catch (err) {
-            console.error("Error parsing transaction:", err);
+            console.debug("Error parsing transaction:", err);
           }
         }
 
@@ -211,6 +233,11 @@ export function useTransactionHistory() {
       }
     },
     enabled: !!wallet.publicKey,
-    staleTime: 30000, // 30 seconds
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchInterval: false, // Disable automatic refetching
+    retry: 1,
   });
 }

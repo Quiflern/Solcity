@@ -20,7 +20,7 @@ import Dropdown from "@/components/ui/Dropdown";
 import Modal from "@/components/ui/Modal";
 import { useIssueRewards } from "@/hooks/merchant/useIssueRewards";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
-import { useMerchantIssuanceEvents } from "@/hooks/merchant/useMerchantIssuanceEvents";
+import { useMerchantIssuanceEvents } from "@/hooks/merchant/useMerchantEvents";
 import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
@@ -587,7 +587,7 @@ export default function MerchantDashboard() {
                     {selectedRule &&
                       purchaseAmount &&
                       parseFloat(purchaseAmount) <
-                        selectedRule.minPurchase / 100 && (
+                      selectedRule.minPurchase / 100 && (
                         <p className="text-xs text-yellow-500 mt-2">
                           Purchase amount must be at least $
                           {(selectedRule.minPurchase / 100).toFixed(2)} to apply
@@ -604,7 +604,7 @@ export default function MerchantDashboard() {
                     {selectedRule &&
                       purchaseAmount &&
                       parseFloat(purchaseAmount) >=
-                        selectedRule.minPurchase / 100 && (
+                      selectedRule.minPurchase / 100 && (
                         <div className="flex justify-between text-sm text-accent mb-2">
                           <span>{selectedRule.name}</span>
                           <span>{ruleMultiplier.toFixed(2)}x</span>
