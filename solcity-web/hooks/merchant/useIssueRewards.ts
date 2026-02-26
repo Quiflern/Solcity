@@ -158,87 +158,32 @@ export function useIssueRewards() {
       // Wait for blockchain to index the transaction
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Remove the pending optimistic update before fetching real data
       if (publicKey) {
-        queryClient.setQueryData(
-          ["merchantIssuanceEvents", publicKey.toString()],
-          (old: unknown) => {
-            if (!old || !Array.isArray(old)) return old;
-            // Remove pending transactions
-            return old.filter((event) => event.signature !== "pending");
-          },
-        );
-      }
+        const [loyaltyProgram] = getLoyaltyProgramPDA(publicKey);
+        const [merchant] = getMerchantPDA(publicKey, loyaltyProgram);
 
-      // Invalidate and refetch merchant data to reflect new statistics
-      queryClient.invalidateQueries({
-        queryKey: ["merchant", publicKey?.toString()],
-      });
-
-      // Invalidate transactions and events to show the new issuance
-      if (publicKey) {
+        // Invalidate and refetch merchant data to reflect new statistics
         queryClient.invalidateQueries({
-          queryKey: ["merchantTransactions", publicKey.toString()],
+          queryKey: ["merchant", publicKey.toString()],
         });
+
+        // Invalidate transaction records to show the new issuance
         queryClient.invalidateQueries({
-          queryKey: ["merchantIssuanceEvents", publicKey.toString()],
+          queryKey: ["merchantTransactionRecords", merchant.toString()],
+        });
+
+        // Invalidate customer records to update stats and chart
+        queryClient.invalidateQueries({
+          queryKey: ["merchantCustomerRecords", merchant.toString()],
         });
       }
     },
-    onMutate: async ({ customerWallet, purchaseAmount, ruleId }) => {
-      // Optimistically update the UI before the transaction completes
-      // This provides instant feedback to the user
-      if (!publicKey) return;
-
-      // Cancel any outgoing refetches to prevent race conditions
-      await queryClient.cancelQueries({
-        queryKey: ["merchantIssuanceEvents", publicKey.toString()],
-      });
-
-      // Snapshot the previous value for rollback on error
-      const previousEvents = queryClient.getQueryData([
-        "merchantIssuanceEvents",
-        publicKey.toString(),
-      ]);
-
-      // Add a temporary "pending" event to the UI
-      queryClient.setQueryData(
-        ["merchantIssuanceEvents", publicKey.toString()],
-        (old: unknown) => {
-          // Create temporary event with approximate values
-          const tempEvent = {
-            signature: "pending",
-            timestamp: Date.now() / 1000,
-            customerWallet: customerWallet.toString(),
-            amount: Math.floor(purchaseAmount * 1.0), // Approximate, will be updated
-            purchaseAmount: purchaseAmount,
-            tierMultiplier: 1.0,
-            ruleMultiplier: 1.0,
-            ruleApplied: !!ruleId,
-            customerTier: "Bronze",
-          };
-
-          // If no old data, return array with just the temp event
-          if (!old || !Array.isArray(old)) {
-            return [tempEvent];
-          }
-
-          return [tempEvent, ...old];
-        },
-      );
-
-      // Return context with the previous value for rollback
-      return { previousEvents };
+    onMutate: async () => {
+      // No optimistic updates needed - we'll just refetch after success
+      // Transaction records are fast and reliable from on-chain data
     },
-    onError: (_err, _variables, context) => {
-      // If the mutation fails, roll back to the previous value
-      // This removes the optimistic "pending" event
-      if (publicKey && context?.previousEvents) {
-        queryClient.setQueryData(
-          ["merchantIssuanceEvents", publicKey.toString()],
-          context.previousEvents,
-        );
-      }
+    onError: () => {
+      // No rollback needed since we're not doing optimistic updates
     },
   });
 

@@ -21,7 +21,7 @@ import Modal from "@/components/ui/Modal";
 import { useIssueRewards } from "@/hooks/merchant/useIssueRewards";
 import { useMerchantAccount } from "@/hooks/merchant/useMerchantAccount";
 import { useMerchantCustomerRecords } from "@/hooks/merchant/useMerchantCustomerRecords";
-import { useMerchantIssuanceEvents } from "@/hooks/merchant/useMerchantEvents";
+import { useMerchantTransactionRecords } from "@/hooks/merchant/useMerchantTransactionRecords";
 import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
 
@@ -66,8 +66,8 @@ export default function MerchantDashboard() {
     : null;
   const { data: rules = [], isLoading: rulesLoading } =
     useMerchantRewardRules(merchantPDA);
-  const { data: issuanceEvents = [], isLoading: eventsLoading } =
-    useMerchantIssuanceEvents(merchantPDA);
+  const { data: transactionRecords = [], isLoading: transactionsLoading } =
+    useMerchantTransactionRecords(merchantPDA);
   const { data: customerRecords = [], isLoading: recordsLoading } =
     useMerchantCustomerRecords(merchantPDA);
 
@@ -397,7 +397,7 @@ export default function MerchantDashboard() {
                 {/* Recent Issuance Feed */}
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg">Recent Issuance Feed</h3>
+                    <h3 className="text-lg">Recent Activity</h3>
                     <Link
                       href="/merchant/analytics"
                       className="text-sm text-accent hover:underline flex items-center gap-1"
@@ -406,14 +406,14 @@ export default function MerchantDashboard() {
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>
-                  {eventsLoading ? (
+                  {transactionsLoading ? (
                     <div className="bg-panel border border-border rounded-xl p-8 text-center">
                       <div className="w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin mx-auto mb-3" />
                       <p className="text-text-secondary text-sm">
                         Loading transactions...
                       </p>
                     </div>
-                  ) : issuanceEvents.length === 0 ? (
+                  ) : transactionRecords.length === 0 ? (
                     <div className="bg-panel border border-border rounded-xl p-8 text-center">
                       <p className="text-text-secondary text-sm">
                         No transactions yet
@@ -423,92 +423,70 @@ export default function MerchantDashboard() {
                       </p>
                     </div>
                   ) : (
-                    <div className="bg-panel border border-border rounded-xl">
-                      <div className="divide-y divide-border">
-                        {issuanceEvents.slice(0, 10).map((event) => (
+                    <div className="bg-panel border border-border rounded-xl divide-y divide-border">
+                      {transactionRecords.slice(0, 10).map((record) => {
+                        const isIssue = record.transactionType === 'issue';
+                        const date = new Date(record.timestamp * 1000);
+
+                        return (
                           <div
-                            key={event.signature}
+                            key={record.publicKey}
                             className="p-4 hover:bg-white/5 transition-colors"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 flex-1">
-                                <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center shrink-0">
-                                  <svg
-                                    className="w-5 h-5 text-accent"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <title>Rewards Issued</title>
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                  </svg>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm font-semibold">
-                                      Issued <span className="text-accent">{event.amount.toLocaleString()}{" "}
-                                        SLCY</span>
-                                    </p>
-                                    <span className="text-xs text-text-secondary">
-                                      •
-                                    </span>
-                                    <p className="text-xs text-text-secondary">
-                                      {new Date(
-                                        event.timestamp * 1000,
-                                      ).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })}
-                                    </p>
-                                  </div>
-                                  <p className="text-xs text-text-secondary font-mono truncate">
-                                    To:{" "}
-                                    {event.customerWallet !== "Unknown"
-                                      ? `${event.customerWallet.slice(0, 4)}...${event.customerWallet.slice(-4)}`
-                                      : "Unknown"}
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <p className="text-xs text-text-secondary">
-                                      ${event.purchaseAmount.toFixed(2)}{" "}
-                                      purchase
-                                    </p>
-                                    <span className="text-xs text-text-secondary">
-                                      •
-                                    </span>
-                                    <p className="text-xs text-text-secondary">
-                                      {event.customerTier} tier
-                                    </p>
-                                    {event.ruleApplied && (
-                                      <>
-                                        <span className="text-xs text-text-secondary">
-                                          •
-                                        </span>
-                                        <p className="text-xs text-accent">
-                                          {event.ruleMultiplier}x rule
-                                        </p>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
+                            <div className="flex items-center gap-3">
+                              {/* Icon */}
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isIssue ? 'bg-accent/10' : 'bg-red-500/10'
+                                }`}>
+                                <svg
+                                  className={`w-5 h-5 ${isIssue ? 'text-accent' : 'text-red-500'}`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={2}
+                                >
+                                  <title>{isIssue ? 'Issued' : 'Redeemed'}</title>
+                                  <circle cx="9" cy="9" r="6" />
+                                  <circle cx="15" cy="15" r="6" />
+                                </svg>
                               </div>
-                              <a
-                                href={`https://explorer.solana.com/tx/${event.signature}?cluster=devnet`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-accent hover:underline shrink-0 ml-4 flex items-center gap-1"
-                              >
-                                View TX
-                                <ChevronRight className="w-3 h-3" />
-                              </a>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-3 mb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium">
+                                      {isIssue ? 'Rewards Issued' : 'Rewards Redeemed'}
+                                    </p>
+                                    <span className={`text-sm font-bold ${isIssue ? 'text-accent' : 'text-red-500'}`}>
+                                      {isIssue ? '+' : '-'}{record.amount.toLocaleString()} SLCY
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-text-secondary whitespace-nowrap">
+                                    {date.toLocaleString([], {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </p>
+                                </div>
+
+                                <code className="text-[0.7rem] text-text-secondary font-mono block mb-1.5">
+                                  {record.customer}
+                                </code>
+
+                                {record.tier && (
+                                  <div className="flex flex-wrap items-center gap-2 text-[0.7rem] text-text-secondary">
+                                    <span className="bg-accent/10 text-accent px-2 py-0.5 rounded capitalize">
+                                      {record.tier}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
