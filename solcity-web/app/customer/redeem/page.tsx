@@ -150,6 +150,15 @@ export default function RedeemPage() {
   };
 
   /**
+   * Copies text to system clipboard
+   * @param text - Text to copy
+   */
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard", { duration: 2000 });
+  };
+
+  /**
    * Executes the reward redemption transaction
    * Creates a voucher on-chain and updates customer balance
    */
@@ -673,10 +682,21 @@ export default function RedeemPage() {
           size="md"
         >
           {selectedVoucher && (
-            <div className="space-y-6">
-              {/* Voucher Card - Clean, no background effects */}
+            <div className="space-y-4">
+              {/* USED Alert Message - Outside the card */}
+              {selectedVoucher.isUsed && (
+                <div className="bg-red-500/90 backdrop-blur-sm px-4 py-3 rounded-lg flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-white text-sm font-bold uppercase tracking-wider">
+                    This voucher has been used
+                  </span>
+                </div>
+              )}
+
+              {/* Voucher Card */}
               <div className="relative flex items-center justify-center py-4">
-                {/* Voucher Card - Sharp corners */}
                 <div
                   className="relative w-full max-w-[280px] h-[420px] bg-[rgba(25,25,25,0.95)] rounded-sm p-5 flex flex-col justify-between overflow-hidden"
                   style={{
@@ -700,15 +720,6 @@ export default function RedeemPage() {
                       maskComposite: "exclude",
                     }}
                   />
-
-                  {/* Status badge */}
-                  {selectedVoucher.isUsed && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className="text-[0.6rem] uppercase font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                        Used
-                      </span>
-                    </div>
-                  )}
 
                   {/* Header */}
                   <div className="flex justify-between items-start">
@@ -763,21 +774,18 @@ export default function RedeemPage() {
                         style={{ boxShadow: "0 0 10px #d0ff14" }}
                       />
                       <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
-                        Offer Details
+                        Offer
                       </span>
-                      <h1 className="text-xl font-bold text-white leading-tight">
-                        {selectedVoucher.offerName.split(" - ")[0] ||
-                          selectedVoucher.offerName}
-                        <br />
-                        <span className="text-gray-400 text-base">
-                          {selectedVoucher.offerName.split(" - ")[1] ||
-                            selectedVoucher.offerDescription.split(".")[0]}
-                        </span>
+                      <h1 className="text-lg font-bold text-white leading-tight mb-1">
+                        {selectedVoucher.offerName}
                       </h1>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        {selectedVoucher.offerDescription}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Perforation - Zigzag like a ticket */}
+                  {/* Perforation */}
                   <div className="relative w-full my-3">
                     <svg
                       width="100%"
@@ -803,8 +811,20 @@ export default function RedeemPage() {
                         <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
                           Redemption Code
                         </span>
-                        <div className="font-mono text-sm text-accent font-bold tracking-widest">
-                          {selectedVoucher.redemptionCode}
+                        <div className="flex items-center gap-2">
+                          <div className="font-mono text-sm text-accent font-bold tracking-widest">
+                            {selectedVoucher.redemptionCode}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(selectedVoucher.redemptionCode)}
+                            className="text-accent hover:text-accent/80 transition-colors"
+                            title="Copy code"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
 

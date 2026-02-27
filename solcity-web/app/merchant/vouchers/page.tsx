@@ -82,24 +82,9 @@ export default function MerchantVouchersPage() {
     if (!merchantPDA) return;
 
     try {
-      // Derive offer redemption record PDA
-      const voucherSeed = voucher.redemptionCode.split("-").slice(1).join("");
-      const seed = BigInt(`0x${voucherSeed}`);
-
-      const [offerRedemptionRecordPda] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("offer_redemption"),
-          new PublicKey(voucher.redemptionOffer).toBuffer(),
-          new PublicKey(voucher.customer).toBuffer(),
-          Buffer.from(seed.toString()),
-        ],
-        new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID!)
-      );
-
       await updateStatusMutation.mutateAsync({
         voucherPubkey: new PublicKey(voucher.publicKey),
         merchantPubkey: merchantPDA,
-        offerRedemptionRecordPubkey: offerRedemptionRecordPda,
         status,
       });
 
@@ -193,8 +178,8 @@ export default function MerchantVouchersPage() {
                   type="button"
                   onClick={() => setStatusFilter(filter)}
                   className={`px-4 py-2 text-sm rounded-lg transition-colors ${statusFilter === filter
-                      ? "bg-accent text-black"
-                      : "bg-panel border border-border text-text hover:border-accent"
+                    ? "bg-accent text-black"
+                    : "bg-panel border border-border text-text hover:border-accent"
                     }`}
                 >
                   {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -314,10 +299,10 @@ export default function MerchantVouchersPage() {
                         <td className="py-5 px-6 border-b border-border">
                           <span
                             className={`text-[0.7rem] px-2 py-1 rounded uppercase font-semibold ${status === "active"
-                                ? "bg-accent/10 text-accent"
-                                : status === "used"
-                                  ? "bg-gray-500/10 text-gray-400"
-                                  : "bg-red-500/10 text-red-400"
+                              ? "bg-accent/10 text-accent"
+                              : status === "used"
+                                ? "bg-gray-500/10 text-gray-400"
+                                : "bg-red-500/10 text-red-400"
                               }`}
                           >
                             {status}

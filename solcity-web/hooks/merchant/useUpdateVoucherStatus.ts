@@ -20,8 +20,6 @@ interface UpdateVoucherStatusParams {
   voucherPubkey: PublicKey;
   /** Public key of the merchant */
   merchantPubkey: PublicKey;
-  /** Public key of the offer redemption record */
-  offerRedemptionRecordPubkey: PublicKey;
   /** New status to set */
   status: VoucherStatus;
 }
@@ -45,7 +43,6 @@ export function useUpdateVoucherStatus() {
     mutationFn: async ({
       voucherPubkey,
       merchantPubkey,
-      offerRedemptionRecordPubkey,
       status,
     }: UpdateVoucherStatusParams) => {
       if (!wallet.publicKey || !wallet.signTransaction) {
@@ -57,6 +54,22 @@ export function useUpdateVoucherStatus() {
       });
       const program = getProgram(provider);
 
+      // Fetch all offer redemption records and find the one matching this voucher
+      const records = await program.account.offerRedemptionRecord.all([
+        {
+          memcmp: {
+            offset: 8 + 32 + 32 + 32, // Skip discriminator + offer + merchant + customer
+            bytes: voucherPubkey.toBase58(),
+          },
+        },
+      ]);
+
+      if (records.length === 0) {
+        throw new Error("Offer redemption record not found");
+      }
+
+      const offerRedemptionRecordPda = records[0].publicKey;
+
       // Convert status to enum format expected by program
       const statusEnum = { [status.toLowerCase()]: {} };
 
@@ -67,7 +80,7 @@ export function useUpdateVoucherStatus() {
           merchantAuthority: wallet.publicKey,
           merchant: merchantPubkey,
           voucher: voucherPubkey,
-          offerRedemptionRecord: offerRedemptionRecordPubkey,
+          offerRedemptionRecord: offerRedemptionRecordPda,
         })
         .rpc();
 
@@ -86,6 +99,7 @@ export function useUpdateVoucherStatus() {
 
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["merchantVouchers"] });
+      queryClient.invalidateQueries({ queryKey: ["customerVouchers"] });
     },
     onError: (error: Error) => {
       console.error("Update voucher status error:", error);

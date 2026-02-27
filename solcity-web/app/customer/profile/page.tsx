@@ -5,7 +5,6 @@ import { Ticket } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { useCustomerAccount } from "@/hooks/customer/useCustomerAccount";
 import {
@@ -36,6 +35,7 @@ export default function ProfilePage() {
     useCustomerVouchers();
   const [voucherModalOpen, setVoucherModalOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [voucherFilter, setVoucherFilter] = useState<"all" | "active" | "used" | "expired">("all");
 
   // Extract customer account data with safe defaults
   const totalEarned = customerAccount?.totalEarned
@@ -128,8 +128,14 @@ export default function ProfilePage() {
     setSelectedVoucher(null);
   };
 
-  // Get active vouchers (not used) for display
-  const activeVouchers = vouchers.filter((v) => !v.isUsed).slice(0, 3);
+  // Filter vouchers based on selected filter
+  const filteredVouchers = voucherFilter === "all"
+    ? vouchers
+    : voucherFilter === "active"
+      ? vouchers.filter(v => !v.isUsed && Date.now() / 1000 < v.expiresAt)
+      : voucherFilter === "used"
+        ? vouchers.filter(v => v.isUsed)
+        : vouchers.filter(v => !v.isUsed && Date.now() / 1000 > v.expiresAt);
 
   if (isLoading) {
     return (
@@ -340,40 +346,49 @@ export default function ProfilePage() {
           {/* My Vouchers */}
           <div className="bg-panel border border-border rounded-xl p-8 mb-8">
             <div className="flex justify-between items-center mb-6">
-              <div className="text-xs uppercase tracking-widest text-text-secondary">
-                My Vouchers
+              <div>
+                <div className="text-xs uppercase tracking-widest text-text-secondary mb-1">
+                  My Vouchers
+                </div>
+                <p className="text-xs text-text-secondary">
+                  {vouchers.length} total voucher{vouchers.length !== 1 ? 's' : ''}
+                </p>
               </div>
-              <Link
-                href="/customer/redeem?tab=history"
-                className="text-xs text-accent hover:text-accent/80 transition-colors flex items-center gap-1"
-              >
-                View All
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </Link>
+              <div className="flex gap-2">
+                {(["all", "active", "used", "expired"] as const).map((filter) => {
+                  const filterCounts = {
+                    all: vouchers.length,
+                    active: vouchers.filter(v => !v.isUsed && Date.now() / 1000 < v.expiresAt).length,
+                    used: vouchers.filter(v => v.isUsed).length,
+                    expired: vouchers.filter(v => !v.isUsed && Date.now() / 1000 > v.expiresAt).length,
+                  };
+
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => setVoucherFilter(filter)}
+                      className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${voucherFilter === filter
+                        ? "bg-accent/10 border border-accent text-accent"
+                        : "bg-panel border border-border text-text hover:border-accent"
+                        }`}
+                    >
+                      {filter.charAt(0).toUpperCase() + filter.slice(1)} ({filterCounts[filter]})
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             {vouchersLoading ? (
               <div className="text-center py-8">
                 <div className="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : activeVouchers.length === 0 ? (
+            ) : vouchers.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
                   <Ticket className="w-8 h-8 text-accent" />
                 </div>
-                <p className="text-text-secondary mb-2">No active vouchers</p>
+                <p className="text-text-secondary mb-2">No vouchers yet</p>
                 <p className="text-text-secondary text-sm mb-4">
                   Redeem rewards to get vouchers
                 </p>
@@ -384,43 +399,160 @@ export default function ProfilePage() {
                   Browse Offers →
                 </Link>
               </div>
+            ) : filteredVouchers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-panel border border-border flex items-center justify-center">
+                  <Ticket className="w-8 h-8 text-text-secondary" />
+                </div>
+                <p className="text-text-secondary mb-2">
+                  No {voucherFilter} vouchers
+                </p>
+                <p className="text-text-secondary text-sm">
+                  {voucherFilter === "active" && "You don't have any active vouchers right now"}
+                  {voucherFilter === "used" && "You haven't used any vouchers yet"}
+                  {voucherFilter === "expired" && "No expired vouchers found"}
+                </p>
+              </div>
             ) : (
               <div className="grid grid-cols-3 gap-4">
-                {activeVouchers.map((voucher) => (
-                  <button
-                    key={voucher.publicKey}
-                    type="button"
-                    onClick={() => openVoucherModal(voucher)}
-                    className="text-left p-4 bg-bg-primary rounded-lg border border-border hover:border-accent transition-all group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Ticket className="w-5 h-5 text-accent" />
+                {filteredVouchers.slice(0, 6).map((voucher) => {
+                  const isExpired = Date.now() / 1000 > voucher.expiresAt;
+                  const status = voucher.isUsed ? "used" : isExpired ? "expired" : "active";
+
+                  return (
+                    <button
+                      key={voucher.publicKey}
+                      type="button"
+                      onClick={() => openVoucherModal(voucher)}
+                      className="text-left group"
+                    >
+                      {/* Mini Voucher Card */}
+                      <div
+                        className="relative w-full h-[200px] bg-[rgba(25,25,25,0.95)] rounded-sm p-4 flex flex-col justify-between overflow-hidden transition-all group-hover:scale-[1.02]"
+                        style={{
+                          boxShadow: `
+                            inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+                            inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+                            0 10px 30px -10px rgba(0, 0, 0, 0.6)
+                          `,
+                        }}
+                      >
+                        {/* Border gradient */}
+                        <div
+                          className="absolute -inset-px rounded-sm pointer-events-none opacity-50"
+                          style={{
+                            background:
+                              "linear-gradient(180deg, rgba(255,255,255,0.1), transparent 40%, #d0ff14)",
+                            padding: "1px",
+                            WebkitMask:
+                              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                            WebkitMaskComposite: "xor",
+                            maskComposite: "exclude",
+                          }}
+                        />
+
+                        {/* Header */}
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 bg-accent shadow-[0_0_6px_#d0ff14]" />
+                            <span className="font-bold tracking-tight text-[0.65rem]">
+                              SOLCITY
+                            </span>
+                          </div>
+                          <span className={`text-[0.5rem] uppercase font-bold px-1.5 py-0.5 rounded border ${status === "active"
+                            ? "bg-accent/10 text-accent border-accent/20"
+                            : status === "used"
+                              ? "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                              : "bg-red-500/10 text-red-400 border-red-500/20"
+                            }`}>
+                            {status}
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col justify-center gap-2">
+                          <div>
+                            <span className="text-[#888] text-[0.5rem] uppercase tracking-wider font-semibold block mb-0.5">
+                              Merchant
+                            </span>
+                            <h3 className="text-xs font-medium text-white line-clamp-1">
+                              {voucher.merchantName}
+                            </h3>
+                          </div>
+                          <div className="relative pl-2">
+                            <div
+                              className="absolute left-0 top-0 bottom-0 w-0.5 bg-accent"
+                              style={{ boxShadow: "0 0 6px #d0ff14" }}
+                            />
+                            <span className="text-[#888] text-[0.5rem] uppercase tracking-wider font-semibold block mb-0.5">
+                              Offer
+                            </span>
+                            <h2 className="text-sm font-bold text-white leading-tight line-clamp-2">
+                              {voucher.offerName}
+                            </h2>
+                          </div>
+                        </div>
+
+                        {/* Perforation */}
+                        <div className="relative w-full my-2">
+                          <svg
+                            width="100%"
+                            height="4"
+                            viewBox="0 0 280 4"
+                            preserveAspectRatio="none"
+                            className="opacity-40"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M0,2 L7,0 L14,2 L21,0 L28,2 L35,0 L42,2 L49,0 L56,2 L63,0 L70,2 L77,0 L84,2 L91,0 L98,2 L105,0 L112,2 L119,0 L126,2 L133,0 L140,2 L147,0 L154,2 L161,0 L168,2 L175,0 L182,2 L189,0 L196,2 L203,0 L210,2 L217,0 L224,2 L231,0 L238,2 L245,0 L252,2 L259,0 L266,2 L273,0 L280,2"
+                              stroke="#666"
+                              strokeWidth="1"
+                              fill="none"
+                            />
+                          </svg>
+                        </div>
+
+                        {/* Bottom */}
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <span className="text-[#888] text-[0.5rem] uppercase tracking-wider font-semibold block mb-0.5">
+                              Cost
+                            </span>
+                            <span
+                              className="font-bold font-mono text-xs text-accent"
+                              style={{
+                                textShadow: "0 0 6px rgba(208, 255, 20, 0.3)",
+                              }}
+                            >
+                              {voucher.cost} SLCY
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[#888] text-[0.5rem] uppercase tracking-wider font-semibold block mb-0.5">
+                              Expires
+                            </span>
+                            <span className="text-[#eee] text-[0.6rem] font-medium">
+                              {new Date(voucher.expiresAt * 1000).toLocaleDateString(
+                                "en-US",
+                                { month: "short", day: "numeric" },
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-[0.65rem] uppercase font-bold px-2 py-1 rounded bg-accent/10 text-accent border border-accent/20">
-                        Active
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1 group-hover:text-accent transition-colors line-clamp-1">
-                      {voucher.offerName}
-                    </h3>
-                    <p className="text-xs text-text-secondary mb-2 line-clamp-1">
-                      {voucher.merchantName}
-                    </p>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-text-secondary">
-                        {voucher.cost} SLCY
-                      </span>
-                      <span className="text-text-secondary">
-                        Exp:{" "}
-                        {new Date(voucher.expiresAt * 1000).toLocaleDateString(
-                          "en-US",
-                          { month: "short", day: "numeric" },
-                        )}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {filteredVouchers.length > 6 && (
+              <div className="mt-4 text-center">
+                <Link
+                  href="/customer/redeem?tab=history"
+                  className="text-sm text-accent hover:text-accent/80 transition-colors"
+                >
+                  View all {filteredVouchers.length} vouchers →
+                </Link>
               </div>
             )}
           </div>
@@ -579,10 +711,21 @@ export default function ProfilePage() {
           size="md"
         >
           {selectedVoucher && (
-            <div className="space-y-6">
-              {/* Voucher Card - Clean, no background effects */}
+            <div className="space-y-4">
+              {/* USED Alert Message - Outside the card */}
+              {selectedVoucher.isUsed && (
+                <div className="bg-red-500/90 backdrop-blur-sm px-4 py-3 rounded-lg flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-white text-sm font-bold uppercase tracking-wider">
+                    This voucher has been used
+                  </span>
+                </div>
+              )}
+
+              {/* Voucher Card */}
               <div className="relative flex items-center justify-center py-4">
-                {/* Voucher Card - Sharp corners */}
                 <div
                   className="relative w-full max-w-[280px] h-[420px] bg-[rgba(25,25,25,0.95)] rounded-sm p-5 flex flex-col justify-between overflow-hidden"
                   style={{
@@ -606,15 +749,6 @@ export default function ProfilePage() {
                       maskComposite: "exclude",
                     }}
                   />
-
-                  {/* Status badge */}
-                  {selectedVoucher.isUsed && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className="text-[0.6rem] uppercase font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                        Used
-                      </span>
-                    </div>
-                  )}
 
                   {/* Header */}
                   <div className="flex justify-between items-start">
@@ -669,21 +803,18 @@ export default function ProfilePage() {
                         style={{ boxShadow: "0 0 10px #d0ff14" }}
                       />
                       <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
-                        Offer Details
+                        Offer
                       </span>
-                      <h1 className="text-xl font-bold text-white leading-tight">
-                        {selectedVoucher.offerName.split(" - ")[0] ||
-                          selectedVoucher.offerName}
-                        <br />
-                        <span className="text-gray-400 text-base">
-                          {selectedVoucher.offerName.split(" - ")[1] ||
-                            selectedVoucher.offerDescription.split(".")[0]}
-                        </span>
+                      <h1 className="text-lg font-bold text-white leading-tight mb-1">
+                        {selectedVoucher.offerName}
                       </h1>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        {selectedVoucher.offerDescription}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Perforation - Zigzag like a ticket */}
+                  {/* Perforation */}
                   <div className="relative w-full my-3">
                     <svg
                       width="100%"
@@ -709,8 +840,20 @@ export default function ProfilePage() {
                         <span className="text-[#888] text-[0.6rem] uppercase tracking-[0.15em] font-semibold block mb-0.5">
                           Redemption Code
                         </span>
-                        <div className="font-mono text-sm text-accent font-bold tracking-widest">
-                          {selectedVoucher.redemptionCode}
+                        <div className="flex items-center gap-2">
+                          <div className="font-mono text-sm text-accent font-bold tracking-widest">
+                            {selectedVoucher.redemptionCode}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(selectedVoucher.redemptionCode)}
+                            className="text-accent hover:text-accent/80 transition-colors"
+                            title="Copy code"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
 
@@ -742,15 +885,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-
-              {/* Action Button */}
-              <Button
-                variant="primary"
-                onClick={closeVoucherModal}
-                className="w-full"
-              >
-                Close
-              </Button>
             </div>
           )}
         </Modal>
