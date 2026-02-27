@@ -192,4 +192,9 @@ pub mod solcity_protocol {
     pub fn close_merchant(ctx: Context<CloseMerchant>) -> Result<()> {
         instructions::close_merchant::handler(ctx)
     }
+
+    /// Mark a voucher as used by merchant
+    pub fn use_voucher(ctx: Context<UpdateVoucherStatus>, status: VoucherStatus) -> Result<()> {
+        instructions::use_voucher::handler(ctx, status)
+    }
 }

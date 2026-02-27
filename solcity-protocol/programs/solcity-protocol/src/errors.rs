@@ -46,4 +46,13 @@ pub enum SolcityError {
 
     #[msg("Merchant has active reward rules. Delete all rules before closing account.")]
     MerchantHasActiveRules,
+
+    #[msg("Voucher has already been used")]
+    VoucherAlreadyUsed,
+
+    #[msg("Voucher has expired")]
+    VoucherExpired,
+
+    #[msg("Invalid account provided")]
+    InvalidAccount,
 }

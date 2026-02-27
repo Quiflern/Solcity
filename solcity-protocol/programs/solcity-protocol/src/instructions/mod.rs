@@ -15,6 +15,7 @@ pub mod toggle_reward_rule;
 pub mod update_merchant;
 pub mod update_redemption_offer;
 pub mod update_reward_rule;
+pub mod use_voucher;
 
 pub use close_merchant::*;
 pub use create_redemption_offer::*;
@@ -31,3 +32,4 @@ pub use toggle_reward_rule::*;
 pub use update_merchant::*;
 pub use update_redemption_offer::*;
 pub use update_reward_rule::*;
+pub use use_voucher::*;
