@@ -4,6 +4,7 @@ import { PublicKey } from "@solana/web3.js";
 import { Coins, Gift, Package, Percent, Ticket } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
@@ -167,8 +168,28 @@ export default function RedeemPage() {
       setRedeemSignature(result.signature);
       setVoucherAddress(result.voucherPda);
       setModalView("success");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Redemption failed:", error);
+
+      // Check for insufficient SOL balance error
+      const errorMessage = error?.message || error?.toString() || "";
+      if (errorMessage.includes("insufficient lamports") || errorMessage.includes("0x1")) {
+        toast.error("Insufficient SOL balance (~0.002 SOL needed for fees)", {
+          duration: 4000,
+        });
+      } else if (errorMessage.includes("InsufficientBalance")) {
+        toast.error("Not enough SLCY tokens to redeem this offer", {
+          duration: 3000,
+        });
+      } else if (errorMessage.includes("OfferNotAvailable")) {
+        toast.error("This offer is no longer available", {
+          duration: 3000,
+        });
+      } else {
+        toast.error("Failed to redeem rewards. Please try again.", {
+          duration: 3000,
+        });
+      }
     }
   };
 
@@ -337,12 +358,12 @@ export default function RedeemPage() {
                         <div className="flex items-center justify-between mb-3">
                           <span
                             className={`text-[0.65rem] uppercase font-bold px-3 py-1.5 rounded-full ${reward.type === "discount"
-                                ? "bg-accent/10 text-accent"
-                                : reward.type === "product"
-                                  ? "bg-blue-500/10 text-blue-400"
-                                  : reward.type === "cashback"
-                                    ? "bg-green-500/10 text-green-400"
-                                    : "bg-purple-500/10 text-purple-400"
+                              ? "bg-accent/10 text-accent"
+                              : reward.type === "product"
+                                ? "bg-blue-500/10 text-blue-400"
+                                : reward.type === "cashback"
+                                  ? "bg-green-500/10 text-green-400"
+                                  : "bg-purple-500/10 text-purple-400"
                               }`}
                           >
                             {reward.type === "discount"
@@ -519,8 +540,8 @@ export default function RedeemPage() {
                         <td className="py-5 px-4 border-b border-border text-sm">
                           <span
                             className={`px-2 py-1 rounded text-[0.7rem] font-semibold uppercase ${item.status === "used"
-                                ? "bg-[rgba(128,128,128,0.1)] text-gray-400"
-                                : "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
+                              ? "bg-[rgba(128,128,128,0.1)] text-gray-400"
+                              : "bg-[rgba(0,255,128,0.1)] text-[#00ff80]"
                               }`}
                           >
                             {item.status}
@@ -629,9 +650,10 @@ export default function RedeemPage() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() =>
-                  router.push(`/customer/voucher/${voucherAddress}`)
-                }
+                onClick={() => {
+                  closeModal();
+                  openVoucherModal(voucherAddress);
+                }}
                 className="flex-1"
               >
                 View Voucher

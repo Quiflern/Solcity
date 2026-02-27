@@ -189,8 +189,19 @@ export default function ProfilePage() {
         <main className="max-w-[1400px] mx-auto px-8 py-12 w-full">
           {/* Profile Header */}
           <section className="flex items-center gap-8 mb-12">
-            <div className="w-[100px] h-[100px] rounded-xl bg-gradient-to-br from-[#1a1a1a] to-[#333] border border-border flex items-center justify-center text-4xl">
-              👤
+            <div className="w-[100px] h-[100px] rounded-xl bg-gradient-to-br from-[#1a1a1a] to-[#333] border border-border flex items-center justify-center">
+              <svg
+                className="w-12 h-12 text-accent"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
             <div className="flex-1">
               <h1 className="text-3xl font-semibold mb-2">Customer Profile</h1>

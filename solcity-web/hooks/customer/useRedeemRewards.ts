@@ -158,21 +158,7 @@ export function useRedeemRewards() {
     },
     onError: (error: Error) => {
       console.error("Redeem error:", error);
-
-      let errorMessage = "Please try again";
-
-      // Parse and display user-friendly error messages
-      if (error.message?.includes("InsufficientBalance")) {
-        errorMessage = "Not enough tokens to redeem this offer";
-      } else if (error.message?.includes("OfferNotAvailable")) {
-        errorMessage = "This offer is no longer available";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast.error("Failed to redeem rewards", {
-        description: errorMessage,
-      });
+      // Error handling is done in the component for better UX
     },
   });
 }
