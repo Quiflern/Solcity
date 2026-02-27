@@ -11,7 +11,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 
-[Live Demo](https://solcityy.vercel.app) • [GitHub](https://github.com/Quiflern/Solcity) • [Features](#features) • [Getting Started](#getting-started) • [Documentation](#documentation)
+[Live Demo](https://solcityy.vercel.app) • [Video Demo](https://youtu.be/OwbO2uYSvQs) • [GitHub](https://github.com/Quiflern/Solcity) • [Features](#features) • [Getting Started](#getting-started) • [Documentation](#documentation)
 
 </div>
 
@@ -26,6 +26,21 @@ Solcity revolutionizes customer loyalty programs by leveraging blockchain techno
 - **Interoperable**: Single wallet holds tokens from all participating merchants
 - **Instant**: Earn and redeem rewards in seconds with Solana's 400ms finality
 - **Low-Cost**: Near-zero transaction fees make micro-rewards viable
+
+---
+
+## Demo
+
+🎥 **[Watch the Video Demo](https://youtu.be/OwbO2uYSvQs)** - See Solcity in action!
+
+The video walkthrough demonstrates:
+- Customer registration and earning rewards
+- Merchant dashboard and reward issuance
+- Tier progression and multipliers
+- Redemption offers and voucher system
+- Real-time analytics and transaction tracking
+
+🌐 **[Try the Live App](https://solcityy.vercel.app)** - Experience it yourself on Solana Devnet
 
 ---
 
