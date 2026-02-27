@@ -86,61 +86,64 @@ export default function MerchantNavbar() {
           <div className="flex gap-10 items-center">
             <Link
               href="/merchant"
-              className={`text-sm font-medium transition-colors ${
-                isActive("/merchant") && pathname === "/merchant"
+              className={`text-sm font-medium transition-colors ${isActive("/merchant") && pathname === "/merchant"
                   ? "text-accent"
                   : "text-text-secondary hover:text-accent"
-              }`}
+                }`}
             >
               Dashboard
             </Link>
             <Link
               href="/merchant/register"
-              className={`text-sm font-medium transition-colors ${
-                isActive("/merchant/register")
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/register")
                   ? "text-accent"
                   : "text-text-secondary hover:text-accent"
-              }`}
+                }`}
             >
               Register
             </Link>
             <Link
               href="/merchant/rules"
-              className={`text-sm font-medium transition-colors ${
-                isActive("/merchant/rules")
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/rules")
                   ? "text-accent"
                   : "text-text-secondary hover:text-accent"
-              }`}
+                }`}
             >
               Rules
             </Link>
             <Link
               href="/merchant/offers"
-              className={`text-sm font-medium transition-colors ${
-                isActive("/merchant/offers")
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/offers")
                   ? "text-accent"
                   : "text-text-secondary hover:text-accent"
-              }`}
+                }`}
             >
               Offers
             </Link>
             <Link
-              href="/merchant/analytics"
-              className={`text-sm font-medium transition-colors ${
-                isActive("/merchant/analytics")
+              href="/merchant/vouchers"
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/vouchers")
                   ? "text-accent"
                   : "text-text-secondary hover:text-accent"
-              }`}
+                }`}
+            >
+              Vouchers
+            </Link>
+            <Link
+              href="/merchant/analytics"
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/analytics")
+                  ? "text-accent"
+                  : "text-text-secondary hover:text-accent"
+                }`}
             >
               Analytics
             </Link>
             <Link
               href="/merchant/profile"
-              className={`text-sm font-medium transition-colors ${
-                isActive("/merchant/profile")
+              className={`text-sm font-medium transition-colors ${isActive("/merchant/profile")
                   ? "text-accent"
                   : "text-text-secondary hover:text-accent"
-              }`}
+                }`}
             >
               Profile
             </Link>

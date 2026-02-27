@@ -2211,6 +2211,88 @@
           }
         }
       ]
+    },
+    {
+      "name": "use_voucher",
+      "docs": [
+        "Mark a voucher as used by merchant"
+      ],
+      "discriminator": [
+        119,
+        82,
+        215,
+        169,
+        14,
+        144,
+        77,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "merchant_authority",
+          "docs": [
+            "Merchant authority who is updating the voucher status"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "docs": [
+            "Merchant account - must match the voucher's merchant"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchant_authority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "Merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher",
+          "docs": [
+            "Voucher to update"
+          ],
+          "writable": true
+        },
+        {
+          "name": "offer_redemption_record",
+          "docs": [
+            "Offer redemption record to update"
+          ],
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "status",
+          "type": {
+            "defined": {
+              "name": "VoucherStatus"
+            }
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2526,6 +2608,21 @@
       "code": 6014,
       "name": "MerchantHasActiveRules",
       "msg": "Merchant has active reward rules. Delete all rules before closing account."
+    },
+    {
+      "code": 6015,
+      "name": "VoucherAlreadyUsed",
+      "msg": "Voucher has already been used"
+    },
+    {
+      "code": 6016,
+      "name": "VoucherExpired",
+      "msg": "Voucher has expired"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidAccount",
+      "msg": "Invalid account provided"
     }
   ],
   "types": [
@@ -3679,6 +3776,26 @@
               "PDA bump"
             ],
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoucherStatus",
+      "docs": [
+        "Voucher status that merchant can set"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Used"
+          },
+          {
+            "name": "Revoked"
           }
         ]
       }

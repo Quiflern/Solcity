@@ -2217,6 +2217,88 @@ export type SolcityProtocol = {
           }
         }
       ]
+    },
+    {
+      "name": "useVoucher",
+      "docs": [
+        "Mark a voucher as used by merchant"
+      ],
+      "discriminator": [
+        119,
+        82,
+        215,
+        169,
+        14,
+        144,
+        77,
+        172
+      ],
+      "accounts": [
+        {
+          "name": "merchantAuthority",
+          "docs": [
+            "Merchant authority who is updating the voucher status"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "merchant",
+          "docs": [
+            "Merchant account - must match the voucher's merchant"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  114,
+                  99,
+                  104,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "merchantAuthority"
+              },
+              {
+                "kind": "account",
+                "path": "merchant.loyalty_program",
+                "account": "merchant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "voucher",
+          "docs": [
+            "Voucher to update"
+          ],
+          "writable": true
+        },
+        {
+          "name": "offerRedemptionRecord",
+          "docs": [
+            "Offer redemption record to update"
+          ],
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "status",
+          "type": {
+            "defined": {
+              "name": "voucherStatus"
+            }
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2532,6 +2614,21 @@ export type SolcityProtocol = {
       "code": 6014,
       "name": "merchantHasActiveRules",
       "msg": "Merchant has active reward rules. Delete all rules before closing account."
+    },
+    {
+      "code": 6015,
+      "name": "voucherAlreadyUsed",
+      "msg": "Voucher has already been used"
+    },
+    {
+      "code": 6016,
+      "name": "voucherExpired",
+      "msg": "Voucher has expired"
+    },
+    {
+      "code": 6017,
+      "name": "invalidAccount",
+      "msg": "Invalid account provided"
     }
   ],
   "types": [
@@ -3685,6 +3782,26 @@ export type SolcityProtocol = {
               "PDA bump"
             ],
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "voucherStatus",
+      "docs": [
+        "Voucher status that merchant can set"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "active"
+          },
+          {
+            "name": "used"
+          },
+          {
+            "name": "revoked"
           }
         ]
       }
