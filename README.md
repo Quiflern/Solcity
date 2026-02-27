@@ -37,12 +37,14 @@ Solcity revolutionizes customer loyalty programs by leveraging blockchain techno
 - **Single Wallet**: Manage all loyalty programs in one place
 - **Instant Rewards**: Earn tokens immediately upon purchase
 - **Flexible Redemption**: Redeem for discounts, products, cashback, or exclusive access
-- **Real-Time Dashboard**: Track earnings, growth, and tier progress
+- **Digital Vouchers**: Receive QR-coded vouchers when redeeming offers
+- **Real-Time Dashboard**: Track earnings, growth, tier progress, and active vouchers
 
 ### For Merchants
 - **Easy Setup**: Register and start issuing rewards in minutes
 - **Flexible Rules**: Create bonus multipliers, time-limited promotions, and custom reward logic
-- **Analytics Dashboard**: Track customer engagement and token issuance
+- **Analytics Dashboard**: Track customer engagement, token issuance, and voucher metrics
+- **Voucher Management**: View, track, and update status of customer vouchers
 - **Cost-Effective**: Solana's low fees (~$0.00025 per transaction)
 - **Customizable**: Set your own reward rates and redemption offers
 - **Transparent**: All transactions are verifiable on-chain
@@ -54,6 +56,8 @@ Solcity revolutionizes customer loyalty programs by leveraging blockchain techno
   - Memo Transfer: Track purchase context
 - **Tier-Based Multipliers**: Automatic tier upgrades based on lifetime earnings
 - **On-Chain Rules Engine**: Configurable reward rules and bonus multipliers
+- **Digital Voucher System**: QR-coded vouchers with unique redemption codes
+- **Voucher Status Management**: Track active, used, expired, and revoked vouchers
 - **Event Emission**: Track all activities for analytics and integrations
 
 ---
@@ -349,7 +353,9 @@ memo: "Purchase #12345 at Store Location A"
 4. **Redeem Rewards**
    - Browse redemption offers
    - Select an offer and confirm redemption
-   - Tokens are burned, benefit is issued
+   - Receive digital voucher with QR code
+   - Present voucher to merchant for benefit
+   - Track voucher status in your profile
 
 ### For Merchants
 
@@ -373,6 +379,12 @@ memo: "Purchase #12345 at Store Location A"
    - Set token costs and quantities
    - Toggle offers active/inactive
 
+5. **Manage Vouchers**
+   - View all issued vouchers
+   - Search and filter by status
+   - Mark vouchers as used
+   - Revoke or reactivate vouchers
+
 ---
 
 ## Testing
@@ -388,7 +400,8 @@ anchor test
 - Merchant registration
 - Customer registration
 - Reward issuance with tier multipliers
-- Redemption flow
+- Redemption flow with voucher creation
+- Voucher status management
 - Tier upgrades
 - Reward rules
 - Error handling
