@@ -1,6 +1,6 @@
 "use client";
 
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { useConnection } from "@solana/wallet-adapter-react";
 import type { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
@@ -77,10 +77,21 @@ export function useAllMerchants() {
       try {
         setIsLoading(true);
 
+        // Create a read-only wallet for public data access
+        const readOnlyWallet = {
+          publicKey: null,
+          signTransaction: async () => {
+            throw new Error("Read-only wallet cannot sign");
+          },
+          signAllTransactions: async () => {
+            throw new Error("Read-only wallet cannot sign");
+          },
+        } as unknown as Wallet;
+
         // Create a read-only provider (no wallet needed for public data)
         const provider = new AnchorProvider(
           connection,
-          {} as any, // No wallet needed for reading
+          readOnlyWallet,
           { commitment: "confirmed" },
         );
 

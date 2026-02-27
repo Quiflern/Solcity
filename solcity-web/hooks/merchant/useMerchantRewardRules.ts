@@ -1,7 +1,11 @@
 "use client";
 
+import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
+import { useConnection } from "@solana/wallet-adapter-react";
 import type { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
+import IDL_JSON from "@/lib/anchor/idl/solcity_protocol.json";
+import type { SolcityProtocol } from "@/lib/anchor/types/solcity_protocol";
 import { useSolcityProgram } from "../program/useSolcityProgram";
 
 /**
@@ -60,17 +64,45 @@ interface RewardRule {
  */
 export function useMerchantRewardRules(merchantPubkey: PublicKey | null) {
   const { program } = useSolcityProgram();
+  const { connection } = useConnection();
 
   return useQuery({
     queryKey: ["merchantRewardRules", merchantPubkey?.toString()],
     queryFn: async () => {
-      if (!program || !merchantPubkey) {
+      if (!merchantPubkey) {
         return [];
       }
 
       try {
+        // Use existing program or create a read-only one
+        let programToUse = program;
+
+        if (!programToUse) {
+          // Create a read-only wallet for public data access
+          const readOnlyWallet = {
+            publicKey: null,
+            signTransaction: async () => {
+              throw new Error("Read-only wallet cannot sign");
+            },
+            signAllTransactions: async () => {
+              throw new Error("Read-only wallet cannot sign");
+            },
+          } as unknown as Wallet;
+
+          const provider = new AnchorProvider(
+            connection,
+            readOnlyWallet,
+            { commitment: "confirmed" },
+          );
+
+          programToUse = new Program<SolcityProtocol>(
+            IDL_JSON as SolcityProtocol,
+            provider,
+          );
+        }
+
         // Fetch all reward rule accounts
-        const allRules = await program.account.rewardRule.all();
+        const allRules = await programToUse.account.rewardRule.all();
 
         // Filter rules for this merchant
         const merchantRules = allRules
@@ -121,7 +153,7 @@ export function useMerchantRewardRules(merchantPubkey: PublicKey | null) {
         return [];
       }
     },
-    enabled: !!program && !!merchantPubkey,
+    enabled: !!merchantPubkey,
     staleTime: 30 * 1000, // 30 seconds
   });
 }

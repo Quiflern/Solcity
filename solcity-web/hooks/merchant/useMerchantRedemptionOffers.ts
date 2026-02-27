@@ -1,7 +1,11 @@
 "use client";
 
+import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
+import { useConnection } from "@solana/wallet-adapter-react";
 import type { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
+import IDL_JSON from "@/lib/anchor/idl/solcity_protocol.json";
+import type { SolcityProtocol } from "@/lib/anchor/types/solcity_protocol";
 import { useSolcityProgram } from "../program/useSolcityProgram";
 
 /**
@@ -31,18 +35,46 @@ import { useSolcityProgram } from "../program/useSolcityProgram";
  */
 export function useMerchantRedemptionOffers(merchantPubkey: PublicKey | null) {
   const { program } = useSolcityProgram();
+  const { connection } = useConnection();
 
   return useQuery({
     queryKey: ["merchantRedemptionOffers", merchantPubkey?.toString()],
     queryFn: async () => {
-      if (!program || !merchantPubkey) {
+      if (!merchantPubkey) {
         return [];
       }
 
       try {
+        // Use existing program or create a read-only one
+        let programToUse = program;
+
+        if (!programToUse) {
+          // Create a read-only wallet for public data access
+          const readOnlyWallet = {
+            publicKey: null,
+            signTransaction: async () => {
+              throw new Error("Read-only wallet cannot sign");
+            },
+            signAllTransactions: async () => {
+              throw new Error("Read-only wallet cannot sign");
+            },
+          } as unknown as Wallet;
+
+          const provider = new AnchorProvider(
+            connection,
+            readOnlyWallet,
+            { commitment: "confirmed" },
+          );
+
+          programToUse = new Program<SolcityProtocol>(
+            IDL_JSON as SolcityProtocol,
+            provider,
+          );
+        }
+
         // Fetch all redemption offer accounts for this merchant
         // Uses memcmp to filter by merchant field (offset 8 after discriminator)
-        const offers = await program.account.redemptionOffer.all([
+        const offers = await programToUse.account.redemptionOffer.all([
           {
             memcmp: {
               offset: 8, // After discriminator
@@ -59,7 +91,7 @@ export function useMerchantRedemptionOffers(merchantPubkey: PublicKey | null) {
         return [];
       }
     },
-    enabled: !!program && !!merchantPubkey,
+    enabled: !!merchantPubkey,
     staleTime: 30000, // 30 seconds
   });
 }

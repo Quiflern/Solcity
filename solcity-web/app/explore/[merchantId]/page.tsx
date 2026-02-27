@@ -151,15 +151,45 @@ export default function MerchantDetailPage() {
    */
   useEffect(() => {
     const fetchMerchant = async () => {
-      if (!program || !merchantId) return;
+      if (!merchantId) return;
 
       try {
         setIsLoading(true);
         setError(null);
 
+        // Create a read-only program instance if no wallet is connected
+        let programToUse = program;
+
+        if (!programToUse) {
+          const { AnchorProvider, Program } = await import("@coral-xyz/anchor");
+          const IDL_JSON = (await import("@/lib/anchor/idl/solcity_protocol.json")).default;
+
+          // Create a read-only wallet for public data access
+          const readOnlyWallet = {
+            publicKey: null,
+            signTransaction: async () => {
+              throw new Error("Read-only wallet cannot sign");
+            },
+            signAllTransactions: async () => {
+              throw new Error("Read-only wallet cannot sign");
+            },
+          } as any;
+
+          const provider = new AnchorProvider(
+            connection,
+            readOnlyWallet,
+            { commitment: "confirmed" },
+          );
+
+          programToUse = new Program(
+            IDL_JSON as any,
+            provider,
+          );
+        }
+
         const merchantPubkey = new PublicKey(merchantId);
         const merchantAccount =
-          await program.account.merchant.fetch(merchantPubkey);
+          await programToUse.account.merchant.fetch(merchantPubkey);
 
         // Transform blockchain data to component state format
         setMerchant({
@@ -187,7 +217,7 @@ export default function MerchantDetailPage() {
     };
 
     fetchMerchant();
-  }, [program, merchantId]);
+  }, [program, merchantId, connection]);
 
   // Generate avatar URL
   const getAvatarUrl = (avatarCode: string, businessName: string) => {
@@ -325,7 +355,7 @@ export default function MerchantDetailPage() {
               Total Issued
             </span>
             <div className="text-2xl font-semibold text-accent">
-              {formatNumber(merchant.totalIssued / 1e9)} SLCY
+              {formatNumber(merchant.totalIssued)} SLCY
             </div>
           </div>
           <div className="bg-panel p-8">
@@ -499,7 +529,7 @@ export default function MerchantDetailPage() {
                       Total Tokens Issued
                     </p>
                     <p className="text-2xl font-semibold text-accent">
-                      {formatNumber(merchant.totalIssued / 1e9)} SLCY
+                      {formatNumber(merchant.totalIssued)} SLCY
                     </p>
                   </div>
                   <div>
@@ -507,7 +537,7 @@ export default function MerchantDetailPage() {
                       Total Tokens Redeemed
                     </p>
                     <p className="text-2xl font-semibold text-accent">
-                      {formatNumber(merchant.totalRedeemed / 1e9)} SLCY
+                      {formatNumber(merchant.totalRedeemed)} SLCY
                     </p>
                   </div>
                   <div>
