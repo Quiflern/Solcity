@@ -108,15 +108,35 @@ export default function CustomerDashboard() {
                 <div className="relative overflow-hidden bg-linear-to-br from-[#111] to-[#050505] border border-border p-10 rounded-xl mb-8 after:content-[''] after:absolute after:-top-1/2 after:-right-[10%] after:w-[300px] after:h-[300px] after:bg-[radial-gradient(circle,rgba(208,255,20,0.05)_0%,transparent_70%)] after:pointer-events-none">
                   <div className="relative z-10">
                     <div className="text-xs uppercase tracking-widest text-text-secondary mb-2">
-                      Total Earned
+                      Available Balance
                     </div>
                     <div className="flex items-baseline gap-3">
                       <span className="text-[3.5rem] font-bold text-accent tracking-tight">
-                        {totalEarned.toLocaleString()}
+                        {(totalEarned - totalRedeemed).toLocaleString()}
                       </span>
                       <span className="text-xl font-medium text-text-secondary">
                         SLCY
                       </span>
+                    </div>
+
+                    {/* Total Earned and Redeemed Stats */}
+                    <div className="grid grid-cols-2 gap-6 mt-6">
+                      <div>
+                        <div className="text-[0.65rem] uppercase tracking-widest text-text-secondary mb-1.5">
+                          Total Earned
+                        </div>
+                        <div className="text-xl font-semibold text-text">
+                          {totalEarned.toLocaleString()} <span className="text-sm text-text-secondary">SLCY</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[0.65rem] uppercase tracking-widest text-text-secondary mb-1.5">
+                          Total Redeemed
+                        </div>
+                        <div className="text-xl font-semibold text-text">
+                          {totalRedeemed.toLocaleString()} <span className="text-sm text-text-secondary">SLCY</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Tier Section */}
@@ -362,8 +382,8 @@ export default function CustomerDashboard() {
                                 <TableCell>
                                   <span
                                     className={`text-xs px-2 py-1 rounded ${tx.type === 'earned'
-                                        ? 'bg-accent/10 text-accent'
-                                        : 'bg-red-500/10 text-red-500'
+                                      ? 'bg-accent/10 text-accent'
+                                      : 'bg-red-500/10 text-red-500'
                                       }`}
                                   >
                                     {tx.type === 'earned' ? 'Earned' : 'Redeemed'}
