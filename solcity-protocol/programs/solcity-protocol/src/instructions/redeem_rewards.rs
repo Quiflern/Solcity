@@ -21,7 +21,7 @@ pub struct RedeemRewards<'info> {
         ],
         bump = customer.bump,
     )]
-    pub customer: Account<'info, Customer>,
+    pub customer: Box<Account<'info, Customer>>,
 
     #[account(
         mut,
@@ -32,14 +32,14 @@ pub struct RedeemRewards<'info> {
         ],
         bump = merchant.bump,
     )]
-    pub merchant: Account<'info, Merchant>,
+    pub merchant: Box<Account<'info, Merchant>>,
 
     #[account(
         mut,
         seeds = [LoyaltyProgram::SEED_PREFIX, loyalty_program.authority.as_ref()],
         bump = loyalty_program.bump,
     )]
-    pub loyalty_program: Account<'info, LoyaltyProgram>,
+    pub loyalty_program: Box<Account<'info, LoyaltyProgram>>,
 
     #[account(
         mut,
@@ -65,7 +65,7 @@ pub struct RedeemRewards<'info> {
         bump = redemption_offer.bump,
         constraint = redemption_offer.merchant == merchant.key() @ SolcityError::UnauthorizedAccess,
     )]
-    pub redemption_offer: Account<'info, RedemptionOffer>,
+    pub redemption_offer: Box<Account<'info, RedemptionOffer>>,
 
     #[account(
         init,
@@ -80,7 +80,7 @@ pub struct RedeemRewards<'info> {
         ],
         bump
     )]
-    pub voucher: Account<'info, RedemptionVoucher>,
+    pub voucher: Box<Account<'info, RedemptionVoucher>>,
 
     /// Transaction record to store this redemption
     #[account(
@@ -94,7 +94,7 @@ pub struct RedeemRewards<'info> {
         ],
         bump
     )]
-    pub transaction_record: Account<'info, TransactionRecord>,
+    pub transaction_record: Box<Account<'info, TransactionRecord>>,
 
     /// Merchant-Customer relationship record
     #[account(
@@ -108,7 +108,7 @@ pub struct RedeemRewards<'info> {
         ],
         bump
     )]
-    pub merchant_customer_record: Account<'info, MerchantCustomerRecord>,
+    pub merchant_customer_record: Box<Account<'info, MerchantCustomerRecord>>,
 
     /// Offer redemption record for analytics
     #[account(
@@ -123,7 +123,7 @@ pub struct RedeemRewards<'info> {
         ],
         bump
     )]
-    pub offer_redemption_record: Account<'info, OfferRedemptionRecord>,
+    pub offer_redemption_record: Box<Account<'info, OfferRedemptionRecord>>,
 
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
@@ -163,9 +163,28 @@ pub fn handler(ctx: Context<RedeemRewards>, voucher_seed: u64) -> Result<()> {
     )?;
 
     // Generate redemption code (SLCY-XXXX-XXXX format)
+    // Avoid format! macro to prevent stack overflow
     let code_part1 = (voucher_seed % 10000) as u16;
     let code_part2 = ((voucher_seed / 10000) % 10000) as u16;
-    let redemption_code = format!("SLCY-{:04X}-{:04X}", code_part1, code_part2);
+    
+    // Manually construct the string to avoid stack allocation
+    let mut redemption_code = String::with_capacity(14);
+    redemption_code.push_str("SLCY-");
+    
+    // Convert first part to hex
+    let hex_chars = b"0123456789ABCDEF";
+    redemption_code.push(hex_chars[(code_part1 >> 12) as usize] as char);
+    redemption_code.push(hex_chars[((code_part1 >> 8) & 0xF) as usize] as char);
+    redemption_code.push(hex_chars[((code_part1 >> 4) & 0xF) as usize] as char);
+    redemption_code.push(hex_chars[(code_part1 & 0xF) as usize] as char);
+    
+    redemption_code.push('-');
+    
+    // Convert second part to hex
+    redemption_code.push(hex_chars[(code_part2 >> 12) as usize] as char);
+    redemption_code.push(hex_chars[((code_part2 >> 8) & 0xF) as usize] as char);
+    redemption_code.push(hex_chars[((code_part2 >> 4) & 0xF) as usize] as char);
+    redemption_code.push(hex_chars[(code_part2 & 0xF) as usize] as char);
 
     // Initialize voucher
     let voucher = &mut ctx.accounts.voucher;
