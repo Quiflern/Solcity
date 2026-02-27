@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { ChevronRight, Info } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -24,6 +24,8 @@ import { useMerchantCustomerRecords } from "@/hooks/merchant/useMerchantCustomer
 import { useMerchantTransactionRecords } from "@/hooks/merchant/useMerchantTransactionRecords";
 import { useMerchantRewardRules } from "@/hooks/merchant/useMerchantRewardRules";
 import { getLoyaltyProgramPDA, getMerchantPDA } from "@/lib/anchor/pdas";
+import { getTierInfo } from "@/lib/tiers";
+import { useSolcityProgram } from "@/hooks/program/useSolcityProgram";
 
 /**
  * Merchant Dashboard Page
@@ -54,11 +56,17 @@ export default function MerchantDashboard() {
     isRegistered,
   } = useMerchantAccount();
   const { issueRewards, isLoading: issuingRewards } = useIssueRewards();
+  const { program } = useSolcityProgram();
 
   const [customerWallet, setCustomerWallet] = useState("");
   const [purchaseAmount, setPurchaseAmount] = useState("");
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [customerTierInfo, setCustomerTierInfo] = useState<{
+    tierName: string;
+    multiplier: number;
+  } | null>(null);
+  const [fetchingTier, setFetchingTier] = useState(false);
 
   // Get merchant PDA for fetching rules and customer records
   const merchantPDA = publicKey
@@ -86,6 +94,53 @@ export default function MerchantDashboard() {
       : null;
 
   /**
+   * Fetch customer tier information when wallet address changes
+   */
+  useEffect(() => {
+    const fetchCustomerTier = async () => {
+      if (!customerWallet || !program) {
+        setCustomerTierInfo(null);
+        return;
+      }
+
+      try {
+        const customerPubkey = new PublicKey(customerWallet);
+        setFetchingTier(true);
+
+        // Query customer account
+        const accounts = await program.account.customer.all([
+          {
+            memcmp: {
+              offset: 8, // After discriminator
+              bytes: customerPubkey.toBase58(),
+            },
+          },
+        ]);
+
+        if (accounts.length > 0) {
+          const customerAccount = accounts[0].account;
+          const tierInfo = getTierInfo(customerAccount.tier);
+          setCustomerTierInfo({
+            tierName: tierInfo.displayName,
+            multiplier: tierInfo.multiplier,
+          });
+        } else {
+          setCustomerTierInfo(null);
+        }
+      } catch (err) {
+        // Invalid wallet address or not found
+        setCustomerTierInfo(null);
+      } finally {
+        setFetchingTier(false);
+      }
+    };
+
+    // Debounce the fetch to avoid too many requests
+    const timeoutId = setTimeout(fetchCustomerTier, 500);
+    return () => clearTimeout(timeoutId);
+  }, [customerWallet, program]);
+
+  /**
    * Calculate base reward using merchant's reward rate
    * Base reward = purchase amount × reward rate (SLCY per dollar)
    */
@@ -97,9 +152,8 @@ export default function MerchantDashboard() {
     : 0;
 
   /**
-   * Calculate estimated issuance with rule multiplier
-   * Final estimate = base reward × rule multiplier
-   * Note: Customer tier multiplier is applied on-chain automatically
+   * Calculate estimated issuance with rule multiplier and customer tier
+   * Final estimate = base reward × rule multiplier × tier multiplier
    */
   let estimatedIssuance = baseReward;
   let ruleMultiplier = 1.0;
@@ -112,6 +166,11 @@ export default function MerchantDashboard() {
       ruleMultiplier = selectedRule.multiplier / 100; // Convert from basis points
       estimatedIssuance = baseReward * ruleMultiplier;
     }
+  }
+
+  // Apply customer tier multiplier if available
+  if (customerTierInfo) {
+    estimatedIssuance = estimatedIssuance * customerTierInfo.multiplier;
   }
 
   /**
@@ -188,9 +247,13 @@ export default function MerchantDashboard() {
 
       await issueRewards(customerPubkey, amount, selectedRuleId ?? undefined);
 
+      const tierText = customerTierInfo
+        ? ` (${customerTierInfo.tierName} tier: ${customerTierInfo.multiplier}x)`
+        : "";
+
       toast.success("Rewards Issued!", {
         id: loadingToastId,
-        description: `Successfully issued ${estimatedIssuance.toFixed(2)} SLCY tokens`,
+        description: `Successfully issued ~${estimatedIssuance.toFixed(2)} SLCY tokens${tierText}`,
         duration: 4000,
       });
 
@@ -198,6 +261,7 @@ export default function MerchantDashboard() {
       setCustomerWallet("");
       setPurchaseAmount("");
       setSelectedRuleId(null);
+      setCustomerTierInfo(null);
     } catch (err: unknown) {
       // Dismiss loading toast if it exists
       if (loadingToastId) {
@@ -588,9 +652,24 @@ export default function MerchantDashboard() {
                           <span className="font-semibold">{ruleMultiplier.toFixed(2)}x</span>
                         </div>
                       )}
-                    <div className="flex justify-between text-sm text-text-secondary mb-2">
-                      <span>Customer Tier Multiplier</span>
-                      <span>Applied on-chain</span>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className={customerTierInfo ? "text-text" : "text-text-secondary"}>
+                        Customer Tier Multiplier
+                      </span>
+                      {fetchingTier ? (
+                        <span className="text-text-secondary text-xs">Loading...</span>
+                      ) : customerTierInfo ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded">
+                            {customerTierInfo.tierName}
+                          </span>
+                          <span className="font-semibold text-accent">
+                            {customerTierInfo.multiplier.toFixed(2)}x
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-text-secondary text-xs">Enter wallet to check</span>
+                      )}
                     </div>
                     <div className="flex justify-between text-base font-bold mt-3 pt-3 border-t border-border">
                       <span className="text-text">Estimated Issuance</span>
@@ -598,6 +677,11 @@ export default function MerchantDashboard() {
                         ~{estimatedIssuance.toFixed(2)} SLCY
                       </span>
                     </div>
+                    {!customerTierInfo && (
+                      <p className="text-[0.65rem] text-yellow-500/80 mt-3 text-center">
+                        Note: Tier multiplier will be applied on-chain (1.0x-2.0x)
+                      </p>
+                    )}
                   </div>
 
                   <button
